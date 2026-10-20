@@ -6,6 +6,7 @@ SaytYoxla web service.
 GET  /            the Azerbaijani front page (web/static/index.html)
 POST /api/scan    {"url": "example.az"} -> report JSON
 GET  /health      for the hosting platform
+GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (web/seo.py)
 """
 
 from __future__ import annotations
@@ -17,12 +18,13 @@ from collections import defaultdict, deque
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import scanner
 from scanner.safety import UnsafeTarget, normalize
+from web import seo
 
 STATIC = Path(__file__).parent / "static"
 RATE_LIMIT = int(os.getenv("SCAN_RATE_LIMIT", "6"))      # scans per IP ...
@@ -79,6 +81,21 @@ def index():
     return FileResponse(STATIC / "index.html")
 
 
+@app.get("/robots.txt", include_in_schema=False)
+def robots():
+    return PlainTextResponse(seo.robots_txt())
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap():
+    return Response(seo.sitemap_xml(), media_type="application/xml")
+
+
+@app.get("/llms.txt", include_in_schema=False)
+def llms():
+    return PlainTextResponse(seo.llms_txt())
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -103,3 +120,12 @@ def scan(req: ScanRequest, request: Request):
         raise HTTPException(400, str(e)) from None
     _cache[key] = (time.time(), report)
     return JSONResponse(report)
+
+
+# Keep this last: it matches any single path segment, so earlier routes win.
+@app.get("/{filename}", include_in_schema=False)
+def google_verify(filename: str):
+    body = seo.google_verification(filename)
+    if body is None:
+        raise HTTPException(404, "Not Found")
+    return PlainTextResponse(body)

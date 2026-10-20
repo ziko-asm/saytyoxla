@@ -25,6 +25,9 @@ uvicorn web.app:app --reload            # website at http://127.0.0.1:8000
 ## Website
 `web/app.py` (FastAPI) serves an Azerbaijani page with a scan form, a step-by-step "Saytı necə işlətməli?" guide, the report grouped by area with a fix for every problem, print/PDF export and a WhatsApp button. `POST /api/scan` is rate-limited per IP and results are cached for 10 minutes. Set your WhatsApp number in `web/static/app.js` (`WA_NUMBER`).
 
+## Search engines
+`web/seo.py` serves `/robots.txt`, `/sitemap.xml`, `/llms.txt` and the Google Search Console verification file. The front page carries a canonical URL, Open Graph tags (`web/static/og-image.png`) and JSON-LD (WebSite, WebApplication, Person, FAQPage — keep the FAQ schema in sync with the visible FAQ). If the site moves to its own domain, set `SITE_URL` and update the canonical/OG URLs in `index.html`.
+
 Deploy on Render: New → Blueprint → this repo (`render.yaml`).
 
 By [Ziya Azizov](https://www.linkedin.com/in/ziya-azizov-91bba638a).

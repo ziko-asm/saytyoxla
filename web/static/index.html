@@ -3,8 +3,170 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SaytYoxla — saytınızı 30 saniyəyə pulsuz yoxlayın</title>
-<meta name="description" content="Saytınızın təhlükəsizliyini, e-poçt qorumasını, sürətini və telefona uyğunluğunu pulsuz yoxlayın. Nəticə sadə Azərbaycan dilində.">
+<title>Saytı pulsuz yoxla: təhlükəsizlik, SSL, sürət | SaytYoxla</title>
+<meta name="description" content="Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan dilində.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Ziya Azizov">
+<link rel="canonical" href="https://saytyoxla.onrender.com/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="az_AZ">
+<meta property="og:site_name" content="SaytYoxla">
+<meta property="og:url" content="https://saytyoxla.onrender.com/">
+<meta property="og:title" content="SaytYoxla — saytınızı 30 saniyəyə pulsuz yoxlayın">
+<meta property="og:description" content="Təhlükəsizlik, SSL, e-poçt qoruması, sürət və telefona uyğunluq — 0–100 bal və sadə dildə izah.">
+<meta property="og:image" content="https://saytyoxla.onrender.com/static/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebSite",
+   "@id": "https://saytyoxla.onrender.com/#website",
+   "url": "https://saytyoxla.onrender.com/",
+   "name": "SaytYoxla",
+   "inLanguage": "az",
+   "publisher": {
+    "@id": "https://saytyoxla.onrender.com/#author"
+   }
+  },
+  {
+   "@type": "WebApplication",
+   "@id": "https://saytyoxla.onrender.com/#app",
+   "name": "SaytYoxla",
+   "url": "https://saytyoxla.onrender.com/",
+   "description": "Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan dilində.",
+   "applicationCategory": "SecurityApplication",
+   "operatingSystem": "Any (brauzerdə işləyir)",
+   "inLanguage": "az",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "AZN"
+   },
+   "featureList": [
+    "HTTPS və SSL sertifikatının yoxlanması",
+    "Təhlükəsizlik başlıqları: HSTS, CSP, X-Frame-Options, nosniff, Referrer-Policy",
+    "SPF və DMARC e-poçt qorumasının yoxlanması",
+    "Serverin cavab sürəti və səhifə həcmi",
+    "Telefona uyğunluq (viewport), səhifə başlığı və meta description",
+    "0–100 bal, A–F qiyməti və hər problem üçün düzəliş yolu",
+    "PDF hesabat"
+   ],
+   "areaServed": {
+    "@type": "Country",
+    "name": "Azerbaijan"
+   },
+   "author": {
+    "@id": "https://saytyoxla.onrender.com/#author"
+   }
+  },
+  {
+   "@type": "Person",
+   "@id": "https://saytyoxla.onrender.com/#author",
+   "name": "Ziya Azizov",
+   "alternateName": [
+    "Ziya Əzizov",
+    "Ziya Ezizov"
+   ],
+   "url": "https://www.linkedin.com/in/ziya-azizov-91bba638a",
+   "sameAs": [
+    "https://www.linkedin.com/in/ziya-azizov-91bba638a"
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://saytyoxla.onrender.com/#faq",
+   "inLanguage": "az",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Bu, pulsuzdur?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Bəli. Yoxlama tamamilə pulsuzdur və qeydiyyat tələb etmir."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Saytımın təhlükəsiz olub-olmadığını necə bilim?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yuxarıdakı xanaya saytınızın ünvanını yazıb «Yoxla» basın. SaytYoxla HTTPS bağlantısını, SSL sertifikatını, HSTS, CSP və digər qoruyucu başlıqları, server versiyasının açıq görünüb-görünmədiyini və qarışıq (http) məzmunu yoxlayır, hər problemin həllini sadə dildə yazır."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "SSL sertifikatının bitmə tarixini necə yoxlamaq olar?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yoxlamadan sonra «Təhlükəsizlik» bölməsində sertifikatın neçə gün etibarlı qaldığı və bitmə tarixi göstərilir. Sertifikatın vaxtı bitəndə brauzerlər sayta girişi «təhlükəli» kimi göstərir, ona görə onu vaxtında yeniləyin — mümkünsə avtomatik yenilənməni (məsələn, Let's Encrypt) açın."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "SPF və DMARC nədir, niyə lazımdır?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "SPF və DMARC domeninizin DNS ayarlarına yazılan qeydlərdir. Onlar sizin adınızdan hansı serverlərin məktub göndərə biləcəyini göstərir. Bu qeydlər olmayanda fırıldaqçılar sizin domeninizdən göndərilmiş kimi görünən saxta məktublar yaza bilər. SaytYoxla hər iki qeydi yoxlayır; yoxdursa, DNS və ya hostinq təminatçınızdan əlavə etməyi xahiş edin."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Saytım niyə Google-da çıxmır?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Ən çox rast gəlinən səbəblər: səhifənin başlığı (title) və təsviri (meta description) yoxdur və ya zəifdir, sayt telefona uyğun deyil, ya da sayt Google-a heç təqdim olunmayıb. SaytYoxla başlığı, təsviri və telefona uyğunluğu yoxlayır. Yeni saytı isə Google Search Console-a əlavə edib sitemap göndərmək lazımdır."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Saytım telefonda niyə düzgün görünmür?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Çox vaxt səbəb səhifədə «viewport» teqinin olmamasıdır — onda telefon saytı kompüter ölçüsündə açıb kiçildir. SaytYoxla bunu «Telefon və Google» bölməsində yoxlayır və əlavə ediləcək teqi göstərir."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Yoxlama saytıma zərər verə bilər?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Xeyr. Biz yalnız adi ziyarətçinin brauzerinin gördüyünə baxırıq: əsas səhifəni bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Məlumatlarım saxlanılır?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Xeyr. Nəticə yalnız ekranınızda göstərilir və 10 dəqiqə ərzində təkrar yoxlamanı sürətləndirmək üçün müvəqqəti yadda saxlanılır. Ad, telefon və ya e-poçt soruşmuruq."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Bal nə deməkdir?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "100 ən yaxşı nəticədir. 90+ — əla (A), 75+ — yaxşı (B), 60+ — orta (C), 40+ — zəif (D), 40-dan aşağı — ciddi diqqət lazımdır (F). Qırmızı problemlər balı daha çox azaldır."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Problemləri kim düzəltməlidir?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Saytınızı quran proqramçıya və ya hostinq şirkətinə hesabatı göstərin — hər problemin altında nə ediləcəyi yazılıb. İstəsəniz, WhatsApp-a yazın, kömək edək."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
 <meta name="theme-color" content="#0f2a4a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a4a'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='%2334d399' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -135,6 +297,11 @@
     <div class="wrap narrow">
       <h2 class="s-title">Tez-tez verilən suallar</h2>
       <details><summary>Bu, pulsuzdur?<svg class="ico"><use href="#i-down"/></svg></summary><p>Bəli. Yoxlama tamamilə pulsuzdur və qeydiyyat tələb etmir.</p></details>
+      <details><summary>Saytımın təhlükəsiz olub-olmadığını necə bilim?<svg class="ico"><use href="#i-down"/></svg></summary><p>Yuxarıdakı xanaya saytınızın ünvanını yazıb «Yoxla» basın. SaytYoxla HTTPS bağlantısını, SSL sertifikatını, HSTS, CSP və digər qoruyucu başlıqları, server versiyasının açıq görünüb-görünmədiyini və qarışıq (http) məzmunu yoxlayır, hər problemin həllini sadə dildə yazır.</p></details>
+      <details><summary>SSL sertifikatının bitmə tarixini necə yoxlamaq olar?<svg class="ico"><use href="#i-down"/></svg></summary><p>Yoxlamadan sonra «Təhlükəsizlik» bölməsində sertifikatın neçə gün etibarlı qaldığı və bitmə tarixi göstərilir. Sertifikatın vaxtı bitəndə brauzerlər sayta girişi «təhlükəli» kimi göstərir, ona görə onu vaxtında yeniləyin — mümkünsə avtomatik yenilənməni (məsələn, Let&#x27;s Encrypt) açın.</p></details>
+      <details><summary>SPF və DMARC nədir, niyə lazımdır?<svg class="ico"><use href="#i-down"/></svg></summary><p>SPF və DMARC domeninizin DNS ayarlarına yazılan qeydlərdir. Onlar sizin adınızdan hansı serverlərin məktub göndərə biləcəyini göstərir. Bu qeydlər olmayanda fırıldaqçılar sizin domeninizdən göndərilmiş kimi görünən saxta məktublar yaza bilər. SaytYoxla hər iki qeydi yoxlayır; yoxdursa, DNS və ya hostinq təminatçınızdan əlavə etməyi xahiş edin.</p></details>
+      <details><summary>Saytım niyə Google-da çıxmır?<svg class="ico"><use href="#i-down"/></svg></summary><p>Ən çox rast gəlinən səbəblər: səhifənin başlığı (title) və təsviri (meta description) yoxdur və ya zəifdir, sayt telefona uyğun deyil, ya da sayt Google-a heç təqdim olunmayıb. SaytYoxla başlığı, təsviri və telefona uyğunluğu yoxlayır. Yeni saytı isə Google Search Console-a əlavə edib sitemap göndərmək lazımdır.</p></details>
+      <details><summary>Saytım telefonda niyə düzgün görünmür?<svg class="ico"><use href="#i-down"/></svg></summary><p>Çox vaxt səbəb səhifədə «viewport» teqinin olmamasıdır — onda telefon saytı kompüter ölçüsündə açıb kiçildir. SaytYoxla bunu «Telefon və Google» bölməsində yoxlayır və əlavə ediləcək teqi göstərir.</p></details>
       <details><summary>Yoxlama saytıma zərər verə bilər?<svg class="ico"><use href="#i-down"/></svg></summary><p>Xeyr. Biz yalnız adi ziyarətçinin brauzerinin gördüyünə baxırıq: əsas səhifəni bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq.</p></details>
       <details><summary>Məlumatlarım saxlanılır?<svg class="ico"><use href="#i-down"/></svg></summary><p>Xeyr. Nəticə yalnız ekranınızda göstərilir və 10 dəqiqə ərzində təkrar yoxlamanı sürətləndirmək üçün müvəqqəti yadda saxlanılır. Ad, telefon və ya e-poçt soruşmuruq.</p></details>
       <details><summary>Bal nə deməkdir?<svg class="ico"><use href="#i-down"/></svg></summary><p>100 ən yaxşı nəticədir. 90+ — əla (A), 75+ — yaxşı (B), 60+ — orta (C), 40+ — zəif (D), 40-dan aşağı — ciddi diqqət lazımdır (F). Qırmızı problemlər balı daha çox azaldır.</p></details>

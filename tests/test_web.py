@@ -67,3 +67,36 @@ def test_allow_window_expires():
     assert all(webapp.allow("1.2.3.4", now=t) for t in range(webapp.RATE_LIMIT))
     assert not webapp.allow("1.2.3.4", now=webapp.RATE_LIMIT)
     assert webapp.allow("1.2.3.4", now=1000)
+
+
+def test_robots_and_sitemap():
+    r = client.get("/robots.txt")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/plain")
+    assert "Sitemap: https://saytyoxla.onrender.com/sitemap.xml" in r.text and "Disallow: /api/" in r.text
+    s = client.get("/sitemap.xml")
+    assert s.status_code == 200 and "xml" in s.headers["content-type"]
+    assert "<loc>https://saytyoxla.onrender.com/</loc>" in s.text
+
+
+def test_llms_txt_is_utf8():
+    r = client.get("/llms.txt")
+    assert r.status_code == 200 and "charset=utf-8" in r.headers["content-type"]
+    assert "SaytYoxla" in r.text and "təhlükəsizliyini" in r.text
+
+
+def test_google_verification_only_for_listed_file(monkeypatch):
+    monkeypatch.setattr(webapp.seo, "GOOGLE_VERIFY_FILES", {"google0123456789abcdef.html"})
+    ok = client.get("/google0123456789abcdef.html")
+    assert ok.status_code == 200 and ok.text == "google-site-verification: google0123456789abcdef.html"
+    assert client.get("/googleffffffffffffffff.html").status_code == 404
+    assert client.get("/whatever.html").status_code == 404
+
+
+def test_health_still_works_after_catch_all():
+    assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_home_page_has_seo_tags():
+    t = client.get("/").text
+    assert '<link rel="canonical" href="https://saytyoxla.onrender.com/">' in t
+    assert '"@type": "FAQPage"' in t and 'og:image' in t
