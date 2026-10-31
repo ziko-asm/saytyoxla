@@ -31,4 +31,4 @@ uvicorn web.app:app --reload            # website at http://127.0.0.1:8000
 Deploy on Vercel: import this repo (`vercel.json` routes every request to `api/index.py`).
 Or on Render: New → Blueprint → this repo (`render.yaml`).
 
-By [Ziya Azizov](https://www.linkedin.com/in/ziya-azizov-91bba638a).
+By [Ziya Azizov (ayfar)](https://ayfar.vercel.app) · [LinkedIn](https://www.linkedin.com/in/ziya-azizov-91bba638a).
