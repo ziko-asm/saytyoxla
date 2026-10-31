@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 import re
 
-SITE_URL = os.getenv("SITE_URL", "https://saytyoxla.onrender.com").rstrip("/")
+SITE_URL = os.getenv("SITE_URL", "https://saytyoxla.vercel.app").rstrip("/")
 LASTMOD = "2026-10-20"          # bump when the front page changes
 
 # Google Search Console "HTML file" verification. Only the exact file names listed

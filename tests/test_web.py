@@ -72,10 +72,10 @@ def test_allow_window_expires():
 def test_robots_and_sitemap():
     r = client.get("/robots.txt")
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/plain")
-    assert "Sitemap: https://saytyoxla.onrender.com/sitemap.xml" in r.text and "Disallow: /api/" in r.text
+    assert "Sitemap: https://saytyoxla.vercel.app/sitemap.xml" in r.text and "Disallow: /api/" in r.text
     s = client.get("/sitemap.xml")
     assert s.status_code == 200 and "xml" in s.headers["content-type"]
-    assert "<loc>https://saytyoxla.onrender.com/</loc>" in s.text
+    assert "<loc>https://saytyoxla.vercel.app/</loc>" in s.text
 
 
 def test_llms_txt_is_utf8():
@@ -98,5 +98,5 @@ def test_health_still_works_after_catch_all():
 
 def test_home_page_has_seo_tags():
     t = client.get("/").text
-    assert '<link rel="canonical" href="https://saytyoxla.onrender.com/">' in t
+    assert '<link rel="canonical" href="https://saytyoxla.vercel.app/">' in t
     assert '"@type": "FAQPage"' in t and 'og:image' in t
