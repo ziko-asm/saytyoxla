@@ -28,6 +28,7 @@ uvicorn web.app:app --reload            # website at http://127.0.0.1:8000
 ## Search engines
 `web/seo.py` serves `/robots.txt`, `/sitemap.xml`, `/llms.txt` and the Google Search Console verification file. The front page carries a canonical URL, Open Graph tags (`web/static/og-image.png`) and JSON-LD (WebSite, WebApplication, Person, FAQPage — keep the FAQ schema in sync with the visible FAQ). If the site moves to its own domain, set `SITE_URL` and update the canonical/OG URLs in `index.html`.
 
-Deploy on Render: New → Blueprint → this repo (`render.yaml`).
+Deploy on Vercel: import this repo (`vercel.json` routes every request to `api/index.py`).
+Or on Render: New → Blueprint → this repo (`render.yaml`).
 
 By [Ziya Azizov](https://www.linkedin.com/in/ziya-azizov-91bba638a).
