@@ -120,6 +120,13 @@ def test_error_status_is_reported(monkeypatch):
         scanner.scan("example.az")
 
 
+def test_blocked_status_explains_bot_protection(monkeypatch):
+    monkeypatch.setattr(scanner, "check_host_is_public", lambda host: None)
+    monkeypatch.setattr(scanner, "collect", lambda url: ctx(input_url=url, status_code=403))
+    with pytest.raises(UnsafeTarget, match="bot qorumas"):
+        scanner.scan("lalafo.az")
+
+
 def test_grade_and_report_order():
     assert [grade(s) for s in (95, 80, 65, 45, 10)] == ["A", "B", "C", "D", "F"]
     c = ctx(txt_records={"spf": [], "dmarc": []})
