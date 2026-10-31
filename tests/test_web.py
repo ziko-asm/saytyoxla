@@ -100,3 +100,11 @@ def test_home_page_has_seo_tags():
     t = client.get("/").text
     assert '<link rel="canonical" href="https://saytyoxla.vercel.app/">' in t
     assert '"@type": "FAQPage"' in t and 'og:image' in t
+
+
+def test_cors_allows_ayfar_only():
+    pre = {"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"}
+    ok = client.options("/api/scan", headers={"Origin": "https://ayfar.vercel.app", **pre})
+    assert ok.status_code == 200 and ok.headers["access-control-allow-origin"] == "https://ayfar.vercel.app"
+    bad = client.options("/api/scan", headers={"Origin": "https://evil.example", **pre})
+    assert "access-control-allow-origin" not in bad.headers

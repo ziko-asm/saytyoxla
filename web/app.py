@@ -18,6 +18,7 @@ from collections import defaultdict, deque
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -33,6 +34,13 @@ CACHE_SECONDS = 600
 
 app = FastAPI(title="SaytYoxla", version="0.2.0", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+# The scan form embedded on ayfar (the author's portfolio) calls /api/scan from the browser.
+# Only those origins may; the per-IP rate limit still applies because the request comes from the visitor.
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv(
+    "ALLOWED_ORIGINS", "https://ayfar.vercel.app,https://ayfar.az,https://www.ayfar.az").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=["POST"],
+                   allow_headers=["Content-Type"], max_age=86400)
 
 _hits: dict[str, deque] = defaultdict(deque)
 _cache: dict[str, tuple[float, dict]] = {}
