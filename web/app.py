@@ -28,12 +28,14 @@ from scanner.safety import UnsafeTarget, normalize
 from web import seo
 
 STATIC = Path(__file__).parent / "static"
+REACT = Path(__file__).parent / "react"      # built by react-ui (npm run build)
 RATE_LIMIT = int(os.getenv("SCAN_RATE_LIMIT", "6"))      # scans per IP ...
 RATE_WINDOW = 60                                        # ... per minute
 CACHE_SECONDS = 600
 
 app = FastAPI(title="SaytYoxla", version="0.2.0", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+app.mount("/react", StaticFiles(directory=REACT), name="react")
 
 # The scan form embedded on ayfar (the author's portfolio) calls /api/scan from the browser.
 # Only those origins may; the per-IP rate limit still applies because the request comes from the visitor.
@@ -87,6 +89,12 @@ async def security_headers(request: Request, call_next):
 @app.get("/", include_in_schema=False)
 def index():
     return FileResponse(STATIC / "index.html")
+
+
+@app.get("/beta", include_in_schema=False)
+def beta():
+    """The React front end, served side by side with the current page until it replaces it."""
+    return FileResponse(REACT / "index.html")
 
 
 @app.get("/robots.txt", include_in_schema=False)

@@ -7,3 +7,6 @@ __pycache__/
 desktop.ini
 .env
 .vercel
+
+# react-ui build tooling
+react-ui/node_modules/

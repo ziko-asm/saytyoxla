@@ -1,95 +1,87 @@
-import { useState } from 'react'
-import './App.css'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Header } from './components/Header'
+import { ScanForm } from './components/ScanForm'
+import { Loading } from './components/Loading'
+import { ReportView } from './components/ReportView'
+import { Guide } from './components/Guide'
+import type { Report } from './types'
 
-// The shape of the JSON that SaytYoxla's /api/scan returns
-type Finding = {
-  id: string
-  title: string
-  status: 'ok' | 'warn' | 'fail' | 'info'
-  fix: string
-}
-
-type Report = {
-  final_url: string
-  score: number
-  grade: string
-  summary: string
-  findings: Finding[]
-}
-
-function App() {
-  // 4 pieces of state: what the user typed, waiting, an error, and the result
+export default function App() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [report, setReport] = useState<Report | null>(null)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
 
-  async function check(e: React.FormEvent) {
-    e.preventDefault() // stop the browser reloading the page
-    if (!url.trim()) return
-    setLoading(true)
+  const scan = useCallback(async (target: string) => {
+    const value = target.trim()
     setError('')
+    if (!value) {
+      setError('Əvvəlcə saytınızın ünvanını yazın. Məsələn: meninsaytim.az')
+      input.current?.focus()
+      return
+    }
     setReport(null)
+    setLoading(true)
     try {
       const res = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: value }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Yoxlamaq alınmadı')
-      setReport(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bağlantı xətası')
+      if (!res.ok) setError(data.detail || 'Xəta baş verdi. Bir az sonra yenidən cəhd edin.')
+      else setReport(data)
+    } catch {
+      setError('Serverə qoşulmaq mümkün olmadı. İnternet bağlantınızı yoxlayın.')
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  // ?url=example.az starts a scan straight away (ayfar's "Full report" link uses this)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('url')
+    if (q) {
+      setUrl(q)
+      scan(q)
+    }
+  }, [scan])
+
+  function again() {
+    setReport(null)
+    setUrl('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    input.current?.focus()
   }
 
-  // Only the findings that need attention
-  const problems = report?.findings.filter(
-    (f) => f.status === 'fail' || f.status === 'warn',
-  )
+  const closeGuide = useCallback(() => setGuideOpen(false), [])
 
   return (
-    <main className="app">
-      <h1>SaytYoxla</h1>
-      <p className="lead">Saytınızın təhlükəsizliyini və sürətini yoxlayın</p>
-
-      <form onSubmit={check} className="form">
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="example.az"
-          aria-label="Saytın ünvanı"
+    <>
+      <Header onHelp={() => setGuideOpen(true)} />
+      <ScanForm
+        ref={input}
+        url={url}
+        onUrlChange={setUrl}
+        onSubmit={() => scan(url)}
+        loading={loading}
+        error={error}
+        onHelp={() => setGuideOpen(true)}
+      />
+      {loading && <Loading />}
+      {report && <ReportView report={report} onAgain={again} />}
+      {guideOpen && (
+        <Guide
+          onClose={closeGuide}
+          onStart={() => {
+            setGuideOpen(false)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            setTimeout(() => input.current?.focus(), 0)
+          }}
         />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Yoxlanılır…' : 'Yoxla'}
-        </button>
-      </form>
-
-      {error && <p className="error">{error}</p>}
-
-      {report && (
-        <section className="result">
-          <div className="score">
-            <b>{report.grade}</b>
-            <span>{report.score} / 100</span>
-          </div>
-          <p className="host">{report.final_url}</p>
-          <p>{report.summary}</p>
-          <ul>
-            {problems?.map((f) => (
-              <li key={f.id} className={f.status}>
-                <strong>{f.title}</strong>
-                <span>{f.fix}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
       )}
-    </main>
+    </>
   )
 }
-
-export default App

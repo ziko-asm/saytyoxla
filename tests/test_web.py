@@ -108,3 +108,13 @@ def test_cors_allows_ayfar_only():
     assert ok.status_code == 200 and ok.headers["access-control-allow-origin"] == "https://ayfar.vercel.app"
     bad = client.options("/api/scan", headers={"Origin": "https://evil.example", **pre})
     assert "access-control-allow-origin" not in bad.headers
+
+
+def test_react_beta_page_and_assets():
+    page = client.get("/beta")
+    assert page.status_code == 200 and '<div id="root"></div>' in page.text
+    assert "application/ld+json" in page.text and "Tez-tez verilən suallar" in page.text  # SEO content stays in the HTML
+    import re
+    js = re.search(r'src="(/react/assets/[^"]+\.js)"', page.text).group(1)
+    css = re.search(r'href="(/react/assets/[^"]+\.css)"', page.text).group(1)
+    assert client.get(js).status_code == 200 and client.get(css).status_code == 200
