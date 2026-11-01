@@ -1,0 +1,342 @@
+"""
+English and Russian versions of every text the scanner shows.
+
+The checks write Azerbaijani (the reference language, and what the cache stores).
+translate() maps a finished report or an error message into "en" or "ru" at the very end,
+so the checks stay simple and a missing translation is caught by tests/test_i18n.py.
+
+Static sentences are looked up exactly; sentences with numbers or names in them match a regex.
+Russian avoids number agreement ("дн.", "файлов: 3") so one template fits every count.
+"""
+
+from __future__ import annotations
+
+import re
+
+LANGS = ("az", "en", "ru")
+
+# Azerbaijani -> (English, Russian)
+EXACT: dict[str, tuple[str, str]] = {
+    # categories
+    "Təhlükəsizlik": ("Security", "Безопасность"),
+    "E-poçt": ("E-mail", "Эл. почта"),
+    "Sürət": ("Speed", "Скорость"),
+    "Mobil və Google": ("Mobile and Google", "Мобильные и Google"),
+
+    # titles
+    "Təhlükəsiz bağlantı (HTTPS)": ("Secure connection (HTTPS)", "Защищённое соединение (HTTPS)"),
+    "HTTP-dən HTTPS-ə yönləndirmə": ("HTTP to HTTPS redirect", "Перенаправление с HTTP на HTTPS"),
+    "SSL sertifikatı": ("SSL certificate", "SSL-сертификат"),
+    "Məcburi HTTPS (HSTS)": ("Forced HTTPS (HSTS)", "Принудительный HTTPS (HSTS)"),
+    "Fayl tipinin qorunması": ("File type protection", "Защита типа файлов"),
+    "Keçid məlumatının qorunması": ("Referrer protection", "Защита данных о переходе"),
+    "Saxta çərçivəyə qarşı qoruma": ("Clickjacking protection", "Защита от кликджекинга"),
+    "Kənar skriptlərə nəzarət (CSP)": ("Control over third-party scripts (CSP)",
+                                       "Контроль сторонних скриптов (CSP)"),
+    "Proqram versiyasının gizlədilməsi": ("Software versions hidden", "Скрытие версий ПО"),
+    "Qarışıq məzmun": ("Mixed content", "Смешанное содержимое"),
+    "E-poçt göndərən icazəsi (SPF)": ("Allowed e-mail senders (SPF)", "Разрешённые отправители почты (SPF)"),
+    "Saxta məktuba qarşı qoruma (DMARC)": ("Protection against fake e-mails (DMARC)",
+                                           "Защита от поддельных писем (DMARC)"),
+    "Serverin cavab sürəti": ("Server response time", "Время ответа сервера"),
+    "Səhifənin həcmi": ("Page size", "Размер страницы"),
+    "Telefona uyğunluq": ("Mobile-friendly", "Адаптация под телефон"),
+    "Səhifə başlığı": ("Page title", "Заголовок страницы"),
+    "Google üçün təsvir": ("Description for Google", "Описание для Google"),
+
+    # https
+    "Sayt şifrələnmiş HTTPS bağlantısı ilə açılır.": (
+        "The site opens over an encrypted HTTPS connection.",
+        "Сайт открывается по зашифрованному соединению HTTPS."),
+    "Sayt şifrəsiz (http) açılır. Brauzerlər onu \"Təhlükəli deyil\" kimi göstərir.": (
+        "The site opens without encryption (http). Browsers mark it as \"Not secure\".",
+        "Сайт открывается без шифрования (http). Браузеры помечают его как «Не защищено»."),
+    "Hostinq panelindən pulsuz SSL sertifikatı (Let's Encrypt) qoşun.": (
+        "Turn on a free SSL certificate (Let's Encrypt) in your hosting panel.",
+        "Подключите бесплатный SSL-сертификат (Let's Encrypt) в панели хостинга."),
+
+    # redirect
+    "http:// ünvanı yoxlanıla bilmədi.": (
+        "The http:// address could not be checked.", "Не удалось проверить адрес http://."),
+    "http:// ilə yazanlar avtomatik təhlükəsiz versiyaya keçir.": (
+        "Visitors who type http:// are moved to the secure version automatically.",
+        "Посетители, набравшие http://, автоматически попадают на защищённую версию."),
+    "Ünvanı http:// ilə yazan ziyarətçi şifrəsiz versiyada qalır.": (
+        "A visitor who types the address with http:// stays on the unencrypted version.",
+        "Посетитель, набравший адрес с http://, остаётся на незашифрованной версии."),
+    "Serverdə bütün http sorğularını https-ə yönləndirin (301).": (
+        "Redirect every http request to https on the server (301).",
+        "Настройте на сервере перенаправление всех http-запросов на https (301)."),
+
+    # certificate
+    "Sertifikat yoxlanılmadı (sayt https deyil).": (
+        "The certificate was not checked (the site is not on https).",
+        "Сертификат не проверялся (сайт не на https)."),
+    "Sertifikatı yeniləyin və domen adına uyğun olduğunu yoxlayın.": (
+        "Renew the certificate and make sure it matches the domain name.",
+        "Обновите сертификат и проверьте, что он выдан на это доменное имя."),
+    "Sertifikatın avtomatik yenilənməsini qurun.": (
+        "Set up automatic certificate renewal.", "Настройте автоматическое продление сертификата."),
+
+    # headers
+    "Brauzerlərə sayta yalnız HTTPS ilə girmək əmr olunub.": (
+        "Browsers are told to open the site over HTTPS only.",
+        "Браузерам предписано открывать сайт только по HTTPS."),
+    "Brauzerlərə yalnız HTTPS istifadə etmək əmri verilməyib.": (
+        "Browsers are not told to use HTTPS only.",
+        "Браузерам не предписано использовать только HTTPS."),
+    "Server cavabına Strict-Transport-Security başlığını əlavə edin.": (
+        "Add the Strict-Transport-Security header to the server response.",
+        "Добавьте в ответ сервера заголовок Strict-Transport-Security."),
+    "Brauzerin faylları səhv tipdə açması qadağandır.": (
+        "Browsers may not open files as the wrong type.",
+        "Браузеру запрещено открывать файлы с неверным типом."),
+    "X-Content-Type-Options başlığı yoxdur.": (
+        "The X-Content-Type-Options header is missing.", "Нет заголовка X-Content-Type-Options."),
+    "Server cavabına \"X-Content-Type-Options: nosniff\" əlavə edin.": (
+        "Add \"X-Content-Type-Options: nosniff\" to the server response.",
+        "Добавьте в ответ сервера «X-Content-Type-Options: nosniff»."),
+    "Ziyarətçinin hansı səhifədən gəldiyi digər saytlara ötürülmür.": (
+        "Other sites are not told which page the visitor came from.",
+        "Другие сайты не узнают, с какой страницы пришёл посетитель."),
+    "Referrer-Policy başlığı yoxdur.": ("The Referrer-Policy header is missing.", "Нет заголовка Referrer-Policy."),
+    "Server cavabına \"Referrer-Policy: strict-origin-when-cross-origin\" əlavə edin.": (
+        "Add \"Referrer-Policy: strict-origin-when-cross-origin\" to the server response.",
+        "Добавьте в ответ сервера «Referrer-Policy: strict-origin-when-cross-origin»."),
+
+    # framing
+    "Sayt başqa saytın içində gizli açıla bilməz.": (
+        "The site cannot be hidden inside another site.",
+        "Сайт нельзя скрытно открыть внутри другого сайта."),
+    "Sayt başqa saytın içinə yerləşdirilib istifadəçini aldatmaq üçün istifadə oluna bilər.": (
+        "The site can be embedded inside another site and used to trick visitors.",
+        "Сайт можно встроить в другой сайт и использовать для обмана посетителей."),
+    "Server cavabına \"X-Frame-Options: SAMEORIGIN\" əlavə edin.": (
+        "Add \"X-Frame-Options: SAMEORIGIN\" to the server response.",
+        "Добавьте в ответ сервера «X-Frame-Options: SAMEORIGIN»."),
+
+    # csp
+    "Saytda hansı skriptlərin işləyə biləcəyi məhdudlaşdırılıb.": (
+        "The site limits which scripts are allowed to run.",
+        "Сайт ограничивает, какие скрипты могут выполняться."),
+    "Saytda kənar skriptlərə nəzarət qaydası (CSP) yoxdur.": (
+        "The site has no rule controlling third-party scripts (CSP).",
+        "У сайта нет правила контроля сторонних скриптов (CSP)."),
+    "Content-Security-Policy başlığını əvvəlcə report-only rejimində qurun.": (
+        "Set up the Content-Security-Policy header, starting in report-only mode.",
+        "Настройте заголовок Content-Security-Policy, начав с режима report-only."),
+
+    # disclosure
+    "Server və sayt proqramlarının versiyaları açıq göstərilmir.": (
+        "Server and site software versions are not shown publicly.",
+        "Версии серверного ПО и движка сайта не раскрываются."),
+    "Versiya məlumatını gizlədin və proqramları son versiyaya yeniləyin.": (
+        "Hide the version information and update the software to the latest version.",
+        "Скройте информацию о версиях и обновите ПО до последней версии."),
+
+    # mixed
+    "Sayt https olmadığı üçün yoxlanılmadı.": (
+        "Not checked because the site is not on https.", "Не проверялось, так как сайт не на https."),
+    "Bütün şəkil və skriptlər təhlükəsiz bağlantı ilə yüklənir.": (
+        "All images and scripts load over a secure connection.",
+        "Все изображения и скрипты загружаются по защищённому соединению."),
+    "Səhifədəki http:// linklərini https:// ilə əvəz edin.": (
+        "Replace the http:// links on the page with https://.",
+        "Замените ссылки http:// на странице на https://."),
+
+    # mail
+    "Sayt pulsuz platforma ünvanında yerləşir, bu ünvandan e-poçt göndərilmir. "
+    "Öz domeniniz (məsələn, .az) olanda bu yoxlama vacib olacaq.": (
+        "The site lives on a free platform address, which sends no e-mail. "
+        "This check will matter once you have your own domain (for example, .az).",
+        "Сайт размещён на адресе бесплатной платформы, с него не отправляется почта. "
+        "Эта проверка станет важной, когда у вас будет свой домен (например, .az)."),
+    "DNS yoxlanıla bilmədi.": ("DNS could not be checked.", "Не удалось проверить DNS."),
+    "Domen adından kimin məktub göndərə biləcəyi müəyyən edilib.": (
+        "The domain states who may send e-mail in its name.",
+        "Для домена указано, кто может отправлять письма от его имени."),
+    "Hər kəs sizin domen adınızdan saxta məktub göndərə bilər, məktublarınız isə spam-a düşə bilər.": (
+        "Anyone can send fake e-mail in your domain's name, and your own e-mails may land in spam.",
+        "Любой может отправлять поддельные письма от имени вашего домена, а ваши письма могут попадать в спам."),
+    "DNS-ə SPF qeydi əlavə edin (məsələn, e-poçt provayderinizin verdiyi v=spf1 ... qeydi).": (
+        "Add an SPF record to DNS (for example, the v=spf1 ... record your e-mail provider gives you).",
+        "Добавьте в DNS запись SPF (например, запись v=spf1 ..., которую даёт ваш почтовый провайдер)."),
+    "Domen adınızdan göndərilən saxta məktublar üçün heç bir qayda yoxdur.": (
+        "There is no rule for fake e-mails sent in your domain's name.",
+        "Нет никакого правила для поддельных писем от имени вашего домена."),
+    "DNS-ə _dmarc qeydi əlavə edin, əvvəlcə p=none ilə başlayın.": (
+        "Add a _dmarc record to DNS, starting with p=none.",
+        "Добавьте в DNS запись _dmarc, начав с p=none."),
+    "DMARC var, amma yalnız müşahidə rejimindədir (p=none); saxta məktublar bloklanmır.": (
+        "DMARC is set, but only in monitoring mode (p=none); fake e-mails are not blocked.",
+        "DMARC есть, но только в режиме наблюдения (p=none); поддельные письма не блокируются."),
+    "Hesabatları yoxladıqdan sonra siyasəti p=quarantine və ya p=reject edin.": (
+        "After reviewing the reports, change the policy to p=quarantine or p=reject.",
+        "Изучив отчёты, смените политику на p=quarantine или p=reject."),
+    "Saxta məktublar qəbul edən tərəfindən bloklanır.": (
+        "Fake e-mails are blocked by the receiving side.",
+        "Поддельные письма блокируются на стороне получателя."),
+
+    # speed
+    "Hostinqi, keşləməni və ağır plaginləri yoxlayın.": (
+        "Check the hosting, caching and heavy plugins.",
+        "Проверьте хостинг, кэширование и тяжёлые плагины."),
+    "Səhifəyə daxil edilmiş böyük kodları və şəkilləri ayrı fayllara çıxarın.": (
+        "Move large inline code and images out of the page into separate files.",
+        "Вынесите большой встроенный код и изображения в отдельные файлы."),
+
+    # mobile & search
+    "Sayt telefon ekranına uyğunlaşmaq üçün qurulub.": (
+        "The site is set up to fit phone screens.", "Сайт настроен под экраны телефонов."),
+    "Sayt telefonda kiçik və oxunmaz görünə bilər; Google bunu nəzərə alır.": (
+        "The site may look tiny and unreadable on a phone; Google takes this into account.",
+        "На телефоне сайт может выглядеть мелким и нечитаемым; Google это учитывает."),
+    "Səhifəyə <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> əlavə edin.": (
+        "Add <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> to the page.",
+        "Добавьте на страницу <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">."),
+    "Səhifənin başlığı yoxdur.": ("The page has no title.", "У страницы нет заголовка."),
+    "Biznesi və xidməti izah edən 10–70 simvollu başlıq yazın.": (
+        "Write a 10–70 character title that explains the business and the service.",
+        "Напишите заголовок длиной 10–70 символов, описывающий бизнес и услугу."),
+    "Google axtarışında görünən təsvir yoxdur.": (
+        "There is no description for Google search results.",
+        "Нет описания, которое показывается в поиске Google."),
+    "50–170 simvolluq, xidməti və əlaqəni göstərən meta description yazın.": (
+        "Write a 50–170 character meta description with the service and how to get in touch.",
+        "Напишите meta description длиной 50–170 символов с услугой и контактами."),
+    "Səhifənin məzmunu oxunmadı (server boş cavab qaytardı). "
+    "Bu yoxlama bala təsir etmir; saytı brauzerdə açıb yenidən yoxlayın.": (
+        "The page content could not be read (the server returned an empty response). "
+        "This check does not affect the score; open the site in a browser and check again.",
+        "Содержимое страницы не прочитано (сервер вернул пустой ответ). "
+        "Эта проверка не влияет на балл; откройте сайт в браузере и проверьте снова."),
+
+    # summary
+    "Əla nəticə: ciddi problem tapılmadı.": (
+        "Great result: no serious problems found.", "Отличный результат: серьёзных проблем не найдено."),
+
+    # errors
+    "Saytın ünvanını yazın, məsələn: example.az": (
+        "Enter the site's address, for example: example.az", "Введите адрес сайта, например: example.az"),
+    "Yalnız http və https ünvanları yoxlanılır.": (
+        "Only http and https addresses can be checked.", "Проверяются только адреса http и https."),
+    "Ünvanda istifadəçi adı və ya şifrə olmamalıdır.": (
+        "The address must not contain a username or password.",
+        "Адрес не должен содержать имя пользователя или пароль."),
+    "Ünvan düzgün görünmür. Nümunə: example.az": (
+        "The address does not look right. Example: example.az",
+        "Адрес выглядит неправильно. Пример: example.az"),
+    "Yalnız standart portlar (80, 443) yoxlanılır.": (
+        "Only standard ports (80, 443) can be checked.", "Проверяются только стандартные порты (80, 443)."),
+    "Bu ünvan tapılmadı. Yazılışı yoxlayın.": (
+        "This address was not found. Check the spelling.", "Этот адрес не найден. Проверьте написание."),
+    "Bu ünvan daxili şəbəkəyə aiddir və yoxlanıla bilməz.": (
+        "This address belongs to a private network and cannot be checked.",
+        "Этот адрес относится к внутренней сети и не может быть проверен."),
+    "Sayt çox sayda yönləndirmə edir.": ("The site redirects too many times.", "Сайт делает слишком много перенаправлений."),
+    "Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.": (
+        "You have run too many checks. Wait a minute and try again.",
+        "Слишком много проверок. Подождите минуту и попробуйте снова."),
+    "Bu səhifə tapılmadı (kod 404). Ünvanın yazılışını yoxlayın və ya yalnız domeni yazın, məsələn: example.az": (
+        "This page was not found (code 404). Check the spelling, or enter just the domain, for example: example.az",
+        "Страница не найдена (код 404). Проверьте написание или введите только домен, например: example.az"),
+}
+
+# (pattern, English template, Russian template); groups are reused by number.
+PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.S), en, ru) for p, en, ru in [
+    (r"Sertifikat etibarsızdır \((.+)\)\. Ziyarətçilər xəbərdarlıq görür\.",
+     r"The certificate is not valid (\1). Visitors see a warning.",
+     r"Сертификат недействителен (\1). Посетители видят предупреждение."),
+    (r"Sertifikatın vaxtı (-?\d+) gün sonra bitir\.",
+     r"The certificate expires in \1 days.",
+     r"Срок действия сертификата истекает через \1 дн."),
+    (r"Sertifikat etibarlıdır, (\d+) gün qalıb \((.+)\)\.",
+     r"The certificate is valid, \1 days left (\2).",
+     r"Сертификат действителен, осталось \1 дн. (\2)."),
+    (r"Sayt istifadə etdiyi proqramların dəqiq versiyasını göstərir: (.+)\. "
+     r"Hücumçular köhnə versiyaların zəifliklərini axtarır\.",
+     r"The site shows the exact versions of the software it runs: \1. Attackers look for weaknesses in old versions.",
+     r"Сайт показывает точные версии используемого ПО: \1. Злоумышленники ищут уязвимости старых версий."),
+    (r"(\d+) fayl şifrəsiz http:// ilə yüklənir; brauzer onları bloklaya bilər\.",
+     r"\1 file(s) load over unencrypted http://; browsers may block them.",
+     r"Файлов, загружаемых по незашифрованному http://: \1; браузер может их блокировать."),
+    (r"Server ([\d.]+) saniyəyə cavab verdi\.",
+     r"The server responded in \1 seconds.",
+     r"Сервер ответил за \1 с."),
+    (r"Əsas səhifənin HTML həcmi (\d+) KB-dır\.",
+     r"The home page HTML is \1 KB.",
+     r"Размер HTML главной страницы: \1 КБ."),
+    (r"Başlıq: \"(.*)\" \((\d+) simvol\)\.",
+     r"Title: \"\1\" (\2 characters).",
+     r"Заголовок: «\1» (символов: \2)."),
+    (r"Təsvir (\d+) simvoldur\.",
+     r"The description is \1 characters long.",
+     r"Длина описания: \1 символов."),
+    # summary
+    (r"(\d+) ciddi problem və (\d+) təkmilləşdirmə tövsiyəsi tapıldı\.",
+     r"Found \1 serious problem(s) and \2 improvement(s) to make.",
+     r"Найдено серьёзных проблем: \1, рекомендаций по улучшению: \2."),
+    (r"(\d+) ciddi problem tapıldı\.",
+     r"Found \1 serious problem(s).",
+     r"Найдено серьёзных проблем: \1."),
+    (r"(\d+) təkmilləşdirmə tövsiyəsi tapıldı\.",
+     r"Found \1 improvement(s) to make.",
+     r"Рекомендаций по улучшению: \1."),
+    # errors
+    (r"Sayt avtomatik yoxlamaları bloklayır \(kod (\d+)\)\. .*",
+     r"The site blocks automated checks (code \1). This is usually bot protection (for example, Cloudflare): "
+     r"the site opens in a browser but does not answer tools. Big platforms (lalafo, tap.az, Instagram) do this; "
+     r"check the business's own site instead.",
+     r"Сайт блокирует автоматические проверки (код \1). Обычно это защита от ботов (например, Cloudflare): "
+     r"в браузере сайт открывается, но инструментам не отвечает. Так делают крупные платформы "
+     r"(lalafo, tap.az, Instagram); проверьте собственный сайт бизнеса."),
+    (r"Saytın serverində xəta var \(kod (\d+)\)\. Bir az sonra yenidən cəhd edin\.",
+     r"The site's server has an error (code \1). Try again a little later.",
+     r"На сервере сайта ошибка (код \1). Попробуйте немного позже."),
+    (r"Sayt xəta qaytardı \(kod (\d+)\)\. Ünvanı yoxlayın\.",
+     r"The site returned an error (code \1). Check the address.",
+     r"Сайт вернул ошибку (код \1). Проверьте адрес."),
+    (r"Sayt açılmadı \((.+)\)\. Ünvanı yoxlayın və bir az sonra yenidən cəhd edin\.",
+     r"The site did not open (\1). Check the address and try again a little later.",
+     r"Сайт не открылся (\1). Проверьте адрес и попробуйте немного позже."),
+]]
+
+
+def lang_of(value: str | None) -> str:
+    v = (value or "az").lower()[:2]
+    return v if v in LANGS else "az"
+
+
+def text(s: str, lang: str) -> str:
+    """Translate one sentence. Unknown text is returned unchanged (Azerbaijani)."""
+    if lang == "az" or not s:
+        return s
+    i = LANGS.index(lang) - 1
+    if s in EXACT:
+        return EXACT[s][i]
+    for pat, en, ru in PATTERNS:
+        m = pat.fullmatch(s)
+        if m:
+            # a group may itself be a known sentence (an error inside an error)
+            out = (en, ru)[i]
+            for n, g in enumerate(m.groups(), 1):
+                out = out.replace(f"\\{n}", text(g, lang) if g and g in EXACT else (g or ""))
+            if lang == "en":       # "1 file(s)" -> "1 file", "3 file(s)" -> "3 files"
+                out = re.sub(r"\b(\d+) ((?:\w+ )?\w+)\(s\)", lambda m: f"{m[1]} {m[2]}" + ("" if m[1] == "1" else "s"), out)
+            return out
+    return s
+
+
+def known(s: str) -> bool:
+    """True when text() has a translation for s (used by the tests)."""
+    return not s or s in EXACT or any(p.fullmatch(s) for p, _, _ in PATTERNS)
+
+
+def report(d: dict, lang: str) -> dict:
+    """A translated copy of Report.to_dict(); the original (cached) dict is not changed."""
+    if lang == "az":
+        return d
+    out = dict(d, summary=text(d["summary"], lang), lang=lang)
+    out["findings"] = [dict(f, **{k: text(f[k], lang) for k in ("category", "title", "detail", "fix")})
+                       for f in d["findings"]]
+    return out

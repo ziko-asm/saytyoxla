@@ -12,7 +12,7 @@ import os
 import re
 
 SITE_URL = os.getenv("SITE_URL", "https://saytyoxla.vercel.app").rstrip("/")
-LASTMOD = "2026-10-20"          # bump when the front page changes
+LASTMOD = "2026-11-01"          # bump when the front page changes
 
 # Google Search Console "HTML file" verification. Only the exact file names listed
 # here (or in the GOOGLE_VERIFY_FILES env var, comma-separated) are served, so no
@@ -35,19 +35,25 @@ def robots_txt() -> str:
     return "\n".join(lines) + "\n"
 
 
+PAGES = ["/", "/en/", "/ru/"]        # the same page in az, en, ru
+
+
 def sitemap_xml() -> str:
+    alts = "".join(f'    <xhtml:link rel="alternate" hreflang="{l}" href="{SITE_URL}{p}"/>\n'
+                   for l, p in zip(("az", "en", "ru"), PAGES))
+    urls = "".join(f"  <url>\n    <loc>{SITE_URL}{p}</loc>\n    <lastmod>{LASTMOD}</lastmod>\n{alts}  </url>\n"
+                   for p in PAGES)
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        f"  <url>\n    <loc>{SITE_URL}/</loc>\n    <lastmod>{LASTMOD}</lastmod>\n  </url>\n"
-        "</urlset>\n"
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
+        + urls + "</urlset>\n"
     )
 
 
 def llms_txt() -> str:
     return f"""# SaytYoxla — saytı pulsuz yoxlama aləti (Azərbaycan)
 
-> SaytYoxla istənilən saytın təhlükəsizliyini, SSL sertifikatını, e-poçt qorumasını (SPF, DMARC), sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayır və nəticəni sadə Azərbaycan dilində izah edir. Qeydiyyat tələb olunmur.
+> SaytYoxla istənilən saytın təhlükəsizliyini, SSL sertifikatını, e-poçt qorumasını (SPF, DMARC), sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayır və nəticəni sadə Azərbaycan dilində izah edir (nəticə ingilis və rus dilində də var). Qeydiyyat tələb olunmur.
 
 ## Nəyi yoxlayır
 - Təhlükəsizlik: HTTPS, sertifikatın bitmə tarixi, HTTP→HTTPS yönləndirmə, HSTS, clickjacking qorunması, nosniff, CSP, Referrer-Policy, server versiyasının açıqlanması, qarışıq məzmun
@@ -68,6 +74,8 @@ Ziya Azizov — https://www.linkedin.com/in/ziya-azizov-91bba638a
 
 ## Səhifələr
 - [SaytYoxla]({SITE_URL}/): saytı yoxlama forması, bələdçi və tez-tez verilən suallar
+- [SaytYoxla in English]({SITE_URL}/en/): the same free website check in English
+- [SaytYoxla на русском]({SITE_URL}/ru/): та же бесплатная проверка сайта на русском
 """
 
 

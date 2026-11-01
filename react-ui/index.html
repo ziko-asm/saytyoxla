@@ -4,10 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saytı pulsuz yoxla: təhlükəsizlik, SSL, sürət | SaytYoxla</title>
-<meta name="description" content="Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan dilində.">
+<meta name="description" content="Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan, ingilis və ya rus dilində.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="Ziya Azizov">
 <link rel="canonical" href="https://saytyoxla.vercel.app/">
+<link rel="alternate" hreflang="az" href="https://saytyoxla.vercel.app/">
+<link rel="alternate" hreflang="en" href="https://saytyoxla.vercel.app/en/">
+<link rel="alternate" hreflang="ru" href="https://saytyoxla.vercel.app/ru/">
+<link rel="alternate" hreflang="x-default" href="https://saytyoxla.vercel.app/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="az_AZ">
 <meta property="og:site_name" content="SaytYoxla">
@@ -37,7 +41,7 @@
    "@id": "https://saytyoxla.vercel.app/#app",
    "name": "SaytYoxla",
    "url": "https://saytyoxla.vercel.app/",
-   "description": "Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan dilində.",
+   "description": "Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan, ingilis və ya rus dilində.",
    "applicationCategory": "SecurityApplication",
    "operatingSystem": "Any (brauzerdə işləyir)",
    "inLanguage": "az",
@@ -199,9 +203,12 @@
       <span class="mark"><svg class="ico"><use href="#i-check"/></svg></span>
       <span>Sayt<b>Yoxla</b></span>
     </a>
-    <button class="btn btn-help" type="button" data-guide>
-      <svg class="ico"><use href="#i-help"/></svg><span>Saytı necə işlətməli?</span>
-    </button>
+    <div class="top-right">
+      <nav class="langs" aria-label="Dil"><a href="/" hreflang="az" lang="az" title="Azərbaycanca" aria-current="page">AZ</a><a href="/en/" hreflang="en" lang="en" title="English">EN</a><a href="/ru/" hreflang="ru" lang="ru" title="Русский">RU</a></nav>
+      <button class="btn btn-help" type="button" data-guide>
+        <svg class="ico"><use href="#i-help"/></svg><span>Saytı necə işlətməli?</span>
+      </button>
+    </div>
   </div>
 </header>
 <main id="main">

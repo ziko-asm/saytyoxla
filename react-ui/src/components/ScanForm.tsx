@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import { Icon } from '../Icon'
+import { t } from '../i18n'
 
 type Props = {
   url: string
@@ -18,8 +19,8 @@ export const ScanForm = forwardRef<HTMLInputElement, Props>(function ScanForm(
   return (
     <section className="hero">
       <div className="wrap narrow">
-        <h1>Saytınız nə qədər <span>təhlükəsiz</span> və sağlamdır?</h1>
-        <p className="lead">Saytınızın ünvanını yazın — 30 saniyəyə pulsuz yoxlayaq və nəticəni sadə dildə izah edək.</p>
+        <h1>{t.h1a}<span>{t.h1b}</span>{t.h1c}</h1>
+        <p className="lead">{t.lead}</p>
 
         <form
           className="scan"
@@ -29,7 +30,7 @@ export const ScanForm = forwardRef<HTMLInputElement, Props>(function ScanForm(
             onSubmit()
           }}
         >
-          <label htmlFor="url" className="sr">Saytın ünvanı</label>
+          <label htmlFor="url" className="sr">{t.urlLabel}</label>
           <input
             ref={inputRef}
             id="url"
@@ -39,27 +40,26 @@ export const ScanForm = forwardRef<HTMLInputElement, Props>(function ScanForm(
             autoComplete="url"
             autoCapitalize="off"
             spellCheck={false}
-            placeholder="məsələn: meninsaytim.az"
+            placeholder={t.placeholder}
             value={url}
             onChange={(e) => onUrlChange(e.target.value)}
           />
           <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Yoxlanılır…' : 'Yoxla'}
+            {loading ? t.scanning : t.scan}
           </button>
         </form>
-        <p className="form-hint">http:// və ya www yazmağa ehtiyac yoxdur. Pulsuzdur, qeydiyyat tələb olunmur.</p>
+        <p className="form-hint">{t.hint}</p>
         {error && <p className="form-error" role="alert">{error}</p>}
 
         <div className="howto">
           <div className="howto-head">
-            <h2><Icon name="i-help" />Saytı necə işlətməli?</h2>
-            <button className="link" type="button" onClick={onHelp}>Ətraflı bələdçi →</button>
+            <h2><Icon name="i-help" />{t.help}</h2>
+            <button className="link" type="button" onClick={onHelp}>{t.guideLink}</button>
           </div>
           <ol className="howto-steps">
-            <li><b>1</b><span><strong>Ünvanı yazın</strong>Yuxarıdakı xanaya saytınızın adını yazın.</span></li>
-            <li><b>2</b><span><strong>«Yoxla» basın</strong>10–30 saniyə gözləyin, səhifəni bağlamayın.</span></li>
-            <li><b>3</b><span><strong>Balınıza baxın</strong>100-ə yaxın bal — yaxşı. Aşağı bal — diqqət.</span></li>
-            <li><b>4</b><span><strong>Qırmızıları düzəldin</strong>Hər problemin altında necə düzəldiləcəyi yazılıb.</span></li>
+            {t.steps.map(([title, text], i) => (
+              <li key={i}><b>{i + 1}</b><span><strong>{title}</strong>{text}</span></li>
+            ))}
           </ol>
         </div>
       </div>

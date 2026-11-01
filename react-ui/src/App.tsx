@@ -5,6 +5,7 @@ import { Loading } from './components/Loading'
 import { ReportView } from './components/ReportView'
 import { Guide } from './components/Guide'
 import type { Report } from './types'
+import { LANG, t } from './i18n'
 
 export default function App() {
   const [url, setUrl] = useState('')
@@ -18,7 +19,7 @@ export default function App() {
     const value = target.trim()
     setError('')
     if (!value) {
-      setError('Əvvəlcə saytınızın ünvanını yazın. Məsələn: meninsaytim.az')
+      setError(t.emptyUrl)
       input.current?.focus()
       return
     }
@@ -28,13 +29,13 @@ export default function App() {
       const res = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: value }),
+        body: JSON.stringify({ url: value, lang: LANG }),
       })
       const data = await res.json()
-      if (!res.ok) setError(data.detail || 'Xəta baş verdi. Bir az sonra yenidən cəhd edin.')
+      if (!res.ok) setError(data.detail || t.genericError)
       else setReport(data)
     } catch {
-      setError('Serverə qoşulmaq mümkün olmadı. İnternet bağlantınızı yoxlayın.')
+      setError(t.networkError)
     } finally {
       setLoading(false)
     }

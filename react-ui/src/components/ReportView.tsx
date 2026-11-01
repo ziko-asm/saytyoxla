@@ -3,10 +3,12 @@ import { Icon } from '../Icon'
 import { FindingItem } from './FindingItem'
 import { ScoreRing } from './ScoreRing'
 import type { Finding, Report } from '../types'
+import { LANG, LOCALE, t } from '../i18n'
 
 const WA_NUMBER = '994772172358'
 const GRADE_COLOR: Record<string, string> = { A: '#047857', B: '#15803d', C: '#b45309', D: '#c2410c', F: '#b91c1c' }
-const ORDER = ['Təhlükəsizlik', 'E-poçt', 'Sürət', 'Mobil və Google']
+// Category order follows the checks: security, e-mail, speed, mobile & search
+const ORDER = ['https', 'cert', 'spf', 'speed', 'viewport']
 const isProblem = (f: Finding) => f.status === 'fail' || f.status === 'warn'
 
 export function ReportView({ report, onAgain }: { report: Report; onAgain: () => void }) {
@@ -21,13 +23,13 @@ export function ReportView({ report, onAgain }: { report: Report; onAgain: () =>
   const clean = !c.fail && !c.warn
 
   // Group the findings by category, in a fixed order
-  const categories = [...new Set(report.findings.map((f) => f.category))].sort(
-    (a, b) => ORDER.indexOf(a) - ORDER.indexOf(b),
-  )
+  const rank = (cat: string) => {
+    const ids = report.findings.filter((f) => f.category === cat).map((f) => ORDER.indexOf(f.id))
+    return Math.max(...ids)
+  }
+  const categories = [...new Set(report.findings.map((f) => f.category))].sort((a, b) => rank(a) - rank(b))
 
-  const waText =
-    `Salam! SaytYoxla-da ${host} saytını yoxladım: ${report.score}/100 (${report.grade}). ` +
-    (clean ? 'Sizinlə əməkdaşlıq barədə danışmaq istəyirəm.' : 'Problemləri düzəltməyə kömək lazımdır.')
+  const waText = t.waText(host, report.score, report.grade, clean)
 
   function print() {
     box.current?.querySelectorAll('details').forEach((d) => (d.open = true))
@@ -39,26 +41,26 @@ export function ReportView({ report, onAgain }: { report: Report; onAgain: () =>
       <div className="rep-head">
         <ScoreRing score={report.score} color={color} />
         <div className="rep-meta">
-          <span className="grade" style={{ background: color }}>Qiymət: {report.grade}</span>
+          <span className="grade" style={{ background: color }}>{t.grade}: {report.grade}</span>
           <h2>{host}</h2>
           <p>{report.summary}</p>
           <div className="chips">
-            {!!c.fail && <span className="chip fail">{c.fail} ciddi problem</span>}
-            {!!c.warn && <span className="chip warn">{c.warn} tövsiyə</span>}
-            <span className="chip ok">{c.ok || 0} qaydasında</span>
+            {!!c.fail && <span className="chip fail">{t.chipFail(c.fail)}</span>}
+            {!!c.warn && <span className="chip warn">{t.chipWarn(c.warn)}</span>}
+            <span className="chip ok">{t.chipOk(c.ok || 0)}</span>
           </div>
           <div className="rep-actions">
-            <button className="btn btn-ghost" type="button" onClick={print}><Icon name="i-print" />Hesabatı çap et / PDF</button>
-            <button className="btn btn-ghost" type="button" onClick={onAgain}>Başqa sayt yoxla</button>
+            <button className="btn btn-ghost" type="button" onClick={print}><Icon name="i-print" />{t.print}</button>
+            <button className="btn btn-ghost" type="button" onClick={onAgain}>{t.again}</button>
           </div>
         </div>
       </div>
 
-      <div className="legend" aria-label="Rənglərin mənası">
-        <span><i className="dot fail"></i>Ciddi problem</span>
-        <span><i className="dot warn"></i>Tövsiyə</span>
-        <span><i className="dot ok"></i>Qaydasındadır</span>
-        <span><i className="dot info"></i>Məlumat</span>
+      <div className="legend" aria-label={t.legend}>
+        <span><i className="dot fail"></i>{t.status.fail}</span>
+        <span><i className="dot warn"></i>{t.status.warn}</span>
+        <span><i className="dot ok"></i>{t.status.ok}</span>
+        <span><i className="dot info"></i>{t.status.info}</span>
       </div>
 
       <div>
@@ -68,11 +70,11 @@ export function ReportView({ report, onAgain }: { report: Report; onAgain: () =>
           const rest = items.filter((f) => !isProblem(f))
           return (
             <div className="group" key={cat}>
-              <h3>{cat} <small>{bad.length ? `${bad.length} məsələ` : 'hər şey qaydasındadır'}</small></h3>
+              <h3>{cat} <small>{bad.length ? t.issues(bad.length) : t.allGood}</small></h3>
               {bad.map((f) => <FindingItem key={f.id} f={f} />)}
               {rest.length > 0 && (bad.length ? (
                 <details className="ok-list">
-                  <summary>+ {rest.length} qaydasında olan yoxlamanı göstər</summary>
+                  <summary>{t.showOk(rest.length)}</summary>
                   {rest.map((f) => <FindingItem key={f.id} f={f} />)}
                 </details>
               ) : rest.map((f) => <FindingItem key={f.id} f={f} />))}
@@ -83,17 +85,15 @@ export function ReportView({ report, onAgain }: { report: Report; onAgain: () =>
 
       <div className="cta-card">
         <div>
-          <h3>{clean ? 'Saytınız əla vəziyyətdədir!' : 'Problemləri özünüz düzəldə bilmirsiniz?'}</h3>
-          <p>{clean
-            ? 'Yeni sayt, dizayn yeniləməsi və ya saytın mütəmadi izlənməsi lazımdırsa, yazın.'
-            : 'Hesabatı göndərin, nəyin necə düzəldiləcəyini izah edək və ya özümüz düzəldək.'}</p>
+          <h3>{clean ? t.ctaCleanTitle : t.ctaTitle}</h3>
+          <p>{clean ? t.ctaClean : t.cta}</p>
         </div>
         <a className="btn btn-wa" href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener">
-          <Icon name="i-wa" />WhatsApp-a yazın
+          <Icon name="i-wa" />{t.wa}
         </a>
       </div>
       <p className="muted small">
-        Yoxlama vaxtı: {new Date(report.scanned_at).toLocaleString('az-AZ')}. Nəticə yalnız açıq məlumatlara əsaslanır.
+        {t.scannedAt(new Date(report.scanned_at).toLocaleString(LOCALE[LANG]))}
       </p>
     </section>
   )

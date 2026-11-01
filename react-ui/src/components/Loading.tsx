@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { t } from '../i18n'
 
-const STEPS = [
-  'Sayta qoşuluruq…',
-  'Sertifikat yoxlanılır…',
-  'Təhlükəsizlik ayarları yoxlanılır…',
-  'E-poçt qorumasına baxılır…',
-  'Hesabat hazırlanır…',
-]
+const STEPS = t.loadingSteps
 
 export function Loading() {
   const [step, setStep] = useState(0)
@@ -23,7 +18,7 @@ export function Loading() {
     <section className="loading wrap narrow" ref={box} aria-live="polite">
       <div className="spinner" aria-hidden="true"></div>
       <p>{STEPS[step]}</p>
-      <p className="muted">Bu, adətən 10–30 saniyə çəkir. Səhifəni bağlamayın.</p>
+      <p className="muted">{t.loadingNote}</p>
     </section>
   )
 }

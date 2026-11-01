@@ -4,8 +4,9 @@ SaytYoxla web service.
     uvicorn web.app:app --reload          # http://127.0.0.1:8000
 
 GET  /            the Azerbaijani front page (React, built from react-ui/ into web/react/)
+GET  /en/, /ru/   the same page in English and Russian
 GET  /classic     the previous plain-JavaScript page (web/static/index.html)
-POST /api/scan    {"url": "example.az"} -> report JSON
+POST /api/scan    {"url": "example.az", "lang": "az|en|ru"} -> report JSON
 GET  /health      for the hosting platform
 GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (web/seo.py)
 """
@@ -25,6 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import scanner
+from scanner import i18n
 from scanner.safety import UnsafeTarget, normalize
 from web import seo
 
@@ -52,6 +54,7 @@ _lock = threading.Lock()
 
 class ScanRequest(BaseModel):
     url: str = Field(..., max_length=300)
+    lang: str = Field("az", max_length=5)      # az | en | ru; anything else falls back to az
 
 
 def client_ip(request: Request) -> str:
@@ -93,6 +96,19 @@ def index():
     return FileResponse(REACT / "index.html")
 
 
+@app.get("/en/", include_in_schema=False)
+@app.get("/ru/", include_in_schema=False)
+def index_lang(request: Request):
+    """English and Russian pages (react-ui/make_pages.py)."""
+    return FileResponse(REACT / request.url.path.strip("/") / "index.html")
+
+
+@app.get("/en", include_in_schema=False)
+@app.get("/ru", include_in_schema=False)
+def index_lang_slash(request: Request):
+    return RedirectResponse(request.url.path + "/", status_code=301)
+
+
 @app.get("/classic", include_in_schema=False)
 def classic():
     """The previous plain-JavaScript page, kept as a fallback."""
@@ -127,23 +143,24 @@ def health():
 
 @app.post("/api/scan")
 def scan(req: ScanRequest, request: Request):
+    lang = i18n.lang_of(req.lang)
     try:
         key = normalize(req.url)
     except UnsafeTarget as e:
-        raise HTTPException(400, str(e)) from None
+        raise HTTPException(400, i18n.text(str(e), lang)) from None
 
     hit = _cache.get(key)
     if hit and time.time() - hit[0] < CACHE_SECONDS:
-        return JSONResponse(hit[1])
+        return JSONResponse(i18n.report(hit[1], lang))
 
     if not allow(client_ip(request)):
-        raise HTTPException(429, "Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.")
+        raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
     try:
         report = scanner.scan(req.url).to_dict()
     except UnsafeTarget as e:
-        raise HTTPException(400, str(e)) from None
+        raise HTTPException(400, i18n.text(str(e), lang)) from None
     _cache[key] = (time.time(), report)
-    return JSONResponse(report)
+    return JSONResponse(i18n.report(report, lang))
 
 
 # Keep this last: it matches any single path segment, so earlier routes win.

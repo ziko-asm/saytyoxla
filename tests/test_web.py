@@ -125,3 +125,14 @@ def test_react_home_page_and_assets():
     js = re.search(r'src="(/react/assets/[^"]+\.js)"', page.text).group(1)
     css = re.search(r'href="(/react/assets/[^"]+\.css)"', page.text).group(1)
     assert client.get(js).status_code == 200 and client.get(css).status_code == 200
+
+
+def test_language_pages():
+    for path, lang, word in (("/en/", "en", "How to use it"), ("/ru/", "ru", "Как пользоваться?")):
+        r = client.get(path)
+        assert r.status_code == 200 and f'<html lang="{lang}">' in r.text and word in r.text
+        assert 'hreflang="az"' in r.text and f'saytyoxla.vercel.app{path}"' in r.text
+    r = client.get("/en", follow_redirects=False)
+    assert r.status_code == 301 and r.headers["location"].endswith("/en/")
+    sm = client.get("/sitemap.xml").text
+    assert "/en/</loc>" in sm and "/ru/</loc>" in sm and 'hreflang="ru"' in sm
