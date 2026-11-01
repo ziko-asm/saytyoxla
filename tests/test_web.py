@@ -152,3 +152,9 @@ def test_survey_pages(monkeypatch, tmp_path):
         assert ".az" not in r.text.replace("ayfar.vercel.app", "")   # no site is named
     assert client.get("/hesabat", follow_redirects=False).headers["location"].endswith("/hesabat/")
     assert "/en/report/</loc>" in client.get("/sitemap.xml").text
+
+
+def test_indexnow_key_file():
+    from web import seo
+    assert client.get(f"/{seo.INDEXNOW_KEY}.txt").text == seo.INDEXNOW_KEY
+    assert client.get("/wrong.txt").status_code == 404

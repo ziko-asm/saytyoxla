@@ -181,6 +181,9 @@ def scan(req: ScanRequest, request: Request):
 # Keep this last: it matches any single path segment, so earlier routes win.
 @app.get("/{filename}", include_in_schema=False)
 def google_verify(filename: str):
+    key = seo.indexnow_key(filename)
+    if key:
+        return PlainTextResponse(key)
     body = seo.google_verification(filename)
     if body is None:
         raise HTTPException(404, "Not Found")

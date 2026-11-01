@@ -84,6 +84,14 @@ Ziya Azizov — https://www.linkedin.com/in/ziya-azizov-91bba638a
 """
 
 
+# IndexNow (Bing, Yandex): this public key file proves we own the site when we ping new URLs.
+INDEXNOW_KEY = "078eda7fa1a6336d062cc39d377fe282"
+
+
+def indexnow_key(filename: str) -> str | None:
+    return INDEXNOW_KEY if filename == f"{INDEXNOW_KEY}.txt" else None
+
+
 def google_verification(filename: str) -> str | None:
     """Body for an allowed Google verification file such as 'google1a2b3c.html', else None."""
     if filename not in GOOGLE_VERIFY_FILES or not _GOOGLE_NAME.fullmatch(filename):
