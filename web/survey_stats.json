@@ -1,0 +1,283 @@
+{
+ "scanned": 139,
+ "analysed": 106,
+ "skipped": {
+  "not_in_dns": 26,
+  "unreachable": 15,
+  "tls": 5,
+  "blocked": 18
+ },
+ "dates": [
+  "2026-11-01"
+ ],
+ "all": {
+  "n": 106,
+  "avg": 87,
+  "median": 88,
+  "grades": {
+   "B": 57,
+   "A": 43,
+   "C": 6
+  },
+  "pass": {
+   "https": 100,
+   "http_redirect": 75,
+   "hsts": 42,
+   "framing": 47,
+   "nosniff": 38,
+   "csp": 14,
+   "referrer": 26,
+   "disclosure": 82,
+   "mixed": 98,
+   "spf": 88,
+   "dmarc": 58,
+   "speed": 91,
+   "viewport": 99,
+   "title": 82,
+   "description": 39
+  },
+  "dmarc_missing": 33,
+  "dmarc_none": 8,
+  "spf_missing": 12,
+  "version_leak": 18,
+  "cert_soon": 4,
+  "avg_fails": 0.8
+ },
+ "sectors": {
+  "bank": {
+   "n": 16,
+   "avg": 94,
+   "median": 94,
+   "grades": {
+    "A": 14,
+    "B": 2
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 88,
+    "hsts": 75,
+    "framing": 62,
+    "nosniff": 56,
+    "csp": 31,
+    "referrer": 38,
+    "disclosure": 81,
+    "mixed": 100,
+    "spf": 100,
+    "dmarc": 100,
+    "speed": 100,
+    "viewport": 100,
+    "title": 94,
+    "description": 56
+   },
+   "dmarc_missing": 0,
+   "dmarc_none": 0,
+   "spf_missing": 0,
+   "version_leak": 19,
+   "cert_soon": 0,
+   "avg_fails": 0.2
+  },
+  "uni": {
+   "n": 15,
+   "avg": 89,
+   "median": 89,
+   "grades": {
+    "B": 8,
+    "A": 7
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 73,
+    "hsts": 40,
+    "framing": 53,
+    "nosniff": 53,
+    "csp": 27,
+    "referrer": 53,
+    "disclosure": 87,
+    "mixed": 100,
+    "spf": 93,
+    "dmarc": 47,
+    "speed": 87,
+    "viewport": 100,
+    "title": 93,
+    "description": 33
+   },
+   "dmarc_missing": 33,
+   "dmarc_none": 20,
+   "spf_missing": 7,
+   "version_leak": 13,
+   "cert_soon": 0,
+   "avg_fails": 0.7
+  },
+  "gov": {
+   "n": 22,
+   "avg": 87,
+   "median": 88,
+   "grades": {
+    "B": 9,
+    "A": 10,
+    "C": 3
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 23,
+    "hsts": 27,
+    "framing": 73,
+    "nosniff": 14,
+    "csp": 9,
+    "referrer": 14,
+    "disclosure": 91,
+    "mixed": 95,
+    "spf": 95,
+    "dmarc": 95,
+    "speed": 95,
+    "viewport": 100,
+    "title": 86,
+    "description": 18
+   },
+   "dmarc_missing": 5,
+   "dmarc_none": 0,
+   "spf_missing": 5,
+   "version_leak": 9,
+   "cert_soon": 4,
+   "avg_fails": 0.9
+  },
+  "news": {
+   "n": 21,
+   "avg": 82,
+   "median": 84,
+   "grades": {
+    "B": 15,
+    "A": 3,
+    "C": 3
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 95,
+    "hsts": 38,
+    "framing": 29,
+    "nosniff": 33,
+    "csp": 10,
+    "referrer": 24,
+    "disclosure": 86,
+    "mixed": 100,
+    "spf": 57,
+    "dmarc": 19,
+    "speed": 100,
+    "viewport": 95,
+    "title": 52,
+    "description": 52
+   },
+   "dmarc_missing": 76,
+   "dmarc_none": 5,
+   "spf_missing": 43,
+   "version_leak": 14,
+   "cert_soon": 0,
+   "avg_fails": 1.4
+  },
+  "shop": {
+   "n": 14,
+   "avg": 87,
+   "median": 87,
+   "grades": {
+    "A": 5,
+    "B": 9
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 93,
+    "hsts": 36,
+    "framing": 29,
+    "nosniff": 43,
+    "csp": 14,
+    "referrer": 21,
+    "disclosure": 79,
+    "mixed": 100,
+    "spf": 100,
+    "dmarc": 36,
+    "speed": 86,
+    "viewport": 100,
+    "title": 86,
+    "description": 43
+   },
+   "dmarc_missing": 43,
+   "dmarc_none": 21,
+   "spf_missing": 0,
+   "version_leak": 21,
+   "cert_soon": 0,
+   "avg_fails": 0.6
+  },
+  "tel": {
+   "n": 6,
+   "avg": 90,
+   "median": 89,
+   "grades": {
+    "B": 3,
+    "A": 3
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 100,
+    "hsts": 33,
+    "framing": 50,
+    "nosniff": 33,
+    "csp": 0,
+    "referrer": 33,
+    "disclosure": 100,
+    "mixed": 100,
+    "spf": 100,
+    "dmarc": 100,
+    "speed": 67,
+    "viewport": 100,
+    "title": 67,
+    "description": 17
+   },
+   "dmarc_missing": 0,
+   "dmarc_none": 0,
+   "spf_missing": 0,
+   "version_leak": 0,
+   "cert_soon": 0,
+   "avg_fails": 0.5
+  },
+  "health": {
+   "n": 12,
+   "avg": 84,
+   "median": 82,
+   "grades": {
+    "B": 11,
+    "A": 1
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 92,
+    "hsts": 42,
+    "framing": 25,
+    "nosniff": 42,
+    "csp": 0,
+    "referrer": 8,
+    "disclosure": 50,
+    "mixed": 92,
+    "spf": 83,
+    "dmarc": 25,
+    "speed": 75,
+    "viewport": 100,
+    "title": 100,
+    "description": 42
+   },
+   "dmarc_missing": 58,
+   "dmarc_none": 17,
+   "spf_missing": 17,
+   "version_leak": 50,
+   "cert_soon": 0,
+   "avg_fails": 1.2
+  }
+ },
+ "sector_sizes": {
+  "uni": 25,
+  "news": 25,
+  "gov": 30,
+  "bank": 25,
+  "health": 20,
+  "shop": 25,
+  "tel": 15
+ }
+}

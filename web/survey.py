@@ -27,7 +27,7 @@ SECTORS = {
     "gov": ("Dövlət qurumları", "Government", "Госорганы"),
     "news": ("Xəbər saytları", "News sites", "Новостные сайты"),
     "shop": ("Onlayn mağazalar", "Online shops", "Интернет-магазины"),
-    "tel": ("Telekom və internet", "Telecom and internet", "Телеком и интернет"),
+    "tel": ("Telekom operatorları", "Telecom operators", "Операторы связи"),
     "health": ("Səhiyyə", "Healthcare", "Медицина"),
 }
 
@@ -108,6 +108,20 @@ def page(lang: str) -> str:
     a, p = s["all"], s["all"]["pass"]
     when = date_text(s["dates"][-1], lang)
     blocked, unreach = s["skipped"].get("blocked", 0), s["skipped"].get("unreachable", 0)
+    tls = s["skipped"].get("tls", 0)
+    ranked = sorted(s["sectors"].items(), key=lambda kv: -kv[1]["avg"])
+    sname = lambda k: SECTORS[k][("az", "en", "ru").index(lang)]
+    (best, bm), (worst, wm) = ranked[0], ranked[-1]
+    # sectors where at least 90% / under 50% of sites block fake e-mails (DMARC enforced)
+    good = [k for k, m in ranked if m["pass"]["dmarc"] >= 90]
+    weak = [k for k, m in sorted(s["sectors"].items(), key=lambda kv: kv[1]["pass"]["dmarc"]) if m["pass"]["dmarc"] < 50]
+
+    def names(keys, i, joiner):
+        n = [SECTORS[k][i].lower() for k in keys]
+        return (", ".join(n[:-1]) + joiner + n[-1]) if len(n) > 1 else (n[0] if n else "")
+    good_az, weak_az = names(good, 0, " və ").capitalize(), names(weak, 0, " və ")
+    good_en, weak_en = names(good, 1, " and ").capitalize(), names(weak, 1, " and ")
+    good_ru, weak_ru = names(good, 2, " и "), names(weak, 2, " и ")
     no_dmarc = a["dmarc_missing"] + a["dmarc_none"]
     sectors = ", ".join(SECTORS[k][("az", "en", "ru").index(lang)].lower() for k in SECTORS if k in s["sectors"])
 
@@ -140,15 +154,18 @@ def page(lang: str) -> str:
         lang,
         [f"<b>Əsaslar yaxşıdır.</b> Yoxlanılan saytların {p['https']}%-i HTTPS ilə açılır, {p['viewport']}%-i telefona uyğundur.",
          f"<b>Əlavə qoruma qatları zəifdir.</b> Yalnız {p['csp']}% CSP, {p['hsts']}% HSTS, {p['framing']}% saxta çərçivəyə qarşı qoruma istifadə edir. Bunlar pulsuzdur və bir neçə sətirlik server ayarıdır.",
-         f"<b>E-poçt saxtakarlığı ən böyük boşluqdur.</b> Saytların {a['dmarc_missing']}%-ində DMARC ümumiyyətlə yoxdur, {a['dmarc_none']}%-ində isə yalnız müşahidə rejimindədir. Fişinq məktubları bank və dövlət qurumu adından göndərildikdə bu, birbaşa müştəriyə zərər verir.",
+         f"<b>E-poçt qoruması sahədən asılıdır.</b> Saytların {a['dmarc_missing']}%-ində DMARC ümumiyyətlə yoxdur, {a['dmarc_none']}%-ində isə yalnız müşahidə rejimindədir. {good_az} bu sahədə yaxşıdır, {weak_az} isə geri qalır: onların adından saxta məktub göndərmək asandır.",
+         f"<b>Sahələr arasında fərq böyükdür.</b> Ən yüksək orta bal: {sname(best).lower()} ({bm['avg']}), ən aşağı: {sname(worst).lower()} ({wm['avg']}). {sname(worst)} arasında DMARC-ı saxta məktubları bloklayan sayt payı cəmi {wm['pass']['dmarc']}%-dir.",
          f"<b>Google üçün təsvir.</b> Saytların yalnız {p['description']}%-ində uyğun uzunluqda meta description var."],
         [f"<b>The basics are in place.</b> {p['https']}% of the sites open over HTTPS and {p['viewport']}% are mobile-friendly.",
          f"<b>Extra layers of protection are thin.</b> Only {p['csp']}% use CSP, {p['hsts']}% HSTS and {p['framing']}% clickjacking protection. All of these are free, a few lines of server configuration.",
-         f"<b>E-mail spoofing is the biggest gap.</b> {a['dmarc_missing']}% of the sites have no DMARC at all and {a['dmarc_none']}% only monitor. When phishing e-mails go out in the name of a bank or a ministry, customers pay the price.",
+         f"<b>E-mail protection depends on the sector.</b> {a['dmarc_missing']}% of the sites have no DMARC at all and {a['dmarc_none']}% only monitor. {good_en} do well here, while {weak_en} lag behind: fake e-mails in their name are easy to send.",
+         f"<b>Sectors differ a lot.</b> The highest average score is in {sname(best).lower()} ({bm['avg']}), the lowest in {sname(worst).lower()} ({wm['avg']}). Among {sname(worst).lower()}, only {wm['pass']['dmarc']}% have a DMARC policy that blocks fake e-mails.",
          f"<b>Descriptions for Google.</b> Only {p['description']}% have a meta description of a useful length."],
         [f"<b>Основа в порядке.</b> {p['https']}% сайтов открываются по HTTPS, {p['viewport']}% адаптированы под телефон.",
          f"<b>Дополнительной защиты мало.</b> CSP используют лишь {p['csp']}%, HSTS — {p['hsts']}%, защиту от кликджекинга — {p['framing']}%. Всё это бесплатно и занимает несколько строк настроек сервера.",
-         f"<b>Подделка писем — самая большая брешь.</b> У {a['dmarc_missing']}% сайтов DMARC нет вовсе, у {a['dmarc_none']}% он только в режиме наблюдения. Когда фишинговые письма приходят от имени банка или министерства, страдают клиенты.",
+         f"<b>Защита почты зависит от сферы.</b> У {a['dmarc_missing']}% сайтов DMARC нет вовсе, у {a['dmarc_none']}% он только в режиме наблюдения. Здесь хорошо справляются: {good_ru}; отстают: {weak_ru} — от их имени легко отправить поддельное письмо.",
+         f"<b>Сферы сильно различаются.</b> Самый высокий средний балл — {sname(best).lower()} ({bm['avg']}), самый низкий — {sname(worst).lower()} ({wm['avg']}). В сфере «{sname(worst)}» DMARC, блокирующий поддельные письма, есть лишь у {wm['pass']['dmarc']}% сайтов.",
          f"<b>Описание для Google.</b> Только у {p['description']}% есть meta description подходящей длины."],
     )
     findings_html = "".join(f"<li>{x}</li>" for x in findings)
@@ -158,17 +175,17 @@ def page(lang: str) -> str:
         f"{when} tarixində {s['scanned']} açıq Azərbaycan saytı ({sectors}) SaytYoxla ilə yoxlanıldı. "
         f"Hər saytın yalnız əsas səhifəsi bir dəfə açıldı, sertifikat və iki açıq DNS qeydi (SPF, DMARC) oxundu, "
         f"heç nə sındırılmağa çalışılmadı. Avtomatik yoxlamaları bloklayan {blocked} sayt və açılmayan {unreach} sayt "
-        f"nəticəyə daxil edilmədi; qalan {a['n']} saytın nəticəsi göstərilir. Bu, tam təhlükəsizlik auditi deyil: "
+        f"(onlardan {tls}-i TLS/sertifikat xətası ilə) nəticəyə daxil edilmədi; qalan {a['n']} saytın nəticəsi göstərilir. Bu, tam təhlükəsizlik auditi deyil: "
         f"yalnız kənardan görünən ayarlar yoxlanılır. Ayrı-ayrı saytların adları dərc olunmur.",
         f"On {when}, {s['scanned']} public Azerbaijani websites ({sectors}) were checked with SaytYoxla. "
         f"For each site only the home page was opened once and the certificate and two public DNS records "
         f"(SPF, DMARC) were read; nothing was probed or attacked. {blocked} sites that block automated checks and "
-        f"{unreach} that did not open were left out; the results cover the remaining {a['n']}. This is not a full "
+        f"{unreach} that did not open ({tls} of them with a TLS/certificate error) were left out; the results cover the remaining {a['n']}. This is not a full "
         f"security audit: it only covers settings visible from outside. Individual sites are not named.",
         f"{when} с помощью SaytYoxla проверено {s['scanned']} открытых сайтов Азербайджана ({sectors}). "
         f"У каждого сайта один раз открывалась только главная страница, читались сертификат и две открытые "
         f"DNS-записи (SPF, DMARC); ничего не взламывалось. {blocked} сайтов, блокирующих автоматические проверки, "
-        f"и {unreach} неоткрывшихся в итог не вошли; результаты — по остальным {a['n']}. Это не полный аудит "
+        f"и {unreach} неоткрывшихся (из них {tls} — с ошибкой TLS/сертификата) в итог не вошли; результаты — по остальным {a['n']}. Это не полный аудит "
         f"безопасности: проверяются только настройки, видимые снаружи. Названия отдельных сайтов не публикуются.",
     )
 
@@ -288,8 +305,8 @@ footer{{color:var(--muted);font-size:14px;padding:32px 0 40px}}
   <ul class="grades">{_grades(a, lang)}</ul>
 
   <h2>{L(lang, "Sahələr üzrə", "By sector", "По сферам")}</h2>
-  <p class="sub">{L(lang, "Orta bal və əsas qoruma ayarı olan saytların payı.", "Average score and the share of sites with each key protection.",
-                   "Средний балл и доля сайтов с каждой основной защитой.")}</p>
+  <p class="sub">{L(lang, "Orta bal və əsas qoruma ayarı olan saytların payı. Az sayt olan sahələrdə faizləri ehtiyatla oxuyun.", "Average score and the share of sites with each key protection. In sectors with few sites, read the percentages with care.",
+                   "Средний балл и доля сайтов с каждой основной защитой. Где сайтов мало, проценты стоит читать осторожно.")}</p>
   <div class="tw">{_table(s, lang)}</div>
 
   <div class="cta">
