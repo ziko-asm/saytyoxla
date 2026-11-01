@@ -61,6 +61,7 @@ export default function App() {
   return (
     <>
       <Header onHelp={() => setGuideOpen(true)} />
+      <main id="main">
       <ScanForm
         ref={input}
         url={url}
@@ -72,6 +73,7 @@ export default function App() {
       />
       {loading && <Loading />}
       {report && <ReportView report={report} onAgain={again} />}
+      </main>
       {guideOpen && (
         <Guide
           onClose={closeGuide}

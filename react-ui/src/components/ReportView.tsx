@@ -5,7 +5,7 @@ import { ScoreRing } from './ScoreRing'
 import type { Finding, Report } from '../types'
 
 const WA_NUMBER = '994772172358'
-const GRADE_COLOR: Record<string, string> = { A: '#059669', B: '#16a34a', C: '#d97706', D: '#ea580c', F: '#dc2626' }
+const GRADE_COLOR: Record<string, string> = { A: '#047857', B: '#15803d', C: '#b45309', D: '#c2410c', F: '#b91c1c' }
 const ORDER = ['Təhlükəsizlik', 'E-poçt', 'Sürət', 'Mobil və Google']
 const isProblem = (f: Finding) => f.status === 'fail' || f.status === 'warn'
 
@@ -15,7 +15,7 @@ export function ReportView({ report, onAgain }: { report: Report; onAgain: () =>
     box.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [report])
 
-  const color = GRADE_COLOR[report.grade] || '#059669'
+  const color = GRADE_COLOR[report.grade] || '#047857'
   const host = report.final_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
   const c = report.counts || {}
   const clean = !c.fail && !c.warn

@@ -3,7 +3,8 @@ SaytYoxla web service.
 
     uvicorn web.app:app --reload          # http://127.0.0.1:8000
 
-GET  /            the Azerbaijani front page (web/static/index.html)
+GET  /            the Azerbaijani front page (React, built from react-ui/ into web/react/)
+GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 POST /api/scan    {"url": "example.az"} -> report JSON
 GET  /health      for the hosting platform
 GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (web/seo.py)
@@ -19,7 +20,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -88,13 +89,20 @@ async def security_headers(request: Request, call_next):
 
 @app.get("/", include_in_schema=False)
 def index():
+    """The React front end (react-ui, built into web/react)."""
+    return FileResponse(REACT / "index.html")
+
+
+@app.get("/classic", include_in_schema=False)
+def classic():
+    """The previous plain-JavaScript page, kept as a fallback."""
     return FileResponse(STATIC / "index.html")
 
 
 @app.get("/beta", include_in_schema=False)
 def beta():
-    """The React front end, served side by side with the current page until it replaces it."""
-    return FileResponse(REACT / "index.html")
+    """Old link from the preview period: the React page is the home page now."""
+    return RedirectResponse("/", status_code=301)
 
 
 @app.get("/robots.txt", include_in_schema=False)
