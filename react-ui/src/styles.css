@@ -178,3 +178,7 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
   .rep-head,.f{box-shadow:none;break-inside:avoid}
   .ok-list[open] summary,.ok-list summary{display:none}
 }
+
+.survey-link{margin:22px 0 0;text-align:center;font-weight:600}
+.survey-link a{display:inline-block;padding:12px 16px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);text-decoration:none}
+.survey-link a:hover{border-color:var(--brand-2)}

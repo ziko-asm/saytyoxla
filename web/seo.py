@@ -43,10 +43,14 @@ def sitemap_xml() -> str:
                    for l, p in zip(("az", "en", "ru"), PAGES))
     urls = "".join(f"  <url>\n    <loc>{SITE_URL}{p}</loc>\n    <lastmod>{LASTMOD}</lastmod>\n{alts}  </url>\n"
                    for p in PAGES)
+    from web.survey import PATHS as REPORT
+    ralts = "".join(f'    <xhtml:link rel="alternate" hreflang="{l}" href="{SITE_URL}{p}"/>\n' for l, p in REPORT.items())
+    report = "".join(f"  <url>\n    <loc>{SITE_URL}{p}</loc>\n    <lastmod>{LASTMOD}</lastmod>\n{ralts}  </url>\n"
+                     for p in REPORT.values())
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
-        + urls + "</urlset>\n"
+        + urls + report + "</urlset>\n"
     )
 
 
@@ -74,6 +78,7 @@ Ziya Azizov — https://www.linkedin.com/in/ziya-azizov-91bba638a
 
 ## Səhifələr
 - [SaytYoxla]({SITE_URL}/): saytı yoxlama forması, bələdçi və tez-tez verilən suallar
+- [Azərbaycan saytlarının təhlükəsizlik vəziyyəti]({SITE_URL}/hesabat/): yüzdən çox açıq saytın passiv yoxlamasının ümumi nəticələri (sayt adları olmadan)
 - [SaytYoxla in English]({SITE_URL}/en/): the same free website check in English
 - [SaytYoxla на русском]({SITE_URL}/ru/): та же бесплатная проверка сайта на русском
 """

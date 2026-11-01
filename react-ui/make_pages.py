@@ -119,6 +119,9 @@ T = [
      "Whether the site looks right on a phone and how it shows up in Google search.",
      "Правильно ли сайт выглядит на телефоне и как он показывается в поиске Google."),
 
+    ('<a href="/hesabat/">Azərbaycan saytlarının təhlükəsizlik hesabatı: banklar, universitetlər, dövlət qurumları →</a>',
+     '<a href="/en/report/">Report: how secure are Azerbaijani websites? Banks, universities, government →</a>',
+     '<a href="/ru/otchet/">Отчёт о безопасности сайтов Азербайджана: банки, университеты, госорганы →</a>'),
     # FAQ (in the page and in the JSON-LD)
     ("Tez-tez verilən suallar", "Frequently asked questions", "Частые вопросы"),
     ("Bu, pulsuzdur?", "Is it free?", "Это бесплатно?"),

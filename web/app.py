@@ -5,6 +5,7 @@ SaytYoxla web service.
 
 GET  /            the Azerbaijani front page (React, built from react-ui/ into web/react/)
 GET  /en/, /ru/   the same page in English and Russian
+GET  /hesabat/, /en/report/, /ru/otchet/   survey of Azerbaijani websites (web/survey.py)
 GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 POST /api/scan    {"url": "example.az", "lang": "az|en|ru"} -> report JSON
 GET  /health      for the hosting platform
@@ -21,14 +22,14 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import scanner
 from scanner import i18n
 from scanner.safety import UnsafeTarget, normalize
-from web import seo
+from web import seo, survey
 
 STATIC = Path(__file__).parent / "static"
 REACT = Path(__file__).parent / "react"      # built by react-ui (npm run build)
@@ -103,6 +104,20 @@ def index_lang(request: Request):
     return FileResponse(REACT / request.url.path.strip("/") / "index.html")
 
 
+@app.get("/hesabat/", include_in_schema=False)
+@app.get("/en/report/", include_in_schema=False)
+@app.get("/ru/otchet/", include_in_schema=False)
+def survey_page(request: Request):
+    """Aggregate results of scanning Azerbaijani websites (no site names)."""
+    if not survey.DATA.exists():          # not published yet
+        raise HTTPException(404, "Not Found")
+    lang = next(l for l, p in survey.PATHS.items() if p == request.url.path)
+    return HTMLResponse(survey.page(lang))
+
+
+@app.get("/hesabat", include_in_schema=False)
+@app.get("/en/report", include_in_schema=False)
+@app.get("/ru/otchet", include_in_schema=False)
 @app.get("/en", include_in_schema=False)
 @app.get("/ru", include_in_schema=False)
 def index_lang_slash(request: Request):

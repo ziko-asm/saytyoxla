@@ -136,3 +136,19 @@ def test_language_pages():
     assert r.status_code == 301 and r.headers["location"].endswith("/en/")
     sm = client.get("/sitemap.xml").text
     assert "/en/</loc>" in sm and "/ru/</loc>" in sm and 'hreflang="ru"' in sm
+
+
+def test_survey_pages(monkeypatch, tmp_path):
+    import shutil
+    from pathlib import Path
+    from web import survey
+    data = tmp_path / "stats.json"
+    shutil.copy(Path(__file__).parent / "survey_sample.json", data)
+    monkeypatch.setattr(survey, "DATA", data)
+    survey.stats.cache_clear()
+    for path, lang in (("/hesabat/", "az"), ("/en/report/", "en"), ("/ru/otchet/", "ru")):
+        r = client.get(path)
+        assert r.status_code == 200 and f'<html lang="{lang}">' in r.text and "<table>" in r.text
+        assert ".az" not in r.text.replace("ayfar.vercel.app", "")   # no site is named
+    assert client.get("/hesabat", follow_redirects=False).headers["location"].endswith("/hesabat/")
+    assert "/en/report/</loc>" in client.get("/sitemap.xml").text

@@ -1,0 +1,113 @@
+{
+ "scanned": 44,
+ "analysed": 28,
+ "skipped": {
+  "unreachable": 9,
+  "blocked": 7
+ },
+ "dates": [
+  "2026-11-01"
+ ],
+ "all": {
+  "n": 28,
+  "avg": 92,
+  "median": 93,
+  "grades": {
+   "B": 8,
+   "A": 20
+  },
+  "pass": {
+   "https": 100,
+   "http_redirect": 79,
+   "hsts": 64,
+   "framing": 61,
+   "nosniff": 57,
+   "csp": 29,
+   "referrer": 46,
+   "disclosure": 86,
+   "mixed": 100,
+   "spf": 96,
+   "dmarc": 75,
+   "speed": 96,
+   "viewport": 100,
+   "title": 93,
+   "description": 50
+  },
+  "dmarc_missing": 14,
+  "dmarc_none": 11,
+  "spf_missing": 4,
+  "version_leak": 14,
+  "cert_soon": 0,
+  "avg_fails": 0.4
+ },
+ "sectors": {
+  "bank": {
+   "n": 16,
+   "avg": 94,
+   "median": 94,
+   "grades": {
+    "A": 14,
+    "B": 2
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 88,
+    "hsts": 75,
+    "framing": 62,
+    "nosniff": 56,
+    "csp": 31,
+    "referrer": 38,
+    "disclosure": 81,
+    "mixed": 100,
+    "spf": 100,
+    "dmarc": 100,
+    "speed": 100,
+    "viewport": 100,
+    "title": 94,
+    "description": 56
+   },
+   "dmarc_missing": 0,
+   "dmarc_none": 0,
+   "spf_missing": 0,
+   "version_leak": 19,
+   "cert_soon": 0,
+   "avg_fails": 0.2
+  },
+  "uni": {
+   "n": 12,
+   "avg": 89,
+   "median": 90,
+   "grades": {
+    "B": 6,
+    "A": 6
+   },
+   "pass": {
+    "https": 100,
+    "http_redirect": 67,
+    "hsts": 50,
+    "framing": 58,
+    "nosniff": 58,
+    "csp": 25,
+    "referrer": 58,
+    "disclosure": 92,
+    "mixed": 100,
+    "spf": 92,
+    "dmarc": 42,
+    "speed": 92,
+    "viewport": 100,
+    "title": 92,
+    "description": 42
+   },
+   "dmarc_missing": 33,
+   "dmarc_none": 25,
+   "spf_missing": 8,
+   "version_leak": 8,
+   "cert_soon": 0,
+   "avg_fails": 0.7
+  }
+ },
+ "sector_sizes": {
+  "uni": 19,
+  "bank": 25
+ }
+}

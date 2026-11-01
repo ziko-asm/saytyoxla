@@ -1,0 +1,309 @@
+"""
+The public survey page: how well Azerbaijani websites do on SaytYoxla's passive checks.
+
+Only aggregate numbers are published (web/survey_stats.json). The list of scanned sites and
+their individual results stay private; owners can check their own site on the home page.
+
+    page("az") -> HTML for /hesabat/, page("en") -> /en/report/, page("ru") -> /ru/otchet/
+"""
+
+from __future__ import annotations
+
+import json
+from functools import lru_cache
+from html import escape
+from pathlib import Path
+
+from scanner import i18n
+
+SITE = "https://saytyoxla.vercel.app"
+DATA = Path(__file__).parent / "survey_stats.json"
+PATHS = {"az": "/hesabat/", "en": "/en/report/", "ru": "/ru/otchet/"}
+HOMES = {"az": "/", "en": "/en/", "ru": "/ru/"}
+
+SECTORS = {
+    "bank": ("Banklar", "Banks", "Банки"),
+    "uni": ("Universitetlər", "Universities", "Университеты"),
+    "gov": ("Dövlət qurumları", "Government", "Госорганы"),
+    "news": ("Xəbər saytları", "News sites", "Новостные сайты"),
+    "shop": ("Onlayn mağazalar", "Online shops", "Интернет-магазины"),
+    "tel": ("Telekom və internet", "Telecom and internet", "Телеком и интернет"),
+    "health": ("Səhiyyə", "Healthcare", "Медицина"),
+}
+
+# check id -> the Azerbaijani title the scanner uses (translated through scanner.i18n)
+CHECKS = {
+    "https": "Təhlükəsiz bağlantı (HTTPS)", "http_redirect": "HTTP-dən HTTPS-ə yönləndirmə",
+    "hsts": "Məcburi HTTPS (HSTS)", "framing": "Saxta çərçivəyə qarşı qoruma",
+    "nosniff": "Fayl tipinin qorunması", "csp": "Kənar skriptlərə nəzarət (CSP)",
+    "referrer": "Keçid məlumatının qorunması", "disclosure": "Proqram versiyasının gizlədilməsi",
+    "mixed": "Qarışıq məzmun", "spf": "E-poçt göndərən icazəsi (SPF)",
+    "dmarc": "Saxta məktuba qarşı qoruma (DMARC)", "speed": "Serverin cavab sürəti",
+    "viewport": "Telefona uyğunluq", "title": "Səhifə başlığı", "description": "Google üçün təsvir",
+}
+
+MONTHS = {
+    "az": ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktyabr", "noyabr", "dekabr"],
+    "en": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+           "November", "December"],
+    "ru": ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября",
+           "ноября", "декабря"],
+}
+
+
+def L(lang: str, az: str, en: str, ru: str) -> str:
+    return {"az": az, "en": en, "ru": ru}[lang]
+
+
+@lru_cache(maxsize=1)
+def stats() -> dict:
+    return json.loads(DATA.read_text(encoding="utf-8"))
+
+
+def date_text(iso: str, lang: str) -> str:
+    y, m, d = (int(x) for x in iso.split("-"))
+    return f"{d} {MONTHS[lang][m - 1]} {y}"
+
+
+def _bars(p: dict, lang: str) -> str:
+    rows = sorted(p.items(), key=lambda kv: kv[1])
+    out = []
+    for cid, v in rows:
+        name = escape(i18n.text(CHECKS[cid], lang))
+        out.append(f'<li><span class="bl">{name}</span>'
+                   f'<span class="bt" role="img" aria-label="{v}%"><i style="width:{max(v, 1)}%"></i></span>'
+                   f'<b class="bv">{v}%</b></li>')
+    return "\n".join(out)
+
+
+def _table(s: dict, lang: str) -> str:
+    head = [L(lang, "Sahə", "Sector", "Сфера"), L(lang, "Sayt", "Sites", "Сайтов"),
+            L(lang, "Orta bal", "Avg. score", "Средний балл"), "HSTS", "CSP",
+            L(lang, "DMARC (bloklayır)", "DMARC (enforced)", "DMARC (блокирует)"), "SPF"]
+    rows = []
+    for key, m in sorted(s["sectors"].items(), key=lambda kv: -kv[1]["avg"]):
+        name = SECTORS[key][("az", "en", "ru").index(lang)]
+        p = m["pass"]
+        rows.append(f"<tr><th scope=\"row\">{name}</th><td>{m['n']}</td><td><b>{m['avg']}</b></td>"
+                    f"<td>{p['hsts']}%</td><td>{p['csp']}%</td><td>{p['dmarc']}%</td><td>{p['spf']}%</td></tr>")
+    a = s["all"]
+    rows.append(f"<tr class=\"tot\"><th scope=\"row\">{L(lang, 'Hamısı', 'All', 'Все')}</th><td>{a['n']}</td>"
+                f"<td><b>{a['avg']}</b></td><td>{a['pass']['hsts']}%</td><td>{a['pass']['csp']}%</td>"
+                f"<td>{a['pass']['dmarc']}%</td><td>{a['pass']['spf']}%</td></tr>")
+    ths = "".join(f'<th scope="col">{h}</th>' for h in head)
+    return f"<table><thead><tr>{ths}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
+
+
+def _grades(a: dict, lang: str) -> str:
+    n = a["n"]
+    cells = []
+    for g in "ABCDF":
+        k = a["grades"].get(g, 0)
+        cells.append(f'<li><b class="g g{g}">{g}</b><span>{k}</span><small>{round(100 * k / n)}%</small></li>')
+    return "".join(cells)
+
+
+def page(lang: str) -> str:
+    s = stats()
+    a, p = s["all"], s["all"]["pass"]
+    when = date_text(s["dates"][-1], lang)
+    blocked, unreach = s["skipped"].get("blocked", 0), s["skipped"].get("unreachable", 0)
+    no_dmarc = a["dmarc_missing"] + a["dmarc_none"]
+    sectors = ", ".join(SECTORS[k][("az", "en", "ru").index(lang)].lower() for k in SECTORS if k in s["sectors"])
+
+    title = L(lang, f"Azərbaycan saytlarının təhlükəsizlik vəziyyəti: {a['n']} sayt yoxlandı",
+              f"How secure are Azerbaijani websites? {a['n']} sites checked",
+              f"Насколько защищены сайты Азербайджана: проверено {a['n']} сайтов")
+    desc = L(lang,
+             f"{a['n']} Azərbaycan saytının passiv yoxlaması: banklar, universitetlər, dövlət qurumları, xəbər saytları. "
+             f"Saytların {100 - p['csp']}%-ində CSP, {100 - p['hsts']}%-ində HSTS yoxdur; {no_dmarc}%-i saxta məktubları bloklamır.",
+             f"A passive check of {a['n']} Azerbaijani websites: banks, universities, government, news and more. "
+             f"{100 - p['csp']}% have no CSP, {100 - p['hsts']}% no HSTS, and {no_dmarc}% do not block fake e-mails.",
+             f"Пассивная проверка {a['n']} сайтов Азербайджана: банки, университеты, госорганы, СМИ и другие. "
+             f"У {100 - p['csp']}% нет CSP, у {100 - p['hsts']}% нет HSTS, {no_dmarc}% не блокируют поддельные письма.")
+
+    tiles = [
+        (f"{a['avg']}", L(lang, "orta bal (100-dən)", "average score (out of 100)", "средний балл (из 100)")),
+        (f"{100 - p['csp']}%", L(lang, "saytda kənar skriptlərə nəzarət (CSP) yoxdur",
+                                 "have no control over third-party scripts (CSP)",
+                                 "без контроля сторонних скриптов (CSP)")),
+        (f"{no_dmarc}%", L(lang, "domen adından göndərilən saxta məktubları bloklamır (DMARC)",
+                           "do not block fake e-mails sent in their name (DMARC)",
+                           "не блокируют поддельные письма от своего имени (DMARC)")),
+        (f"{100 - p['hsts']}%", L(lang, "brauzerə yalnız HTTPS istifadə etməyi əmr etmir (HSTS)",
+                                  "do not force browsers to use HTTPS only (HSTS)",
+                                  "не заставляют браузер использовать только HTTPS (HSTS)")),
+    ]
+    tiles_html = "".join(f'<div class="tile"><b>{v}</b><span>{t}</span></div>' for v, t in tiles)
+
+    findings = L(
+        lang,
+        [f"<b>Əsaslar yaxşıdır.</b> Yoxlanılan saytların {p['https']}%-i HTTPS ilə açılır, {p['viewport']}%-i telefona uyğundur.",
+         f"<b>Əlavə qoruma qatları zəifdir.</b> Yalnız {p['csp']}% CSP, {p['hsts']}% HSTS, {p['framing']}% saxta çərçivəyə qarşı qoruma istifadə edir. Bunlar pulsuzdur və bir neçə sətirlik server ayarıdır.",
+         f"<b>E-poçt saxtakarlığı ən böyük boşluqdur.</b> Saytların {a['dmarc_missing']}%-ində DMARC ümumiyyətlə yoxdur, {a['dmarc_none']}%-ində isə yalnız müşahidə rejimindədir. Fişinq məktubları bank və dövlət qurumu adından göndərildikdə bu, birbaşa müştəriyə zərər verir.",
+         f"<b>Google üçün təsvir.</b> Saytların yalnız {p['description']}%-ində uyğun uzunluqda meta description var."],
+        [f"<b>The basics are in place.</b> {p['https']}% of the sites open over HTTPS and {p['viewport']}% are mobile-friendly.",
+         f"<b>Extra layers of protection are thin.</b> Only {p['csp']}% use CSP, {p['hsts']}% HSTS and {p['framing']}% clickjacking protection. All of these are free, a few lines of server configuration.",
+         f"<b>E-mail spoofing is the biggest gap.</b> {a['dmarc_missing']}% of the sites have no DMARC at all and {a['dmarc_none']}% only monitor. When phishing e-mails go out in the name of a bank or a ministry, customers pay the price.",
+         f"<b>Descriptions for Google.</b> Only {p['description']}% have a meta description of a useful length."],
+        [f"<b>Основа в порядке.</b> {p['https']}% сайтов открываются по HTTPS, {p['viewport']}% адаптированы под телефон.",
+         f"<b>Дополнительной защиты мало.</b> CSP используют лишь {p['csp']}%, HSTS — {p['hsts']}%, защиту от кликджекинга — {p['framing']}%. Всё это бесплатно и занимает несколько строк настроек сервера.",
+         f"<b>Подделка писем — самая большая брешь.</b> У {a['dmarc_missing']}% сайтов DMARC нет вовсе, у {a['dmarc_none']}% он только в режиме наблюдения. Когда фишинговые письма приходят от имени банка или министерства, страдают клиенты.",
+         f"<b>Описание для Google.</b> Только у {p['description']}% есть meta description подходящей длины."],
+    )
+    findings_html = "".join(f"<li>{x}</li>" for x in findings)
+
+    method = L(
+        lang,
+        f"{when} tarixində {s['scanned']} açıq Azərbaycan saytı ({sectors}) SaytYoxla ilə yoxlanıldı. "
+        f"Hər saytın yalnız əsas səhifəsi bir dəfə açıldı, sertifikat və iki açıq DNS qeydi (SPF, DMARC) oxundu, "
+        f"heç nə sındırılmağa çalışılmadı. Avtomatik yoxlamaları bloklayan {blocked} sayt və açılmayan {unreach} sayt "
+        f"nəticəyə daxil edilmədi; qalan {a['n']} saytın nəticəsi göstərilir. Bu, tam təhlükəsizlik auditi deyil: "
+        f"yalnız kənardan görünən ayarlar yoxlanılır. Ayrı-ayrı saytların adları dərc olunmur.",
+        f"On {when}, {s['scanned']} public Azerbaijani websites ({sectors}) were checked with SaytYoxla. "
+        f"For each site only the home page was opened once and the certificate and two public DNS records "
+        f"(SPF, DMARC) were read; nothing was probed or attacked. {blocked} sites that block automated checks and "
+        f"{unreach} that did not open were left out; the results cover the remaining {a['n']}. This is not a full "
+        f"security audit: it only covers settings visible from outside. Individual sites are not named.",
+        f"{when} с помощью SaytYoxla проверено {s['scanned']} открытых сайтов Азербайджана ({sectors}). "
+        f"У каждого сайта один раз открывалась только главная страница, читались сертификат и две открытые "
+        f"DNS-записи (SPF, DMARC); ничего не взламывалось. {blocked} сайтов, блокирующих автоматические проверки, "
+        f"и {unreach} неоткрывшихся в итог не вошли; результаты — по остальным {a['n']}. Это не полный аудит "
+        f"безопасности: проверяются только настройки, видимые снаружи. Названия отдельных сайтов не публикуются.",
+    )
+
+    alt = "\n".join(f'<link rel="alternate" hreflang="{l}" href="{SITE}{u}">' for l, u in PATHS.items())
+    langs = "".join(
+        f'<a href="{PATHS[l]}" hreflang="{l}" lang="{l}"{" aria-current=page" if l == lang else ""}>{l.upper()}</a>'
+        for l in PATHS)
+    ld = json.dumps({
+        "@context": "https://schema.org", "@type": "Article", "headline": title, "description": desc,
+        "inLanguage": lang, "datePublished": s["dates"][-1], "url": SITE + PATHS[lang],
+        "author": {"@type": "Person", "name": "Ziya Azizov", "url": "https://www.linkedin.com/in/ziya-azizov-91bba638a"},
+        "publisher": {"@type": "Organization", "name": "SaytYoxla", "url": SITE + "/"},
+    }, ensure_ascii=False)
+    cta_home = HOMES[lang]
+
+    return f"""<!DOCTYPE html>
+<html lang="{lang}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{escape(title)} | SaytYoxla</title>
+<meta name="description" content="{escape(desc)}">
+<link rel="canonical" href="{SITE}{PATHS[lang]}">
+{alt}
+<link rel="alternate" hreflang="x-default" href="{SITE}{PATHS['az']}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{escape(title)}">
+<meta property="og:description" content="{escape(desc)}">
+<meta property="og:url" content="{SITE}{PATHS[lang]}">
+<meta property="og:image" content="{SITE}/static/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f2a4a">
+<script type="application/ld+json">{ld}</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a4a'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='%2334d399' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{{--bg:#f5f7fb;--surface:#fff;--line:#e3e8f0;--line-2:#cfd7e3;--ink:#0f1b2d;--ink-2:#3d4b60;--muted:#5b6779;
+--brand:#0f2a4a;--brand-2:#1d4ed8;--track:#e6ebf3;--font:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}}
+*{{box-sizing:border-box}}
+body{{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--font);-webkit-font-smoothing:antialiased}}
+a{{color:var(--brand-2)}}
+.wrap{{max-width:880px;margin:0 auto;padding:0 16px}}
+.top{{background:#fff;border-bottom:1px solid var(--line)}}
+.top .wrap{{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:62px;flex-wrap:wrap}}
+.brand{{display:flex;align-items:center;gap:10px;color:var(--brand);text-decoration:none;font:800 20px/1 var(--font)}}
+.brand b{{color:var(--brand-2)}}
+.mark{{width:34px;height:34px;border-radius:10px;background:var(--brand);display:grid;place-items:center}}
+.langs{{display:flex;border:1px solid var(--line-2);border-radius:10px;overflow:hidden}}
+.langs a{{padding:8px 9px;font:700 13px/1 var(--font);color:var(--ink-2);text-decoration:none}}
+.langs a+a{{border-left:1px solid var(--line-2)}}
+.langs a[aria-current]{{background:var(--brand);color:#fff}}
+h1{{font-size:clamp(28px,5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:36px 0 12px}}
+h2{{font-size:22px;letter-spacing:-.01em;margin:40px 0 6px}}
+.lead{{color:var(--ink-2);font-size:18px;margin:0 0 6px}}
+.meta{{color:var(--muted);font-size:14px;margin:0}}
+.tiles{{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:24px 0 0}}
+.tile{{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}}
+.tile b{{display:block;font-size:34px;line-height:1.1;letter-spacing:-.02em;color:var(--brand)}}
+.tile span{{display:block;color:var(--ink-2);font-size:14px;margin-top:6px}}
+.card{{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}}
+.sub{{color:var(--muted);font-size:14px;margin:0 0 14px}}
+.bars{{list-style:none;margin:0;padding:0;display:grid;gap:10px}}
+.bars li{{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 44px;align-items:center;gap:12px}}
+.bl{{font-size:14px;color:var(--ink)}}
+.bt{{height:12px;background:var(--track);border-radius:4px;overflow:hidden}}
+.bt i{{display:block;height:100%;background:var(--brand-2);border-radius:0 4px 4px 0}}
+.bv{{font-size:14px;text-align:right;font-variant-numeric:tabular-nums}}
+@media (max-width:560px){{.bars li{{grid-template-columns:1fr 44px}}.bl{{grid-column:1/-1;margin-bottom:-6px}}}}
+.grades{{list-style:none;margin:0;padding:0;display:flex;gap:10px;flex-wrap:wrap}}
+.grades li{{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px}}
+.grades small{{color:var(--muted)}}
+.g{{width:28px;height:28px;border-radius:8px;color:#fff;display:grid;place-items:center;font-size:14px}}
+.gA{{background:#047857}}.gB{{background:#15803d}}.gC{{background:#b45309}}.gD{{background:#c2410c}}.gF{{background:#b91c1c}}
+.tw{{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}}
+table{{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}}
+th,td{{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}}
+th:first-child{{text-align:left}}
+thead th{{color:var(--muted);font-weight:600}}
+tr.tot th,tr.tot td{{border-bottom:0;background:#f0f4fa}}
+.find{{padding-left:20px;margin:0}} .find li{{margin:0 0 10px}}
+.cta{{background:var(--brand);color:#fff;border-radius:16px;padding:22px;margin:40px 0 0;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}}
+.cta h2{{margin:0 0 4px;font-size:20px}} .cta p{{margin:0;color:#cfdbee}}
+.btn{{display:inline-block;background:#f59e0b;color:#231500;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:12px}}
+.method{{color:var(--ink-2);font-size:15px}}
+footer{{color:var(--muted);font-size:14px;padding:32px 0 40px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="{cta_home}"><span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6 11-11-1.4-1.4z" fill="#34d399"/></svg></span><span>Sayt<b>Yoxla</b></span></a>
+  <nav class="langs" aria-label="{L(lang, 'Dil', 'Language', 'Язык')}">{langs}</nav>
+</div></header>
+<main class="wrap">
+  <h1>{escape(title)}</h1>
+  <p class="lead">{L(lang, "Banklar, universitetlər, dövlət qurumları, xəbər saytları və onlayn mağazalar kənardan nə dərəcədə qorunur?",
+                     "How well are banks, universities, government bodies, news sites and online shops protected, as seen from outside?",
+                     "Насколько хорошо защищены снаружи банки, университеты, госорганы, СМИ и интернет-магазины?")}</p>
+  <p class="meta">{L(lang, "Yoxlama tarixi", "Checked on", "Дата проверки")}: {when} · {a['n']} {L(lang, "sayt", "sites", "сайтов")} · {L(lang, "Müəllif", "Author", "Автор")}: Ziya Azizov</p>
+
+  <div class="tiles">{tiles_html}</div>
+
+  <h2>{L(lang, "Əsas nəticələr", "Key findings", "Главные выводы")}</h2>
+  <ul class="find">{findings_html}</ul>
+
+  <h2>{L(lang, "Hər yoxlamadan keçən saytların payı", "Share of sites that pass each check", "Доля сайтов, прошедших каждую проверку")}</h2>
+  <p class="sub">{L(lang, f"{a['n']} saytdan; ən zəif yoxlamalar yuxarıdadır. SPF və DMARC öz domeni olan saytlar üzrə hesablanıb.",
+                   f"Out of {a['n']} sites; the weakest checks are at the top. SPF and DMARC are counted for sites on their own domain.",
+                   f"Из {a['n']} сайтов; самые слабые проверки вверху. SPF и DMARC считаются для сайтов на собственном домене.")}</p>
+  <div class="card"><ul class="bars">{_bars(p, lang)}</ul></div>
+
+  <h2>{L(lang, "Qiymətlərin bölgüsü", "Grade distribution", "Распределение оценок")}</h2>
+  <p class="sub">{L(lang, "A — 90 və yuxarı, B — 75+, C — 60+, D — 40+, F — 40-dan aşağı.",
+                   "A is 90 and above, B 75+, C 60+, D 40+, F below 40.",
+                   "A — 90 и выше, B — 75+, C — 60+, D — 40+, F — ниже 40.")}</p>
+  <ul class="grades">{_grades(a, lang)}</ul>
+
+  <h2>{L(lang, "Sahələr üzrə", "By sector", "По сферам")}</h2>
+  <p class="sub">{L(lang, "Orta bal və əsas qoruma ayarı olan saytların payı.", "Average score and the share of sites with each key protection.",
+                   "Средний балл и доля сайтов с каждой основной защитой.")}</p>
+  <div class="tw">{_table(s, lang)}</div>
+
+  <div class="cta">
+    <div><h2>{L(lang, "Öz saytınız necədir?", "How does your site do?", "А как ваш сайт?")}</h2>
+    <p>{L(lang, "Eyni yoxlamanı 30 saniyəyə pulsuz edin və hər problemin həllini görün.",
+          "Run the same check for free in 30 seconds and see how to fix each problem.",
+          "Пройдите ту же проверку бесплатно за 30 секунд и узнайте, как исправить каждую проблему.")}</p></div>
+    <a class="btn" href="{cta_home}">{L(lang, "Saytımı yoxla", "Check my site", "Проверить мой сайт")}</a>
+  </div>
+
+  <h2>{L(lang, "Necə yoxlandı", "How it was checked", "Как проверяли")}</h2>
+  <p class="method">{method}</p>
+</main>
+<footer><div class="wrap">SaytYoxla · <a href="https://ayfar.vercel.app/">ayfar.vercel.app</a> · <a href="https://www.linkedin.com/in/ziya-azizov-91bba638a">Ziya Azizov</a></div></footer>
+</body>
+</html>
+"""
