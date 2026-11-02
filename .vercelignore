@@ -1,1 +1,8 @@
 react-ui
+tests
+conftest.py
+pytest.ini
+ruff.toml
+requirements-dev.txt
+render.yaml
+.github

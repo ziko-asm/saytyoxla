@@ -1,7 +1,9 @@
-requests>=2.31
-dnspython>=2.6
-fastapi>=0.110
-uvicorn>=0.29
-httpx>=0.27
-pytest>=8.0
-ruff>=0.5
+# Runtime dependencies (Vercel and Render install this file).
+# Exact versions so a deploy never picks up an untested release; upgrade them on purpose and run the tests.
+requests==2.34.2
+urllib3==2.8.0        # scanner/fetch.py builds on urllib3's connection classes (IP pinning): test before upgrading
+dnspython==2.9.0
+fastapi==0.146.0
+starlette==1.9.0
+pydantic==2.14.1
+uvicorn==0.54.0

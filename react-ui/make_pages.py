@@ -45,12 +45,12 @@ T = [
     ("Saytı pulsuz yoxla: təhlükəsizlik, SSL, sürət | SaytYoxla",
      "Free website check: security, SSL, speed | SaytYoxla",
      "Бесплатная проверка сайта: безопасность, SSL, скорость | SaytYoxla"),
-    ("Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu "
-     "30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan, ingilis və ya rus dilində.",
-     "Check your website's security, SSL certificate, SPF/DMARC e-mail protection, speed and mobile-friendliness "
-     "for free in 30 seconds. Results in English, Azerbaijani or Russian.",
-     "Бесплатно проверьте безопасность сайта, SSL-сертификат, защиту почты SPF/DMARC, скорость и адаптацию "
-     "под телефон за 30 секунд. Результат на русском, азербайджанском или английском."),
+    (("Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu "
+     "30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan, ingilis və ya rus dilində."),
+     ("Check your website's security, SSL certificate, SPF/DMARC e-mail protection, speed and mobile-friendliness "
+     "for free in 30 seconds. Results in English, Azerbaijani or Russian."),
+     ("Бесплатно проверьте безопасность сайта, SSL-сертификат, защиту почты SPF/DMARC, скорость и адаптацию "
+     "под телефон за 30 секунд. Результат на русском, азербайджанском или английском.")),
     ("SaytYoxla — saytınızı 30 saniyəyə pulsuz yoxlayın",
      "SaytYoxla — check your website for free in 30 seconds",
      "SaytYoxla — бесплатная проверка сайта за 30 секунд"),
@@ -130,84 +130,84 @@ T = [
      "Да. Проверка полностью бесплатна и не требует регистрации."),
     ("Saytımın təhlükəsiz olub-olmadığını necə bilim?", "How do I know if my website is secure?",
      "Как узнать, безопасен ли мой сайт?"),
-    ("Yuxarıdakı xanaya saytınızın ünvanını yazıb «Yoxla» basın. SaytYoxla HTTPS bağlantısını, SSL sertifikatını, "
+    (("Yuxarıdakı xanaya saytınızın ünvanını yazıb «Yoxla» basın. SaytYoxla HTTPS bağlantısını, SSL sertifikatını, "
      "HSTS, CSP və digər qoruyucu başlıqları, server versiyasının açıq görünüb-görünmədiyini və qarışıq (http) "
-     "məzmunu yoxlayır, hər problemin həllini sadə dildə yazır.",
-     "Enter your website address in the box above and press “Check”. SaytYoxla checks the HTTPS connection, the SSL "
+     "məzmunu yoxlayır, hər problemin həllini sadə dildə yazır."),
+     ("Enter your website address in the box above and press “Check”. SaytYoxla checks the HTTPS connection, the SSL "
      "certificate, HSTS, CSP and other protective headers, whether the server version is exposed, and mixed (http) "
-     "content, and explains the fix for every problem in plain words.",
-     "Введите адрес сайта в поле выше и нажмите «Проверить». SaytYoxla проверяет соединение HTTPS, SSL-сертификат, "
+     "content, and explains the fix for every problem in plain words."),
+     ("Введите адрес сайта в поле выше и нажмите «Проверить». SaytYoxla проверяет соединение HTTPS, SSL-сертификат, "
      "HSTS, CSP и другие защитные заголовки, не раскрыта ли версия сервера, и смешанное (http) содержимое, а для "
-     "каждой проблемы простыми словами пишет решение."),
+     "каждой проблемы простыми словами пишет решение.")),
     ("SSL sertifikatının bitmə tarixini necə yoxlamaq olar?", "How can I check when my SSL certificate expires?",
      "Как узнать, когда истекает SSL-сертификат?"),
-    ("Yoxlamadan sonra «Təhlükəsizlik» bölməsində sertifikatın neçə gün etibarlı qaldığı və bitmə tarixi göstərilir. "
+    (("Yoxlamadan sonra «Təhlükəsizlik» bölməsində sertifikatın neçə gün etibarlı qaldığı və bitmə tarixi göstərilir. "
      "Sertifikatın vaxtı bitəndə brauzerlər sayta girişi «təhlükəli» kimi göstərir, ona görə onu vaxtında yeniləyin — "
-     "mümkünsə avtomatik yenilənməni (məsələn, Let's Encrypt) açın.",
-     "After the check, the “Security” section shows how many days the certificate is still valid and its expiry date. "
+     "mümkünsə avtomatik yenilənməni (məsələn, Let's Encrypt) açın."),
+     ("After the check, the “Security” section shows how many days the certificate is still valid and its expiry date. "
      "When a certificate expires, browsers mark the site as “not secure”, so renew it in time — ideally turn on "
-     "automatic renewal (for example, Let's Encrypt).",
-     "После проверки в разделе «Безопасность» показано, сколько дней ещё действует сертификат и дата окончания. "
+     "automatic renewal (for example, Let's Encrypt)."),
+     ("После проверки в разделе «Безопасность» показано, сколько дней ещё действует сертификат и дата окончания. "
      "Когда срок истекает, браузеры помечают сайт как «небезопасный», поэтому обновляйте его вовремя — лучше "
-     "включите автоматическое продление (например, Let's Encrypt)."),
+     "включите автоматическое продление (например, Let's Encrypt).")),
     ("SPF və DMARC nədir, niyə lazımdır?", "What are SPF and DMARC, and why do they matter?",
      "Что такое SPF и DMARC и зачем они нужны?"),
-    ("SPF və DMARC domeninizin DNS ayarlarına yazılan qeydlərdir. Onlar sizin adınızdan hansı serverlərin məktub "
+    (("SPF və DMARC domeninizin DNS ayarlarına yazılan qeydlərdir. Onlar sizin adınızdan hansı serverlərin məktub "
      "göndərə biləcəyini göstərir. Bu qeydlər olmayanda fırıldaqçılar sizin domeninizdən göndərilmiş kimi görünən "
      "saxta məktublar yaza bilər. SaytYoxla hər iki qeydi yoxlayır; yoxdursa, DNS və ya hostinq təminatçınızdan "
-     "əlavə etməyi xahiş edin.",
-     "SPF and DMARC are records in your domain's DNS settings. They say which servers may send e-mail in your name. "
+     "əlavə etməyi xahiş edin."),
+     ("SPF and DMARC are records in your domain's DNS settings. They say which servers may send e-mail in your name. "
      "Without them, scammers can write fake e-mails that look like they came from your domain. SaytYoxla checks "
-     "both; if they are missing, ask your DNS or hosting provider to add them.",
-     "SPF и DMARC — это записи в DNS-настройках вашего домена. Они указывают, какие серверы могут отправлять почту "
+     "both; if they are missing, ask your DNS or hosting provider to add them."),
+     ("SPF и DMARC — это записи в DNS-настройках вашего домена. Они указывают, какие серверы могут отправлять почту "
      "от вашего имени. Без них мошенники могут рассылать поддельные письма, которые выглядят как отправленные с "
-     "вашего домена. SaytYoxla проверяет обе записи; если их нет, попросите DNS- или хостинг-провайдера добавить их."),
+     "вашего домена. SaytYoxla проверяет обе записи; если их нет, попросите DNS- или хостинг-провайдера добавить их.")),
     ("Saytım niyə Google-da çıxmır?", "Why doesn't my website show up on Google?", "Почему мой сайт не находится в Google?"),
-    ("Ən çox rast gəlinən səbəblər: səhifənin başlığı (title) və təsviri (meta description) yoxdur və ya zəifdir, "
+    (("Ən çox rast gəlinən səbəblər: səhifənin başlığı (title) və təsviri (meta description) yoxdur və ya zəifdir, "
      "sayt telefona uyğun deyil, ya da sayt Google-a heç təqdim olunmayıb. SaytYoxla başlığı, təsviri və telefona "
-     "uyğunluğu yoxlayır. Yeni saytı isə Google Search Console-a əlavə edib sitemap göndərmək lazımdır.",
-     "The most common reasons: the page title and meta description are missing or weak, the site is not "
+     "uyğunluğu yoxlayır. Yeni saytı isə Google Search Console-a əlavə edib sitemap göndərmək lazımdır."),
+     ("The most common reasons: the page title and meta description are missing or weak, the site is not "
      "mobile-friendly, or the site was never submitted to Google. SaytYoxla checks the title, the description and "
-     "mobile-friendliness. A new site should also be added to Google Search Console with a sitemap.",
-     "Самые частые причины: нет или слабые заголовок страницы (title) и описание (meta description), сайт не "
+     "mobile-friendliness. A new site should also be added to Google Search Console with a sitemap."),
+     ("Самые частые причины: нет или слабые заголовок страницы (title) и описание (meta description), сайт не "
      "адаптирован под телефон, или сайт вообще не добавлен в Google. SaytYoxla проверяет заголовок, описание и "
-     "адаптацию. Новый сайт также нужно добавить в Google Search Console и отправить sitemap."),
+     "адаптацию. Новый сайт также нужно добавить в Google Search Console и отправить sitemap.")),
     ("Saytım telefonda niyə düzgün görünmür?", "Why does my website look wrong on a phone?",
      "Почему сайт неправильно выглядит на телефоне?"),
-    ("Çox vaxt səbəb səhifədə «viewport» teqinin olmamasıdır — onda telefon saytı kompüter ölçüsündə açıb kiçildir. "
-     "SaytYoxla bunu «Telefon və Google» bölməsində yoxlayır və əlavə ediləcək teqi göstərir.",
-     "Usually the page has no “viewport” tag, so the phone opens the site at desktop size and shrinks it. "
-     "SaytYoxla checks this in the “Mobile and Google” section and shows the tag to add.",
-     "Чаще всего на странице нет тега «viewport» — тогда телефон открывает сайт в размере компьютера и уменьшает его. "
-     "SaytYoxla проверяет это в разделе «Мобильные и Google» и показывает, какой тег добавить."),
+    (("Çox vaxt səbəb səhifədə «viewport» teqinin olmamasıdır — onda telefon saytı kompüter ölçüsündə açıb kiçildir. "
+     "SaytYoxla bunu «Telefon və Google» bölməsində yoxlayır və əlavə ediləcək teqi göstərir."),
+     ("Usually the page has no “viewport” tag, so the phone opens the site at desktop size and shrinks it. "
+     "SaytYoxla checks this in the “Mobile and Google” section and shows the tag to add."),
+     ("Чаще всего на странице нет тега «viewport» — тогда телефон открывает сайт в размере компьютера и уменьшает его. "
+     "SaytYoxla проверяет это в разделе «Мобильные и Google» и показывает, какой тег добавить.")),
     ("Yoxlama saytıma zərər verə bilər?", "Can the check harm my website?", "Может ли проверка навредить сайту?"),
-    ("Xeyr. Biz yalnız adi ziyarətçinin brauzerinin gördüyünə baxırıq: əsas səhifəni bir dəfə açırıq, sertifikatı "
-     "və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq.",
-     "No. We only look at what an ordinary visitor's browser sees: we open the home page once and read the "
-     "certificate and public DNS records. We change nothing and try to break nothing.",
-     "Нет. Мы смотрим только на то, что видит браузер обычного посетителя: один раз открываем главную страницу, "
-     "читаем сертификат и открытые DNS-записи. Ничего не меняем и ничего не пытаемся взломать."),
+    (("Xeyr. Biz yalnız adi ziyarətçinin brauzerinin gördüyünə baxırıq: əsas səhifəni bir dəfə açırıq, sertifikatı "
+     "və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq."),
+     ("No. We only look at what an ordinary visitor's browser sees: we open the home page once and read the "
+     "certificate and public DNS records. We change nothing and try to break nothing."),
+     ("Нет. Мы смотрим только на то, что видит браузер обычного посетителя: один раз открываем главную страницу, "
+     "читаем сертификат и открытые DNS-записи. Ничего не меняем и ничего не пытаемся взломать.")),
     ("Məlumatlarım saxlanılır?", "Is my data stored?", "Сохраняются ли мои данные?"),
-    ("Xeyr. Nəticə yalnız ekranınızda göstərilir və 10 dəqiqə ərzində təkrar yoxlamanı sürətləndirmək üçün "
-     "müvəqqəti yadda saxlanılır. Ad, telefon və ya e-poçt soruşmuruq.",
-     "No. The result is shown only on your screen and kept briefly for 10 minutes to speed up a repeat check. "
-     "We do not ask for your name, phone or e-mail.",
-     "Нет. Результат показывается только на вашем экране и временно хранится 10 минут, чтобы ускорить повторную "
-     "проверку. Мы не спрашиваем имя, телефон или e-mail."),
+    (("Xeyr. Nəticə yalnız ekranınızda göstərilir və 10 dəqiqə ərzində təkrar yoxlamanı sürətləndirmək üçün "
+     "müvəqqəti yadda saxlanılır. Ad, telefon və ya e-poçt soruşmuruq."),
+     ("No. The result is shown only on your screen and kept briefly for 10 minutes to speed up a repeat check. "
+     "We do not ask for your name, phone or e-mail."),
+     ("Нет. Результат показывается только на вашем экране и временно хранится 10 минут, чтобы ускорить повторную "
+     "проверку. Мы не спрашиваем имя, телефон или e-mail.")),
     ("Bal nə deməkdir?", "What does the score mean?", "Что означает балл?"),
-    ("100 ən yaxşı nəticədir. 90+ — əla (A), 75+ — yaxşı (B), 60+ — orta (C), 40+ — zəif (D), 40-dan aşağı — "
-     "ciddi diqqət lazımdır (F). Qırmızı problemlər balı daha çox azaldır.",
-     "100 is the best result. 90+ is excellent (A), 75+ good (B), 60+ fair (C), 40+ weak (D), below 40 needs "
-     "serious attention (F). Red problems lower the score the most.",
-     "100 — лучший результат. 90+ — отлично (A), 75+ — хорошо (B), 60+ — средне (C), 40+ — слабо (D), ниже 40 — "
-     "нужно серьёзное внимание (F). Красные проблемы снижают балл сильнее всего."),
+    (("100 ən yaxşı nəticədir. 90+ — əla (A), 75+ — yaxşı (B), 60+ — orta (C), 40+ — zəif (D), 40-dan aşağı — "
+     "ciddi diqqət lazımdır (F). Qırmızı problemlər balı daha çox azaldır."),
+     ("100 is the best result. 90+ is excellent (A), 75+ good (B), 60+ fair (C), 40+ weak (D), below 40 needs "
+     "serious attention (F). Red problems lower the score the most."),
+     ("100 — лучший результат. 90+ — отлично (A), 75+ — хорошо (B), 60+ — средне (C), 40+ — слабо (D), ниже 40 — "
+     "нужно серьёзное внимание (F). Красные проблемы снижают балл сильнее всего.")),
     ("Problemləri kim düzəltməlidir?", "Who should fix the problems?", "Кто должен исправлять проблемы?"),
-    ("Saytınızı quran proqramçıya və ya hostinq şirkətinə hesabatı göstərin — hər problemin altında nə ediləcəyi "
-     "yazılıb. İstəsəniz, WhatsApp-a yazın, kömək edək.",
-     "Show the report to the developer who built your site or to your hosting company — every problem says what "
-     "to do. If you like, message us on WhatsApp and we will help.",
-     "Покажите отчёт разработчику сайта или хостинг-компании — под каждой проблемой написано, что делать. "
-     "Если хотите, напишите в WhatsApp, мы поможем."),
+    (("Saytınızı quran proqramçıya və ya hostinq şirkətinə hesabatı göstərin — hər problemin altında nə ediləcəyi "
+     "yazılıb. İstəsəniz, WhatsApp-a yazın, kömək edək."),
+     ("Show the report to the developer who built your site or to your hosting company — every problem says what "
+     "to do. If you like, message us on WhatsApp and we will help."),
+     ("Покажите отчёт разработчику сайта или хостинг-компании — под каждой проблемой написано, что делать. "
+     "Если хотите, напишите в WhatsApp, мы поможем.")),
 
     # footer
     ("Yalnız açıq məlumatlar yoxlanılır", "Only public information is checked", "Проверяются только открытые данные"),
