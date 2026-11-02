@@ -31,11 +31,9 @@ class FakeUpstash:
 
 
 class FakeResponse:
-    def __init__(self, data):
+    def __init__(self, data, status_code=200):
         self.data = data
-
-    def raise_for_status(self):
-        pass
+        self.status_code = status_code
 
     def json(self):
         return self.data
@@ -104,3 +102,38 @@ def test_client_ip_behind_one_proxy_uses_the_address_the_proxy_added():
     assert ratelimit.client_ip(h, "10.0.0.1", on_vercel=False) == "203.0.113.7"
     assert ratelimit.client_ip({"x-real-ip": "6.6.6.6"}, "198.51.100.2", on_vercel=False) == "198.51.100.2"
     assert ratelimit.client_ip({}, None, on_vercel=False) == "unknown"
+
+
+@pytest.mark.parametrize("raw", ["humble-wolf-1.upstash.io", "https://humble-wolf-1.upstash.io/", ' "https://humble-wolf-1.upstash.io" ',
+                                 "'humble-wolf-1.upstash.io'\n"])
+def test_pasted_url_forms_are_accepted(raw):
+    assert ratelimit.clean_url(raw) == "https://humble-wolf-1.upstash.io"
+
+
+def test_pasted_token_forms_are_accepted():
+    for raw in ("t0ken", ' "t0ken" ', "Bearer t0ken", "'t0ken'\n"):
+        assert ratelimit.clean_token(raw) == "t0ken"
+
+
+def test_bare_host_from_the_console_reaches_redis(rules):
+    redis = FakeUpstash()
+    limiter = ratelimit.Limiter(ratelimit.RedisCounter("r.test", ' "t0ken" ', session=redis))
+    assert limiter.allow("1.2.3.4", now=5) and redis.store       # counted in Redis, not in memory
+
+
+class Refusing:
+    def __init__(self, response):
+        self.response = response
+
+    def post(self, *args, **kwargs):
+        return self.response
+
+
+@pytest.mark.parametrize("response, cause", [
+    (FakeResponse({"error": "WRONGPASS invalid or missing auth token"}, status_code=401), "HTTP 401: WRONGPASS"),
+    (FakeResponse([{"error": "NOPERM this user has no permissions to run the 'incr' command"}]), "NOPERM"),
+])
+def test_redis_errors_are_logged_with_their_cause_and_fall_back(rules, caplog, response, cause):
+    limiter = ratelimit.Limiter(ratelimit.RedisCounter("https://r.test", "secret-token", session=Refusing(response)))
+    assert [limiter.allow("1.2.3.4", now=5) for _ in range(4)] == [True, True, True, False]
+    assert cause in caplog.text and "secret-token" not in caplog.text
