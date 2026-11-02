@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Tests and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check .
+      - name: Tests (scanner, SSRF protection, rate limits, API)
+        run: pytest -q
+
+  react:
+    name: React build matches the committed site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: react-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: react-ui/package-lock.json
+      - run: python3 make_pages.py
+      - run: npm ci
+      - run: npm run build
+      - name: web/react is the build of react-ui (no hand edits, nothing forgotten)
+        working-directory: .
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::web/react or react-ui/en|ru differ from a fresh build. Run 'python3 make_pages.py && npm ci && npm run build' in react-ui and commit."
+            git status --porcelain
+            exit 1
+          fi

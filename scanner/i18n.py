@@ -147,10 +147,10 @@ EXACT: dict[str, tuple[str, str]] = {
     # mail
     "Sayt pulsuz platforma ünvanında yerləşir, bu ünvandan e-poçt göndərilmir. "
     "Öz domeniniz (məsələn, .az) olanda bu yoxlama vacib olacaq.": (
-        "The site lives on a free platform address, which sends no e-mail. "
-        "This check will matter once you have your own domain (for example, .az).",
-        "Сайт размещён на адресе бесплатной платформы, с него не отправляется почта. "
-        "Эта проверка станет важной, когда у вас будет свой домен (например, .az)."),
+        ("The site lives on a free platform address, which sends no e-mail. "
+        "This check will matter once you have your own domain (for example, .az)."),
+        ("Сайт размещён на адресе бесплатной платформы, с него не отправляется почта. "
+        "Эта проверка станет важной, когда у вас будет свой домен (например, .az).")),
     "DNS yoxlanıla bilmədi.": ("DNS could not be checked.", "Не удалось проверить DNS."),
     "Domen adından kimin məktub göndərə biləcəyi müəyyən edilib.": (
         "The domain states who may send e-mail in its name.",
@@ -206,10 +206,10 @@ EXACT: dict[str, tuple[str, str]] = {
         "Напишите meta description длиной 50–170 символов с услугой и контактами."),
     "Səhifənin məzmunu oxunmadı (server boş cavab qaytardı). "
     "Bu yoxlama bala təsir etmir; saytı brauzerdə açıb yenidən yoxlayın.": (
-        "The page content could not be read (the server returned an empty response). "
-        "This check does not affect the score; open the site in a browser and check again.",
-        "Содержимое страницы не прочитано (сервер вернул пустой ответ). "
-        "Эта проверка не влияет на балл; откройте сайт в браузере и проверьте снова."),
+        ("The page content could not be read (the server returned an empty response). "
+        "This check does not affect the score; open the site in a browser and check again."),
+        ("Содержимое страницы не прочитано (сервер вернул пустой ответ). "
+        "Эта проверка не влияет на балл; откройте сайт в браузере и проверьте снова.")),
 
     # summary
     "Əla nəticə: ciddi problem tapılmadı.": (
@@ -243,7 +243,7 @@ EXACT: dict[str, tuple[str, str]] = {
 }
 
 # (pattern, English template, Russian template); groups are reused by number.
-PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.S), en, ru) for p, en, ru in [
+PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.DOTALL), en, ru) for p, en, ru in [
     (r"Sertifikat etibarsızdır \((.+)\)\. Ziyarətçilər xəbərdarlıq görür\.",
      r"The certificate is not valid (\1). Visitors see a warning.",
      r"Сертификат недействителен (\1). Посетители видят предупреждение."),
@@ -253,8 +253,8 @@ PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.S), en, ru) for
     (r"Sertifikat etibarlıdır, (\d+) gün qalıb \((.+)\)\.",
      r"The certificate is valid, \1 days left (\2).",
      r"Сертификат действителен, осталось \1 дн. (\2)."),
-    (r"Sayt istifadə etdiyi proqramların dəqiq versiyasını göstərir: (.+)\. "
-     r"Hücumçular köhnə versiyaların zəifliklərini axtarır\.",
+    ((r"Sayt istifadə etdiyi proqramların dəqiq versiyasını göstərir: (.+)\. "
+     r"Hücumçular köhnə versiyaların zəifliklərini axtarır\."),
      r"The site shows the exact versions of the software it runs: \1. Attackers look for weaknesses in old versions.",
      r"Сайт показывает точные версии используемого ПО: \1. Злоумышленники ищут уязвимости старых версий."),
     (r"(\d+) fayl şifrəsiz http:// ilə yüklənir; brauzer onları bloklaya bilər\.",
@@ -284,12 +284,12 @@ PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.S), en, ru) for
      r"Рекомендаций по улучшению: \1."),
     # errors
     (r"Sayt avtomatik yoxlamaları bloklayır \(kod (\d+)\)\. .*",
-     r"The site blocks automated checks (code \1). This is usually bot protection (for example, Cloudflare): "
+     (r"The site blocks automated checks (code \1). This is usually bot protection (for example, Cloudflare): "
      r"the site opens in a browser but does not answer tools. Big platforms (lalafo, tap.az, Instagram) do this; "
-     r"check the business's own site instead.",
-     r"Сайт блокирует автоматические проверки (код \1). Обычно это защита от ботов (например, Cloudflare): "
+     r"check the business's own site instead."),
+     (r"Сайт блокирует автоматические проверки (код \1). Обычно это защита от ботов (например, Cloudflare): "
      r"в браузере сайт открывается, но инструментам не отвечает. Так делают крупные платформы "
-     r"(lalafo, tap.az, Instagram); проверьте собственный сайт бизнеса."),
+     r"(lalafo, tap.az, Instagram); проверьте собственный сайт бизнеса.")),
     (r"Saytın serverində xəta var \(kod (\d+)\)\. Bir az sonra yenidən cəhd edin\.",
      r"The site's server has an error (code \1). Try again a little later.",
      r"На сервере сайта ошибка (код \1). Попробуйте немного позже."),
