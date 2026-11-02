@@ -45,11 +45,41 @@ def is_public_ip(ip: str) -> bool:
     return addr.is_global and not addr.is_multicast
 
 
-def check_host_is_public(host: str, resolver=socket.getaddrinfo) -> None:
+def resolve_public(host: str, resolver=socket.getaddrinfo) -> str:
+    """Resolve the host once and return one of its addresses, refusing it unless every address is public.
+
+    The caller must connect to the returned address (scanner/fetch.py pins it) and never resolve the
+    name again: a second lookup can return a different answer (DNS rebinding) and reach an internal address.
+    """
     try:
         infos = resolver(host, None)
     except OSError:
         raise UnsafeTarget("Bu ünvan tapılmadı. Yazılışı yoxlayın.") from None
-    ips = {info[4][0] for info in infos}
+    ips = sorted({info[4][0] for info in infos}, key=lambda ip: ":" in ip)   # IPv4 first
     if not ips or not all(is_public_ip(ip) for ip in ips):
         raise UnsafeTarget("Bu ünvan daxili şəbəkəyə aiddir və yoxlanıla bilməz.")
+    return ips[0]
+
+
+def check_host_is_public(host: str, resolver=socket.getaddrinfo) -> None:
+    resolve_public(host, resolver)
+
+
+def check_hop(url: str) -> str:
+    """Check a URL reached through a redirect like the typed address (scheme, credentials, port) and return
+    its host. A redirect may point anywhere, so every hop is checked, not only the first one."""
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https"):
+        raise UnsafeTarget("Yalnız http və https ünvanları yoxlanılır.")
+    if parts.username or parts.password:
+        raise UnsafeTarget("Ünvanda istifadəçi adı və ya şifrə olmamalıdır.")
+    try:
+        port = parts.port
+    except ValueError:
+        raise UnsafeTarget("Ünvan düzgün görünmür. Nümunə: example.az") from None
+    if port not in ALLOWED_PORTS:
+        raise UnsafeTarget("Yalnız standart portlar (80, 443) yoxlanılır.")
+    host = (parts.hostname or "").lower().rstrip(".")
+    if not host:
+        raise UnsafeTarget("Ünvan düzgün görünmür. Nümunə: example.az")
+    return host
