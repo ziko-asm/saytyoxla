@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from scanner import UnsafeTarget
 from web import app as webapp
+from web import ratelimit
 
 client = TestClient(webapp.app)
 
@@ -18,7 +19,7 @@ class FakeReport:
 
 @pytest.fixture(autouse=True)
 def reset(monkeypatch):
-    webapp._hits.clear()
+    monkeypatch.setattr(webapp, "limiter", ratelimit.Limiter())     # memory counters, no Redis
     webapp._cache.clear()
     calls = []
 
@@ -57,16 +58,28 @@ def test_scanner_error_is_400(monkeypatch):
 
 
 def test_rate_limit(monkeypatch):
-    monkeypatch.setattr(webapp, "RATE_LIMIT", 2)
+    monkeypatch.setattr(ratelimit, "RULES", [("ip-minute", 2, 60)])
     codes = [client.post("/api/scan", json={"url": f"site{i}.az"}).status_code for i in range(3)]
     assert codes == [200, 200, 429]
 
 
-def test_allow_window_expires():
-    webapp._hits.clear()
-    assert all(webapp.allow("1.2.3.4", now=t) for t in range(webapp.RATE_LIMIT))
-    assert not webapp.allow("1.2.3.4", now=webapp.RATE_LIMIT)
-    assert webapp.allow("1.2.3.4", now=1000)
+def test_scan_responses_are_never_cached_by_the_edge():
+    r = client.post("/api/scan", json={"url": "example.az"})
+    assert r.headers["cache-control"] == "no-store"
+
+
+def test_hashed_assets_are_cached_for_a_year():
+    asset = next((webapp.REACT / "assets").glob("*.js")).name
+    r = client.get(f"/react/assets/{asset}")
+    assert r.status_code == 200 and "immutable" in r.headers["cache-control"]
+    assert "s-maxage=300" in client.get("/").headers["cache-control"]
+
+
+def test_report_cache_is_bounded(monkeypatch):
+    monkeypatch.setattr(webapp, "CACHE_MAX", 3)
+    for i in range(5):
+        webapp.cache_put(f"https://s{i}.az/", {"n": i})
+    assert list(webapp._cache) == ["https://s2.az/", "https://s3.az/", "https://s4.az/"]
 
 
 def test_robots_and_sitemap():
@@ -141,6 +154,7 @@ def test_language_pages():
 def test_survey_pages(monkeypatch, tmp_path):
     import shutil
     from pathlib import Path
+
     from web import survey
     data = tmp_path / "stats.json"
     shutil.copy(Path(__file__).parent / "survey_sample.json", data)
@@ -158,3 +172,10 @@ def test_indexnow_key_file():
     from web import seo
     assert client.get(f"/{seo.INDEXNOW_KEY}.txt").text == seo.INDEXNOW_KEY
     assert client.get("/wrong.txt").status_code == 404
+
+
+def test_head_is_answered_like_get():
+    for path in ("/", "/en/", "/classic", "/robots.txt"):
+        r = client.head(path)
+        assert r.status_code == 200 and r.content == b"", path
+    assert client.head("/no-such-page").status_code == 404

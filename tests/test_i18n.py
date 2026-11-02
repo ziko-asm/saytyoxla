@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 import scanner
 from scanner import checks, i18n
 from scanner.report import build
-from tests.test_scanner import BAD_HTML, GOOD_HTML, ctx
+from tests.test_scanner import BAD_HTML, ctx
 
 AZ_LETTERS = re.compile(r"[əğışçöüƏĞİŞÇÖÜ]")
 
@@ -91,8 +91,9 @@ def test_lang_of_falls_back_to_az():
 
 def test_api_translates_report_and_keeps_cache_in_az(monkeypatch):
     from web import app as webapp
+    from web import ratelimit
     webapp._cache.clear()
-    webapp._hits.clear()
+    monkeypatch.setattr(webapp, "limiter", ratelimit.Limiter())
     c = ctx(**VARIANTS[1])
     monkeypatch.setattr(webapp.scanner, "scan", lambda url: build(c, checks.run_checks(c)))
     client = TestClient(webapp.app)

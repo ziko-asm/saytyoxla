@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 import threading
 import time
-from collections import defaultdict, deque
+from collections import OrderedDict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -29,15 +29,14 @@ from pydantic import BaseModel, Field
 import scanner
 from scanner import i18n
 from scanner.safety import UnsafeTarget, normalize
-from web import seo, survey
+from web import ratelimit, seo, survey
 
 STATIC = Path(__file__).parent / "static"
 REACT = Path(__file__).parent / "react"      # built by react-ui (npm run build)
-RATE_LIMIT = int(os.getenv("SCAN_RATE_LIMIT", "6"))      # scans per IP ...
-RATE_WINDOW = 60                                        # ... per minute
 CACHE_SECONDS = 600
+CACHE_MAX = 500                              # finished reports kept per instance (oldest dropped first)
 
-app = FastAPI(title="SaytYoxla", version="0.2.0", docs_url=None, redoc_url=None)
+app = FastAPI(title="SaytYoxla", version="0.3.0", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 app.mount("/react", StaticFiles(directory=REACT), name="react")
 
@@ -48,8 +47,29 @@ ALLOWED_ORIGINS = [o.strip() for o in os.getenv(
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=["POST"],
                    allow_headers=["Content-Type"], max_age=86400)
 
-_hits: dict[str, deque] = defaultdict(deque)
-_cache: dict[str, tuple[float, dict]] = {}
+
+class HeadAsGet:
+    """Answer HEAD like GET without the body. The page routes are GET-only, so HEAD got 405, which uptime
+    monitors and link checkers read as a broken page."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] != "HEAD":
+            return await self.app(scope, receive, send)
+
+        async def no_body(message):
+            if message["type"] == "http.response.body":
+                message = {**message, "body": b""}
+            await send(message)
+        await self.app({**scope, "method": "GET"}, receive, no_body)
+
+
+app.add_middleware(HeadAsGet)
+
+limiter = ratelimit.Limiter.from_env()
+_cache: OrderedDict[str, tuple[float, dict]] = OrderedDict()
 _lock = threading.Lock()
 
 
@@ -59,32 +79,54 @@ class ScanRequest(BaseModel):
 
 
 def client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    return fwd.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+    return ratelimit.client_ip(request.headers, request.client.host if request.client else None)
 
 
-def allow(ip: str, now: float | None = None) -> bool:
-    now = time.time() if now is None else now
+def cache_get(key: str) -> dict | None:
     with _lock:
-        q = _hits[ip]
-        while q and now - q[0] > RATE_WINDOW:
-            q.popleft()
-        if len(q) >= RATE_LIMIT:
-            return False
-        q.append(now)
-        return True
+        hit = _cache.get(key)
+        if hit and time.time() - hit[0] < CACHE_SECONDS:
+            return hit[1]
+        _cache.pop(key, None)
+        return None
+
+
+def cache_put(key: str, report: dict) -> None:
+    with _lock:
+        _cache[key] = (time.time(), report)
+        _cache.move_to_end(key)
+        while len(_cache) > CACHE_MAX:
+            _cache.popitem(last=False)
+
+
+def cache_control(path: str, method: str) -> str | None:
+    """Hashed React assets never change; other files and pages may be served from Vercel's edge for a
+    while, so most visits never start the Python function. The scan API is never cached."""
+    if path.startswith("/api/"):
+        return "no-store"
+    if method not in ("GET", "HEAD"):
+        return None
+    if path.startswith(("/react/assets/", "/static/fonts/")):     # content-hashed or versioned names
+        return "public, max-age=31536000, s-maxage=31536000, immutable"
+    if path.startswith("/static/"):
+        return "public, max-age=86400, s-maxage=86400"
+    return "public, max-age=0, s-maxage=300, stale-while-revalidate=86400"
 
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
+    cc = cache_control(request.url.path, request.method)
+    if cc and response.status_code == 200 or cc == "no-store":
+        response.headers["Cache-Control"] = cc
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
     response.headers.setdefault(
         "Content-Security-Policy",
-        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
+        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
+        "font-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
         "base-uri 'self'; form-action 'self'; object-src 'none'")
     if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https":
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
@@ -164,17 +206,17 @@ def scan(req: ScanRequest, request: Request):
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
 
-    hit = _cache.get(key)
-    if hit and time.time() - hit[0] < CACHE_SECONDS:
-        return JSONResponse(i18n.report(hit[1], lang))
+    hit = cache_get(key)
+    if hit:
+        return JSONResponse(i18n.report(hit, lang))
 
-    if not allow(client_ip(request)):
+    if not limiter.allow(client_ip(request)):
         raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
     try:
         report = scanner.scan(req.url).to_dict()
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
-    _cache[key] = (time.time(), report)
+    cache_put(key, report)
     return JSONResponse(i18n.report(report, lang))
 
 
