@@ -19,6 +19,7 @@ import os
 import threading
 import time
 from collections import defaultdict, deque
+from urllib.parse import urlsplit
 
 import requests
 
@@ -56,12 +57,30 @@ class MemoryCounter:
             self._hits.clear()
 
 
+class RedisError(Exception):
+    """Redis answered, but not with a count (wrong token, read-only token, unknown command ...)."""
+
+
+def clean_url(raw: str) -> str:
+    """Accept the forms people paste: with or without https://, in quotes, with spaces or a trailing slash.
+    Upstash's console shows the endpoint as a bare host name (name-12345.upstash.io)."""
+    url = raw.strip().strip("\"'").strip().rstrip("/")
+    if url and "://" not in url:
+        url = "https://" + url
+    return url
+
+
+def clean_token(raw: str) -> str:
+    token = raw.strip().strip("\"'").strip()
+    return token.removeprefix("Bearer ").strip()
+
+
 class RedisCounter:
     """Fixed-window counter in Redis: INCR the window's key, give it an expiry the first time."""
 
     def __init__(self, url: str, token: str, session: requests.Session | None = None):
-        self.url = url.rstrip("/")
-        self.headers = {"Authorization": f"Bearer {token}"}
+        self.url = clean_url(url)
+        self.headers = {"Authorization": f"Bearer {clean_token(token)}"}
         self.session = session or requests.Session()
 
     def hit(self, key: str, limit: int, window: int, now: float | None = None) -> bool:
@@ -69,9 +88,19 @@ class RedisCounter:
         k = f"saytyoxla:rl:{key}:{int(now // window)}"
         r = self.session.post(self.url + "/pipeline", headers=self.headers, timeout=REDIS_TIMEOUT,
                               json=[["INCR", k], ["EXPIRE", k, str(window + 5), "NX"]])
-        r.raise_for_status()
-        count = r.json()[0]["result"]
-        return int(count) <= limit
+        if r.status_code != 200:
+            raise RedisError(f"HTTP {r.status_code}: {_error_text(r)}")
+        first = r.json()[0]
+        if "result" not in first:
+            raise RedisError(str(first.get("error", first))[:200])
+        return int(first["result"]) <= limit
+
+
+def _error_text(r) -> str:
+    try:
+        return str(r.json().get("error", ""))[:200]
+    except (ValueError, AttributeError):
+        return ""
 
 
 class Limiter:
@@ -84,7 +113,10 @@ class Limiter:
         url = os.getenv("UPSTASH_REDIS_REST_URL") or os.getenv("KV_REST_API_URL")
         token = os.getenv("UPSTASH_REDIS_REST_TOKEN") or os.getenv("KV_REST_API_TOKEN")
         if url and token:
-            return cls(RedisCounter(url, token))
+            redis = RedisCounter(url, token)
+            # the host only, never the token: enough to see in the logs which database is used
+            log.warning("Scan limits are counted in Redis at %s", urlsplit(redis.url).hostname or redis.url)
+            return cls(redis)
         if os.getenv("VERCEL"):
             log.warning("No Redis configured: scan limits are per instance only. See web/ratelimit.py.")
         return cls()
@@ -102,8 +134,11 @@ class Limiter:
         if self.redis:
             try:
                 return self.redis.hit(key, limit, window, now)
-            except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as e:
-                log.warning("Redis rate limit unavailable (%s); counting in memory", type(e).__name__)
+            except (RedisError, requests.RequestException, ValueError, KeyError, IndexError, TypeError) as e:
+                # the message explains the cause (e.g. "HTTP 401: WRONGPASS" for a wrong token); it never
+                # contains the token, which is only sent in a header
+                log.warning("Redis rate limit unavailable (%s: %s); counting in memory",
+                            type(e).__name__, str(e)[:200])
         return self.memory.hit(key, limit, window, now)
 
 

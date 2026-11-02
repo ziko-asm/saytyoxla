@@ -45,7 +45,7 @@ UPSTASH_REDIS_REST_URL=https://....upstash.io
 UPSTASH_REDIS_REST_TOKEN=...
 ```
 
-(`KV_REST_API_URL` / `KV_REST_API_TOKEN` from Vercel KV work too.) The limits can be changed with `SCAN_RATE_LIMIT`, `SCAN_DAILY_LIMIT` and `SCAN_GLOBAL_LIMIT`. Without Redis, or if Redis does not answer, the limits are counted per instance and the service keeps working.
+(`KV_REST_API_URL` / `KV_REST_API_TOKEN` from Vercel KV work too. The URL may be pasted as the bare endpoint shown in Upstash's console, `name-12345.upstash.io`; quotes and spaces are ignored.) The function log says `Scan limits are counted in Redis at <host>` when the variables are read, and `Redis rate limit unavailable (<cause>)` if Redis refuses a request. The limits can be changed with `SCAN_RATE_LIMIT`, `SCAN_DAILY_LIMIT` and `SCAN_GLOBAL_LIMIT`. Without Redis, or if Redis does not answer, the limits are counted per instance and the service keeps working.
 
 ## Website
 `web/app.py` (FastAPI) serves the React front end (`react-ui/`, built into `web/react/`) in Azerbaijani, English and Russian, the survey report, and the previous plain-JavaScript page at `/classic`. `POST /api/scan` is rate-limited (see above) and results are cached for 10 minutes. Static files and pages carry cache headers so that most visits are answered by Vercel's edge without starting the Python function; hashed assets and fonts are cached for a year.
