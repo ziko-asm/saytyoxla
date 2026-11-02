@@ -220,9 +220,8 @@ def page(lang: str) -> str:
 <meta name="theme-color" content="#0f2a4a">
 <script type="application/ld+json">{ld}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a4a'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='%2334d399' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preload" href="/static/fonts/inter-4-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/fonts.css">
 <style>
 :root{{--bg:#f5f7fb;--surface:#fff;--line:#e3e8f0;--line-2:#cfd7e3;--ink:#0f1b2d;--ink-2:#3d4b60;--muted:#5b6779;
 --brand:#0f2a4a;--brand-2:#1d4ed8;--track:#e6ebf3;--font:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}}
@@ -307,7 +306,7 @@ footer{{color:var(--muted);font-size:14px;padding:32px 0 40px}}
   <h2>{L(lang, "Sahələr üzrə", "By sector", "По сферам")}</h2>
   <p class="sub">{L(lang, "Orta bal və əsas qoruma ayarı olan saytların payı. Az sayt olan sahələrdə faizləri ehtiyatla oxuyun.", "Average score and the share of sites with each key protection. In sectors with few sites, read the percentages with care.",
                    "Средний балл и доля сайтов с каждой основной защитой. Где сайтов мало, проценты стоит читать осторожно.")}</p>
-  <div class="tw">{_table(s, lang)}</div>
+  <div class="tw" tabindex="0">{_table(s, lang)}</div>
 
   <div class="cta">
     <div><h2>{L(lang, "Öz saytınız necədir?", "How does your site do?", "А как ваш сайт?")}</h2>
