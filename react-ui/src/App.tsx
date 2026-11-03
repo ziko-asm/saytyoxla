@@ -15,7 +15,8 @@ export default function App() {
   const [guideOpen, setGuideOpen] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
-  const scan = useCallback(async (target: string) => {
+  // fresh = true skips the server's 10-minute cache, so a fixed site shows its new result
+  const scan = useCallback(async (target: string, fresh = false) => {
     const value = target.trim()
     setError('')
     if (!value) {
@@ -29,7 +30,7 @@ export default function App() {
       const res = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: value, lang: LANG }),
+        body: JSON.stringify({ url: value, lang: LANG, fresh }),
       })
       const data = await res.json()
       if (!res.ok) setError(data.detail || t.genericError)
@@ -73,7 +74,7 @@ export default function App() {
         onHelp={() => setGuideOpen(true)}
       />
       {loading && <Loading />}
-      {report && <ReportView report={report} onAgain={again} />}
+      {report && <ReportView report={report} onAgain={again} onRescan={() => scan(report.url, true)} />}
       </main>
       {guideOpen && (
         <Guide

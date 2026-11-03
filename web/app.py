@@ -76,6 +76,7 @@ _lock = threading.Lock()
 class ScanRequest(BaseModel):
     url: str = Field(..., max_length=300)
     lang: str = Field("az", max_length=5)      # az | en | ru; anything else falls back to az
+    fresh: bool = False                        # skip the 10-minute result cache (the rate limit still applies)
 
 
 def client_ip(request: Request) -> str:
@@ -206,9 +207,9 @@ def scan(req: ScanRequest, request: Request):
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
 
-    hit = cache_get(key)
+    hit = None if req.fresh else cache_get(key)
     if hit:
-        return JSONResponse(i18n.report(hit, lang))
+        return JSONResponse({**i18n.report(hit, lang), "cached": True})
 
     if not limiter.allow(client_ip(request)):
         raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
@@ -217,7 +218,7 @@ def scan(req: ScanRequest, request: Request):
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     cache_put(key, report)
-    return JSONResponse(i18n.report(report, lang))
+    return JSONResponse({**i18n.report(report, lang), "cached": False})
 
 
 # Keep this last: it matches any single path segment, so earlier routes win.
