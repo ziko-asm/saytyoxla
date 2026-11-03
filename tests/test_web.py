@@ -41,7 +41,36 @@ def test_scan_returns_report_and_caches(reset):
     a = client.post("/api/scan", json={"url": "example.az"})
     b = client.post("/api/scan", json={"url": "https://example.az"})
     assert a.status_code == 200 and a.json()["grade"] == "B"
-    assert b.json() == a.json() and len(reset) == 1
+    assert a.json()["cached"] is False and b.json()["cached"] is True
+    assert {**b.json(), "cached": False} == a.json() and len(reset) == 1
+
+
+def test_fresh_skips_the_cache_and_replaces_it(reset):
+    client.post("/api/scan", json={"url": "example.az"})
+    again = client.post("/api/scan", json={"url": "example.az", "fresh": True})
+    assert again.status_code == 200 and again.json()["cached"] is False
+    assert len(reset) == 2                                    # scanned again, not served from the cache
+    after = client.post("/api/scan", json={"url": "example.az"})
+    assert after.json()["cached"] is True and len(reset) == 2  # the fresh result is what is cached now
+
+
+def test_fresh_is_still_rate_limited(monkeypatch):
+    monkeypatch.setattr(ratelimit, "RULES", [("ip-minute", 2, 60)])
+    codes = [client.post("/api/scan", json={"url": "example.az", "fresh": True}).status_code for _ in range(3)]
+    assert codes == [200, 200, 429]
+
+
+def test_fresh_works_in_every_language(reset):
+    for lang in ("az", "en", "ru"):
+        r = client.post("/api/scan", json={"url": "example.az", "lang": lang, "fresh": True})
+        assert r.status_code == 200 and r.json()["cached"] is False
+
+
+def test_built_front_end_has_the_rescan_button():
+    import re
+    page = client.get("/")
+    js = client.get(re.search(r'src="(/react/assets/[^"]+\.js)"', page.text).group(1)).text
+    assert "fresh" in js and "Yenidən yoxla (təzə nəticə)" in js  # react-ui was rebuilt after the change
 
 
 def test_bad_url_is_400_with_message():

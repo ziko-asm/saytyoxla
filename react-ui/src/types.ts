@@ -20,4 +20,5 @@ export type Report = {
   findings: Finding[]
   counts: { fail?: number; warn?: number; ok?: number }
   scanned_at: string
+  cached?: boolean // true when the server answered from its 10-minute result cache
 }

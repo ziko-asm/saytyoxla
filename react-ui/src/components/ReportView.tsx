@@ -11,7 +11,7 @@ const GRADE_COLOR: Record<string, string> = { A: '#047857', B: '#15803d', C: '#b
 const ORDER = ['https', 'cert', 'spf', 'speed', 'viewport']
 const isProblem = (f: Finding) => f.status === 'fail' || f.status === 'warn'
 
-export function ReportView({ report, onAgain }: { report: Report; onAgain: () => void }) {
+export function ReportView({ report, onAgain, onRescan }: { report: Report; onAgain: () => void; onRescan: () => void }) {
   const box = useRef<HTMLElement>(null)
   useEffect(() => {
     box.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -51,6 +51,7 @@ export function ReportView({ report, onAgain }: { report: Report; onAgain: () =>
           </div>
           <div className="rep-actions">
             <button className="btn btn-ghost" type="button" onClick={print}><Icon name="i-print" />{t.print}</button>
+            <button className="btn btn-ghost" type="button" onClick={onRescan} title={t.rescanHint}>{t.rescan}</button>
             <button className="btn btn-ghost" type="button" onClick={onAgain}>{t.again}</button>
           </div>
         </div>
@@ -94,6 +95,7 @@ export function ReportView({ report, onAgain }: { report: Report; onAgain: () =>
       </div>
       <p className="muted small">
         {t.scannedAt(new Date(report.scanned_at).toLocaleString(LOCALE[LANG]))}
+        {report.cached ? ' ' + t.cachedNote : ''}
       </p>
     </section>
   )
