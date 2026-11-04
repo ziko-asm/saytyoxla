@@ -127,6 +127,44 @@ def test_blocked_status_explains_bot_protection(monkeypatch):
         scanner.scan("lalafo.az")
 
 
+@pytest.mark.parametrize("raw,expected", [
+    ("münchen.de", "https://xn--mnchen-3ya.de/"),
+    ("https://президент.рф/", "https://xn--d1abbgf6aiiy.xn--p1ai/"),
+])
+def test_normalize_accepts_local_letters(raw, expected):
+    assert normalize(raw) == expected
+
+
+def test_normalize_accepts_azerbaijani_letters():
+    host = normalize("şəki.az").split("/")[2]
+    assert host.startswith("xn--") and host.encode("ascii").decode("idna") == "şəki.az"
+
+
+@pytest.mark.parametrize("raw", ["example.az:abc", "https://[bad", "a" * 64 + ".az", "xn--.az."])
+def test_normalize_rejects_broken_addresses_without_crashing(raw):
+    with pytest.raises(UnsafeTarget):
+        normalize(raw)
+
+
+def test_report_shows_local_letters():
+    r = _report(final_url="https://xn--mnchen-3ya.de/")
+    assert r.final_url == "https://xn--mnchen-3ya.de/" and r.display_url == "https://münchen.de/"
+    assert _report().display_url == "https://example.az/"
+
+
+def test_svg_titles_are_not_the_page_title():
+    html = """<html><head><title>GitHub · Change is constant</title></head><body>
+    <svg><title>Duolingo</title></svg><svg><title>FedEx</title></svg></body></html>"""
+    assert checks.parse(html).title == "GitHub · Change is constant"
+    assert checks.parse("<svg><title>Logo</title></svg><title>Real</title>").title == "Real"
+    assert checks.parse("<title>First</title><title>Second</title>").title == "First"
+
+
+@pytest.mark.parametrize("ms,text", [(0.4, "Server 0 millisaniyəyə"), (120, "Server 120 millisaniyəyə"), (2300, "Server 2.3 saniyəyə")])
+def test_response_time_text(ms, text):
+    assert text in by_id(checks.run_checks(ctx(elapsed_ms=ms)))["speed"].detail
+
+
 def test_invalid_certificate_is_a_plain_finding_and_not_https_ok():
     f = by_id(checks.run_checks(ctx(cert={"days_left": None, "issuer": "", "expires": None,
                                           "error": "certificate has expired"})))

@@ -3,7 +3,9 @@ import { HOME, LANG, t, type Lang } from '../i18n'
 
 const NAMES: [Lang, string, string][] = [['az', 'AZ', 'Azərbaycanca'], ['en', 'EN', 'English'], ['ru', 'RU', 'Русский']]
 
-export function Header({ onHelp }: { onHelp: () => void }) {
+// `checked` is the address on screen: changing the language keeps the result instead of losing it
+export function Header({ onHelp, checked = '' }: { onHelp: () => void; checked?: string }) {
+  const query = checked ? `?url=${encodeURIComponent(checked)}` : ''
   return (
     <header className="top">
       <div className="wrap">
@@ -14,7 +16,7 @@ export function Header({ onHelp }: { onHelp: () => void }) {
         <div className="top-right">
           <nav className="langs" aria-label={t.langLabel}>
             {NAMES.map(([code, short, name]) => (
-              <a key={code} href={HOME[code]} hrefLang={code} lang={code} title={name}
+              <a key={code} href={HOME[code] + query} hrefLang={code} lang={code} title={name}
                 aria-current={code === LANG ? 'page' : undefined}>{short}</a>
             ))}
           </nav>

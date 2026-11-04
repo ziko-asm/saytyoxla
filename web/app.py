@@ -6,6 +6,7 @@ SaytYoxla web service.
 GET  /            the Azerbaijani front page (React, built from react-ui/ into web/react/)
 GET  /en/, /ru/   the same page in English and Russian
 GET  /hesabat/, /en/report/, /ru/otchet/   survey of Azerbaijani websites (web/survey.py)
+GET  /haqqimizda/, /mexfilik/, /sertler/ and their en/ru versions   about, privacy, terms (web/pages.py)
 GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 POST /api/scan    {"url": "example.az", "lang": "az|en|ru"} -> report JSON
 GET  /health      for the hosting platform
@@ -21,16 +22,18 @@ from collections import OrderedDict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import scanner
 from scanner import i18n
 from scanner.safety import UnsafeTarget, normalize
-from web import ratelimit, seo, survey
+from web import pages, ratelimit, seo, survey
 
 STATIC = Path(__file__).parent / "static"
 REACT = Path(__file__).parent / "react"      # built by react-ui (npm run build)
@@ -90,6 +93,15 @@ async def invalid_request(request: Request, exc: RequestValidationError):
     message = "Ünvan çox uzundur. Yalnız domeni yazın, məsələn: example.az" if too_long \
         else "Ünvan düzgün görünmür. Nümunə: example.az"
     return JSONResponse({"detail": i18n.text(message, i18n.lang_of(lang))}, status_code=422)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request: Request, exc: StarletteHTTPException):
+    """People who follow a wrong link get a page; the API and missing files keep their short answer."""
+    path = request.url.path
+    if exc.status_code == 404 and not path.startswith(("/api/", "/static/", "/react/")):
+        return HTMLResponse(pages.not_found(path), status_code=404)
+    return await http_exception_handler(request, exc)
 
 
 def client_ip(request: Request) -> str:
@@ -171,6 +183,29 @@ def survey_page(request: Request):
     return HTMLResponse(survey.page(lang))
 
 
+@app.get("/haqqimizda/", include_in_schema=False)
+@app.get("/en/about/", include_in_schema=False)
+@app.get("/ru/o-nas/", include_in_schema=False)
+@app.get("/mexfilik/", include_in_schema=False)
+@app.get("/en/privacy/", include_in_schema=False)
+@app.get("/ru/konfidencialnost/", include_in_schema=False)
+@app.get("/sertler/", include_in_schema=False)
+@app.get("/en/terms/", include_in_schema=False)
+@app.get("/ru/usloviya/", include_in_schema=False)
+def info_page(request: Request):
+    """About, privacy and terms (web/pages.py)."""
+    return HTMLResponse(pages.page(*pages.ROUTES[request.url.path]))
+
+
+@app.get("/haqqimizda", include_in_schema=False)
+@app.get("/en/about", include_in_schema=False)
+@app.get("/ru/o-nas", include_in_schema=False)
+@app.get("/mexfilik", include_in_schema=False)
+@app.get("/en/privacy", include_in_schema=False)
+@app.get("/ru/konfidencialnost", include_in_schema=False)
+@app.get("/sertler", include_in_schema=False)
+@app.get("/en/terms", include_in_schema=False)
+@app.get("/ru/usloviya", include_in_schema=False)
 @app.get("/hesabat", include_in_schema=False)
 @app.get("/en/report", include_in_schema=False)
 @app.get("/ru/otchet", include_in_schema=False)

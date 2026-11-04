@@ -14,11 +14,19 @@ import socket
 from urllib.parse import urlsplit
 
 ALLOWED_PORTS = {None, 80, 443}
-HOST_RE = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+HOST_RE = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+([a-z]{2,63}|xn--[a-z0-9-]{1,59})$")
 
 
 class UnsafeTarget(ValueError):
     """Raised with a message that can be shown to the user."""
+
+
+def ascii_host(host: str) -> str:
+    """The name DNS knows: münchen.de -> xn--mnchen-3ya.de. Empty if it cannot be converted."""
+    try:
+        return host.encode("idna").decode("ascii")
+    except UnicodeError:
+        return ""
 
 
 def normalize(raw: str) -> str:
@@ -27,15 +35,19 @@ def normalize(raw: str) -> str:
         raise UnsafeTarget("Saytın ünvanını yazın, məsələn: example.az")
     if "://" not in raw:
         raw = "https://" + raw
-    parts = urlsplit(raw)
+    try:
+        parts = urlsplit(raw)
+        port = parts.port
+    except ValueError:      # an unclosed [ or a port that is not a number
+        raise UnsafeTarget("Ünvan düzgün görünmür. Nümunə: example.az") from None
     if parts.scheme not in ("http", "https"):
         raise UnsafeTarget("Yalnız http və https ünvanları yoxlanılır.")
     if parts.username or parts.password:
         raise UnsafeTarget("Ünvanda istifadəçi adı və ya şifrə olmamalıdır.")
-    host = (parts.hostname or "").lower().rstrip(".")
+    host = ascii_host((parts.hostname or "").lower().rstrip("."))
     if not HOST_RE.match(host):
         raise UnsafeTarget("Ünvan düzgün görünmür. Nümunə: example.az")
-    if parts.port not in ALLOWED_PORTS:
+    if port not in ALLOWED_PORTS:
         raise UnsafeTarget("Yalnız standart portlar (80, 443) yoxlanılır.")
     return f"{parts.scheme}://{host}{parts.path or '/'}"
 

@@ -13,6 +13,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [report, setReport] = useState<Report | null>(null)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [checked, setChecked] = useState('')
   const input = useRef<HTMLInputElement>(null)
 
   // fresh = true skips the server's 10-minute cache, so a fixed site shows its new result
@@ -34,7 +35,12 @@ export default function App() {
       })
       const data = await res.json()
       if (!res.ok) setError(typeof data.detail === 'string' ? data.detail : t.genericError)
-      else setReport(data)
+      else {
+        setReport(data)
+        // The address bar now holds a link to this result: it can be shared, reloaded or opened in another language
+        window.history.replaceState(null, '', `${window.location.pathname}?url=${encodeURIComponent(value)}`)
+        setChecked(value)
+      }
     } catch {
       setError(t.networkError)
     } finally {
@@ -54,6 +60,8 @@ export default function App() {
   function again() {
     setReport(null)
     setUrl('')
+    setChecked('')
+    window.history.replaceState(null, '', window.location.pathname)
     window.scrollTo({ top: 0, behavior: 'smooth' })
     input.current?.focus()
   }
@@ -62,7 +70,7 @@ export default function App() {
 
   return (
     <>
-      <Header onHelp={() => setGuideOpen(true)} />
+      <Header onHelp={() => setGuideOpen(true)} checked={checked} />
       <main id="main">
       <ScanForm
         ref={input}

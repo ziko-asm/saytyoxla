@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../Icon'
 import { FindingItem } from './FindingItem'
 import { ScoreRing } from './ScoreRing'
@@ -18,7 +18,8 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
   }, [report])
 
   const color = GRADE_COLOR[report.grade] || '#047857'
-  const host = report.final_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
+  const host = (report.display_url || report.final_url).replace(/^https?:\/\//, '').replace(/\/$/, '')
+  const [copied, setCopied] = useState(false)
   const c = report.counts || {}
   const clean = !c.fail && !c.warn
 
@@ -30,6 +31,16 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
   const categories = [...new Set(report.findings.map((f) => f.category))].sort((a, b) => rank(a) - rank(b))
 
   const waText = t.waText(host, report.score, report.grade, clean)
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      window.prompt(t.copyLink, window.location.href)     // the browser refused the clipboard
+    }
+  }
 
   function print() {
     box.current?.querySelectorAll('details').forEach((d) => (d.open = true))
@@ -52,6 +63,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
           </div>
           <div className="rep-actions">
             <button className="btn btn-ghost" type="button" onClick={print}><Icon name="i-print" />{t.print}</button>
+            <button className="btn btn-ghost" type="button" onClick={copyLink} aria-live="polite">{copied ? t.linkCopied : t.copyLink}</button>
             <button className="btn btn-ghost" type="button" onClick={onRescan} title={t.rescanHint}>{t.rescan}</button>
             <button className="btn btn-ghost" type="button" onClick={onAgain}>{t.again}</button>
           </div>
