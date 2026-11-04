@@ -14,6 +14,100 @@ from scanner import fetch, safety
 from scanner.safety import UnsafeTarget, check_hop, resolve_public
 
 
+def _page(url, verify=True):
+    class Response:
+        status_code, headers = 200, {"Content-Type": "text/html"}
+        encoding = "utf-8"
+    return Response(), url, [], 10.0, b"<title>Salam</title>", "93.184.216.34"
+
+
+def _no_network(monkeypatch, get):
+    monkeypatch.setattr(fetch, "_get", get)
+    monkeypatch.setattr(fetch, "cert_info", lambda host, ip: {"days_left": None, "issuer": "", "expires": None,
+                                                              "error": "certificate has expired"})
+    monkeypatch.setattr(fetch, "txt_records", lambda name: [])
+
+
+def test_bad_certificate_still_gives_a_report_read_without_verification(monkeypatch):
+    calls = []
+
+    def get(url, budget=None, verify=True):
+        calls.append((url, verify))
+        if url.startswith("https://") and verify:
+            raise requests.exceptions.SSLError("certificate verify failed")
+        return _page(url)
+    _no_network(monkeypatch, get)
+    ctx = fetch.collect("https://expired.example.az/")
+    assert ctx.error is None and ctx.final_url == "https://expired.example.az/" and ctx.cert["error"]
+    assert ("https://expired.example.az/", True) in calls and ("https://expired.example.az/", False) in calls
+    assert ("http://expired.example.az/", False) in calls      # the http check may end on the same bad certificate
+
+
+def test_tls_that_never_works_reports_ssl_error(monkeypatch):
+    def get(url, budget=None, verify=True):
+        raise requests.exceptions.SSLError("handshake failure")
+    _no_network(monkeypatch, get)
+    assert fetch.collect("https://old.example.az/").error == "SSLError"
+
+
+def test_site_only_on_http_still_gives_a_report(monkeypatch):
+    def get(url, budget=None, verify=True):
+        if url.startswith("https://"):
+            raise requests.exceptions.ConnectionError("port 443 closed")
+        return _page(url)
+    _no_network(monkeypatch, get)
+    ctx = fetch.collect("https://plain.example.az/")
+    assert ctx.error is None and ctx.final_url == "http://plain.example.az/" and ctx.cert is None
+
+
+def test_read_timeout_does_not_retry_on_http(monkeypatch):
+    calls = []
+
+    def get(url, budget=None, verify=True):
+        calls.append(url)
+        raise requests.exceptions.ReadTimeout("slow")
+    _no_network(monkeypatch, get)
+    assert fetch.collect("https://slow.example.az/").error == "ReadTimeout" and len(calls) == 1
+
+
+def test_first_error_is_kept_when_the_http_fallback_fails_too(monkeypatch):
+    def get(url, budget=None, verify=True):
+        raise (requests.exceptions.ConnectTimeout("x") if url.startswith("https://")
+               else requests.exceptions.ConnectionError("y"))
+    _no_network(monkeypatch, get)
+    assert fetch.collect("https://down.example.az/").error == "ConnectTimeout"
+
+
+def test_dmarc_walks_up_to_the_parent_but_never_to_the_tld(monkeypatch):
+    asked = []
+    table = {"_dmarc.example.az": ["v=DMARC1; p=reject"]}
+
+    def lookup(name):
+        asked.append(name)
+        return table.get(name, [])
+    monkeypatch.setattr(fetch, "txt_records", lookup)
+    assert fetch.dmarc_records("docs.shop.example.az") == (["v=DMARC1; p=reject"], "example.az")
+    asked.clear()
+    assert fetch.dmarc_records("example.az") == (["v=DMARC1; p=reject"], None)
+    assert asked == ["_dmarc.example.az"]
+    asked.clear()
+    assert fetch.dmarc_records("nothing.az") == ([], None)
+    assert asked == ["_dmarc.nothing.az"]
+
+
+def test_dmarc_parent_walk_is_bounded_and_stops_on_dns_failure(monkeypatch):
+    asked = []
+
+    def lookup(name):
+        asked.append(name)
+        return []
+    monkeypatch.setattr(fetch, "txt_records", lookup)
+    fetch.dmarc_records("a.b.c.d.example.az")
+    assert len(asked) == 1 + fetch.MAX_DMARC_PARENTS
+    monkeypatch.setattr(fetch, "txt_records", lambda name: None)
+    assert fetch.dmarc_records("a.example.az") == (None, None)
+
+
 def _serve(ip: str, port: int, handler):
     srv = http.server.ThreadingHTTPServer((ip, port), handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()

@@ -18,10 +18,11 @@ from datetime import datetime, timezone
 from urllib.parse import urljoin, urlsplit
 
 import requests
+import urllib3
 from requests.adapters import HTTPAdapter
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
-from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
+from urllib3.exceptions import ConnectTimeoutError, InsecureRequestWarning, NewConnectionError
 from urllib3.util.connection import create_connection
 
 from scanner.models import Context
@@ -35,6 +36,9 @@ HTTP_CHECK_BUDGET = 8   # seconds for the http -> https check
 MAX_REDIRECTS = 5
 MAX_HTML = 3_000_000
 META_CHARSET = re.compile(rb"""<meta[^>]+charset=["']?([A-Za-z0-9_\-]+)""", re.IGNORECASE)
+MAX_DMARC_PARENTS = 2   # docs.shop.example.az -> shop.example.az, example.az
+
+urllib3.disable_warnings(InsecureRequestWarning)    # verify=False is deliberate, see _open()
 
 
 class _PinnedAdapter(HTTPAdapter):
@@ -98,7 +102,7 @@ def _encoding(r: requests.Response, body: bytes) -> str:
     return "utf-8"
 
 
-def _get(url: str, resolve=resolve_public, budget: float = PAGE_BUDGET):
+def _get(url: str, resolve=resolve_public, budget: float = PAGE_BUDGET, verify: bool = True):
     """GET with redirects followed by hand: every hop is checked (scheme, port, public address) and
     connected to the address that was checked. The whole call, body included, stays within `budget`."""
     deadline = time.perf_counter() + budget
@@ -111,7 +115,7 @@ def _get(url: str, resolve=resolve_public, budget: float = PAGE_BUDGET):
             raise requests.exceptions.Timeout("time budget used up")
         t0 = time.perf_counter()
         with _session(ip) as s:
-            r = s.get(url, headers={"User-Agent": USER_AGENT}, allow_redirects=False, stream=True,
+            r = s.get(url, headers={"User-Agent": USER_AGENT}, allow_redirects=False, stream=True, verify=verify,
                       timeout=(CONNECT_TIMEOUT, min(READ_TIMEOUT, remaining)))
             elapsed = 1000 * (time.perf_counter() - t0)
             if r.is_redirect and r.headers.get("location"):
@@ -181,10 +185,54 @@ def mail_domain(host: str) -> str:
     return host.removeprefix("www.")
 
 
+def _is_dmarc(records: list | None) -> bool:
+    return any(r.lower().startswith("v=dmarc1") for r in records or [])
+
+
+def dmarc_records(domain: str) -> tuple[list | None, str | None]:
+    """The DMARC records that apply to `domain` and, when they come from a parent, that parent's name.
+    A subdomain without its own record is covered by its parent's, so `docs.example.az` looks at `example.az`
+    too (the DNS tree walk of RFC 7489's successor). The last label is never tried: a TLD is not a mail domain."""
+    records = txt_records("_dmarc." + domain)
+    if records is None or _is_dmarc(records):
+        return records, None
+    labels = domain.split(".")
+    for i in range(1, min(len(labels) - 1, MAX_DMARC_PARENTS + 1)):
+        parent = ".".join(labels[i:])
+        parent_records = txt_records("_dmarc." + parent)
+        if _is_dmarc(parent_records):
+            return parent_records, parent
+    return records, None
+
+
+def _open(url: str):
+    """Load the page, returning _get()'s values and whether the certificate was accepted. A bad certificate is
+    a finding, not a dead end: the page is read anyway so its owner gets a report. Nothing secret is sent, and
+    every hop still goes through the same public-address checks."""
+    try:
+        return (*_get(url), True)
+    except requests.exceptions.SSLError:
+        return (*_get(url, budget=HTTP_CHECK_BUDGET, verify=False), False)
+
+
+def _open_with_fallback(url: str):
+    """Addresses typed without a scheme are tried on https first; a site that only answers on http still
+    gets a report (with the missing HTTPS as its main finding) instead of 'the site did not open'."""
+    try:
+        return _open(url)
+    except requests.exceptions.ConnectionError as first:
+        if not url.startswith("https://"):
+            raise
+        try:
+            return (*_get("http://" + url.removeprefix("https://"), budget=HTTP_CHECK_BUDGET), True)
+        except requests.RequestException:
+            raise first from None
+
+
 def collect(url: str) -> Context:
     ctx = Context(input_url=url, host=urlsplit(url).hostname or "")
     try:
-        r, final, chain, elapsed, body, ip = _get(url)
+        r, final, chain, elapsed, body, ip, verified = _open_with_fallback(url)
     except requests.RequestException as e:
         ctx.error = type(e).__name__
         return ctx
@@ -199,11 +247,12 @@ def collect(url: str) -> Context:
         ctx.cert = cert_info(final_host, ip)
     # Does the plain-http address end up on https?
     try:
-        _, http_final, _, _, _, _ = _get("http://" + ctx.host + "/", budget=HTTP_CHECK_BUDGET)
+        _, http_final, _, _, _, _ = _get("http://" + ctx.host + "/", budget=HTTP_CHECK_BUDGET, verify=verified)
         ctx.http_to_https = urlsplit(http_final).scheme == "https"
     except (requests.RequestException, UnsafeTarget):
         ctx.http_to_https = None
 
     domain = mail_domain(final_host)
-    ctx.txt_records = {"spf": txt_records(domain), "dmarc": txt_records("_dmarc." + domain)}
+    dmarc, dmarc_parent = dmarc_records(domain)
+    ctx.txt_records = {"spf": txt_records(domain), "dmarc": dmarc, "dmarc_parent": dmarc_parent}
     return ctx

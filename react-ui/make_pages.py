@@ -196,11 +196,17 @@ T = [
      "проверку. Мы не спрашиваем имя, телефон или e-mail.")),
     ("Bal nə deməkdir?", "What does the score mean?", "Что означает балл?"),
     (("100 ən yaxşı nəticədir. 90+ — əla (A), 75+ — yaxşı (B), 60+ — orta (C), 40+ — zəif (D), 40-dan aşağı — "
-     "ciddi diqqət lazımdır (F). Qırmızı problemlər balı daha çox azaldır."),
+     "ciddi diqqət lazımdır (F). Qırmızı problemlər balı daha çox azaldır. Əsas qoruma çatışmayanda bal məhdudlaşır: "
+     "etibarlı HTTPS yoxdursa 39-dan, sertifikatın bitməsinə 7 gündən az qalıbsa 59-dan, 4–5 əsas ayar yoxdursa "
+     "74-dən, 2–3 ayar yoxdursa 89-dan yuxarı olmur."),
      ("100 is the best result. 90+ is excellent (A), 75+ good (B), 60+ fair (C), 40+ weak (D), below 40 needs "
-     "serious attention (F). Red problems lower the score the most."),
+     "serious attention (F). Red problems lower the score the most. Missing basic protection limits the score: "
+     "no more than 39 without trusted HTTPS, 59 if the certificate expires in under 7 days, 74 with 4–5 basic "
+     "settings missing and 89 with 2–3 missing."),
      ("100 — лучший результат. 90+ — отлично (A), 75+ — хорошо (B), 60+ — средне (C), 40+ — слабо (D), ниже 40 — "
-     "нужно серьёзное внимание (F). Красные проблемы снижают балл сильнее всего.")),
+     "нужно серьёзное внимание (F). Красные проблемы снижают балл сильнее всего. Если не хватает основной защиты, "
+     "балл ограничен: не выше 39 без надёжного HTTPS, 59, если сертификат истекает менее чем через 7 дней, 74 при "
+     "отсутствии 4–5 основных настроек и 89 при отсутствии 2–3.")),
     ("Problemləri kim düzəltməlidir?", "Who should fix the problems?", "Кто должен исправлять проблемы?"),
     (("Saytınızı quran proqramçıya və ya hostinq şirkətinə hesabatı göstərin — hər problemin altında nə ediləcəyi "
      "yazılıb. İstəsəniz, WhatsApp-a yazın, kömək edək."),

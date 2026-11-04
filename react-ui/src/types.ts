@@ -17,6 +17,7 @@ export type Report = {
   score: number
   grade: string
   summary: string
+  score_note?: string // why the score was held below what the points alone would give
   findings: Finding[]
   counts: { fail?: number; warn?: number; ok?: number }
   scanned_at: string

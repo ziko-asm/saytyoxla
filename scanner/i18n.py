@@ -55,6 +55,10 @@ EXACT: dict[str, tuple[str, str]] = {
         "Turn on a free SSL certificate (Let's Encrypt) in your hosting panel.",
         "Подключите бесплатный SSL-сертификат (Let's Encrypt) в панели хостинга."),
 
+    "Sayt HTTPS ilə açılır, amma sertifikat etibarsız olduğu üçün bu bağlantıya etibar etmək olmur.": (
+        "The site opens over HTTPS, but its certificate is not valid, so the connection cannot be trusted.",
+        "Сайт открывается по HTTPS, но сертификат недействителен, поэтому такому соединению нельзя доверять."),
+
     # redirect
     "http:// ünvanı yoxlanıla bilmədi.": (
         "The http:// address could not be checked.", "Не удалось проверить адрес http://."),
@@ -69,6 +73,24 @@ EXACT: dict[str, tuple[str, str]] = {
         "Настройте на сервере перенаправление всех http-запросов на https (301)."),
 
     # certificate
+    "Sertifikatın vaxtı bitib. Brauzerlər ziyarətçiyə təhlükəsizlik xəbərdarlığı göstərir.": (
+        "The certificate has expired. Browsers show visitors a security warning.",
+        "Срок действия сертификата истёк. Браузеры показывают посетителям предупреждение."),
+    "Sertifikat özü-imzalıdır, brauzerlər ona etibar etmir və ziyarətçiyə xəbərdarlıq göstərir.": (
+        "The certificate is self-signed: browsers do not trust it and show visitors a warning.",
+        "Сертификат самоподписанный: браузеры ему не доверяют и показывают посетителям предупреждение."),
+    "Sertifikat bu domen adına verilməyib. Brauzerlər ziyarətçiyə təhlükəsizlik xəbərdarlığı göstərir.": (
+        "The certificate was not issued for this domain name. Browsers show visitors a security warning.",
+        "Сертификат выдан не на это доменное имя. Браузеры показывают посетителям предупреждение."),
+    "Sertifikat ləğv edilib. Brauzerlər ziyarətçiyə təhlükəsizlik xəbərdarlığı göstərir.": (
+        "The certificate has been revoked. Browsers show visitors a security warning.",
+        "Сертификат отозван. Браузеры показывают посетителям предупреждение."),
+    "Sertifikatı etibarlı mərkəz təsdiqləmir və ya zəncir tam deyil. Brauzerlər ziyarətçiyə xəbərdarlıq göstərir.": (
+        "The certificate is not confirmed by a trusted authority, or its chain is incomplete. Browsers show visitors a warning.",
+        "Сертификат не подтверждён доверенным центром или цепочка неполная. Браузеры показывают посетителям предупреждение."),
+    "Sertifikat etibarsızdır. Brauzerlər ziyarətçiyə təhlükəsizlik xəbərdarlığı göstərir.": (
+        "The certificate is not valid. Browsers show visitors a security warning.",
+        "Сертификат недействителен. Браузеры показывают посетителям предупреждение."),
     "Sertifikat yoxlanılmadı (sayt https deyil).": (
         "The certificate was not checked (the site is not on https).",
         "Сертификат не проверялся (сайт не на https)."),
@@ -215,7 +237,27 @@ EXACT: dict[str, tuple[str, str]] = {
     "Əla nəticə: ciddi problem tapılmadı.": (
         "Great result: no serious problems found.", "Отличный результат: серьёзных проблем не найдено."),
 
+    # score limits
+    "Sayt etibarlı HTTPS ilə açılmadığı üçün bal 39-dan yuxarı ola bilməz.": (
+        "The score cannot go above 39 because the site does not open over trusted HTTPS.",
+        "Балл не может быть выше 39: сайт не открывается по надёжному HTTPS."),
+    "Sertifikatın vaxtı bitmək üzrə olduğu üçün bal 59-dan yuxarı ola bilməz.": (
+        "The score cannot go above 59 because the certificate is about to expire.",
+        "Балл не может быть выше 59: срок действия сертификата заканчивается."),
+
     # errors
+    "Sayt açılmadı: təhlükəsiz bağlantı (SSL) qurula bilmədi. Hostinq panelində SSL ayarlarını yoxlayın.": (
+        "The site did not open: a secure connection (SSL) could not be made. Check the SSL settings in your hosting panel.",
+        "Сайт не открылся: не удалось установить защищённое соединение (SSL). Проверьте настройки SSL в панели хостинга."),
+    "Sayt açılmadı: server vaxtında cavab vermədi. Bir az sonra yenidən cəhd edin.": (
+        "The site did not open: the server did not answer in time. Try again a little later.",
+        "Сайт не открылся: сервер не ответил вовремя. Попробуйте немного позже."),
+    "Sayt açılmadı: serverə qoşulmaq mümkün olmadı. Ünvanı yoxlayın və bir az sonra yenidən cəhd edin.": (
+        "The site did not open: could not connect to the server. Check the address and try again a little later.",
+        "Сайт не открылся: не удалось подключиться к серверу. Проверьте адрес и попробуйте немного позже."),
+    "Ünvan çox uzundur. Yalnız domeni yazın, məsələn: example.az": (
+        "The address is too long. Enter just the domain, for example: example.az",
+        "Адрес слишком длинный. Введите только домен, например: example.az"),
     "Saytın ünvanını yazın, məsələn: example.az": (
         "Enter the site's address, for example: example.az", "Введите адрес сайта, например: example.az"),
     "Yalnız http və https ünvanları yoxlanılır.": (
@@ -244,9 +286,6 @@ EXACT: dict[str, tuple[str, str]] = {
 
 # (pattern, English template, Russian template); groups are reused by number.
 PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.DOTALL), en, ru) for p, en, ru in [
-    (r"Sertifikat etibarsızdır \((.+)\)\. Ziyarətçilər xəbərdarlıq görür\.",
-     r"The certificate is not valid (\1). Visitors see a warning.",
-     r"Сертификат недействителен (\1). Посетители видят предупреждение."),
     (r"Sertifikatın vaxtı (-?\d+) gün sonra bitir\.",
      r"The certificate expires in \1 days.",
      r"Срок действия сертификата истекает через \1 дн."),
@@ -272,6 +311,20 @@ PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.DOTALL), en, ru
     (r"Təsvir (\d+) simvoldur\.",
      r"The description is \1 characters long.",
      r"Длина описания: \1 символов."),
+    # e-mail records inherited from the parent domain
+    (r"Bu subdomenin öz SPF qeydi yoxdur, amma əsas domenin \((.+)\) DMARC qaydası saxta məktubları bloklayır\.",
+     r"This subdomain has no SPF record of its own, but the DMARC rule of the main domain (\1) blocks fake e-mails.",
+     r"У этого поддомена нет своей записи SPF, но правило DMARC основного домена (\1) блокирует поддельные письма."),
+    (r"Bu subdomenin öz qeydi yoxdur, amma əsas domenin \((.+)\) DMARC qaydası saxta məktubları bloklayır\.",
+     r"This subdomain has no record of its own, but the DMARC rule of the main domain (\1) blocks fake e-mails.",
+     r"У этого поддомена нет своей записи, но правило DMARC основного домена (\1) блокирует поддельные письма."),
+    (r"Əsas domenin \((.+)\) DMARC qaydası yalnız müşahidə rejimindədir \(p=none\); saxta məktublar bloklanmır\.",
+     r"The DMARC rule of the main domain (\1) only monitors (p=none); fake e-mails are not blocked.",
+     r"Правило DMARC основного домена (\1) только наблюдает (p=none); поддельные письма не блокируются."),
+    # score limits
+    (r"(\d+) əsas qoruma ayarı çatışmadığı üçün bal (\d+)-(?:dən|dan) yuxarı ola bilməz\.",
+     r"The score cannot go above \2 because \1 basic protection settings are missing.",
+     r"Балл не может быть выше \2: не хватает основных настроек защиты (\1)."),
     # summary
     (r"(\d+) ciddi problem və (\d+) təkmilləşdirmə tövsiyəsi tapıldı\.",
      r"Found \1 serious problem(s) and \2 improvement(s) to make.",
@@ -296,9 +349,6 @@ PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.DOTALL), en, ru
     (r"Sayt xəta qaytardı \(kod (\d+)\)\. Ünvanı yoxlayın\.",
      r"The site returned an error (code \1). Check the address.",
      r"Сайт вернул ошибку (код \1). Проверьте адрес."),
-    (r"Sayt açılmadı \((.+)\)\. Ünvanı yoxlayın və bir az sonra yenidən cəhd edin\.",
-     r"The site did not open (\1). Check the address and try again a little later.",
-     r"Сайт не открылся (\1). Проверьте адрес и попробуйте немного позже."),
 ]]
 
 
@@ -336,7 +386,7 @@ def report(d: dict, lang: str) -> dict:
     """A translated copy of Report.to_dict(); the original (cached) dict is not changed."""
     if lang == "az":
         return d
-    out = dict(d, summary=text(d["summary"], lang), lang=lang)
+    out = dict(d, summary=text(d["summary"], lang), score_note=text(d.get("score_note", ""), lang), lang=lang)
     out["findings"] = [dict(f, **{k: text(f[k], lang) for k in ("category", "title", "detail", "fix")})
                        for f in d["findings"]]
     return out

@@ -127,6 +127,83 @@ def test_blocked_status_explains_bot_protection(monkeypatch):
         scanner.scan("lalafo.az")
 
 
+def test_invalid_certificate_is_a_plain_finding_and_not_https_ok():
+    f = by_id(checks.run_checks(ctx(cert={"days_left": None, "issuer": "", "expires": None,
+                                          "error": "certificate has expired"})))
+    assert f["cert"].status == FAIL and "vaxtı bitib" in f["cert"].detail and "certificate has" not in f["cert"].detail
+    assert f["https"].status == FAIL
+
+
+def test_missing_description_is_not_a_serious_problem():
+    f = by_id(checks.run_checks(ctx(html="<title>Kifayət qədər uzun başlıq</title>")))
+    assert f["description"].status == WARN
+
+
+def test_subdomain_is_covered_by_parent_dmarc():
+    records = {"spf": [], "dmarc": ["v=DMARC1; p=quarantine; sp=reject"], "dmarc_parent": "example.az"}
+    f = by_id(checks.run_checks(ctx(txt_records=records)))
+    assert f["dmarc"].status == OK and "example.az" in f["dmarc"].detail
+    assert f["spf"].status == "info" and f["spf"].penalty == 0
+
+
+def test_parent_dmarc_uses_subdomain_policy():
+    weak_sub = {"spf": ["v=spf1 -all"], "dmarc": ["v=DMARC1; p=reject; sp=none"], "dmarc_parent": "example.az"}
+    assert by_id(checks.run_checks(ctx(txt_records=weak_sub)))["dmarc"].status == WARN
+    no_sp = {"spf": ["v=spf1 -all"], "dmarc": ["v=DMARC1; p=none"], "dmarc_parent": "example.az"}
+    assert by_id(checks.run_checks(ctx(txt_records=no_sp)))["dmarc"].status == WARN
+
+
+def test_own_dmarc_ignores_subdomain_policy():
+    # "sp=none" comes first and contains "p=", but the domain's own policy is p=reject
+    records = {"spf": ["v=spf1 -all"], "dmarc": ["v=DMARC1; sp=none; p=reject"]}
+    assert by_id(checks.run_checks(ctx(txt_records=records)))["dmarc"].status == OK
+
+
+def test_subdomain_without_any_dmarc_still_fails():
+    f = by_id(checks.run_checks(ctx(txt_records={"spf": [], "dmarc": [], "dmarc_parent": None})))
+    assert f["dmarc"].status == FAIL and f["spf"].status == FAIL
+
+
+def _report(**kw):
+    c = ctx(**kw)
+    return build(c, checks.run_checks(c))
+
+
+def test_site_without_https_gets_f_whatever_else_passes():
+    r = _report(final_url="http://example.az/", cert=None)
+    assert r.score == 39 and r.grade == "F" and "39" in r.score_note
+
+
+def test_invalid_certificate_gets_f():
+    r = _report(cert={"days_left": None, "issuer": "", "expires": None, "error": "certificate has expired"})
+    assert r.score <= 39 and r.grade == "F" and r.score_note
+
+
+def test_certificate_about_to_expire_is_capped():
+    r = _report(cert={"days_left": 3, "issuer": "", "expires": "x", "error": None})
+    assert r.score == 59 and r.grade == "D" and "59" in r.score_note
+
+
+def test_core_protections_cap_the_grade():
+    base = {"strict-transport-security": "x", "x-content-type-options": "x", "referrer-policy": "x",
+            "x-frame-options": "x", "content-security-policy": "x"}
+    drop = lambda *names: {k: v for k, v in base.items() if k not in names}
+    assert _report(headers=drop("content-security-policy")).grade == "A"       # one gap keeps an A
+    two = _report(headers=drop("content-security-policy", "x-frame-options"))
+    assert two.score == 89 and two.grade == "B" and "2 əsas" in two.score_note
+    four = _report(headers=drop("content-security-policy", "x-frame-options", "x-content-type-options",
+                                "strict-transport-security"))
+    assert four.score == 74 and four.grade == "C" and "4 əsas" in four.score_note
+
+
+def test_no_note_when_the_cap_changes_nothing():
+    r = _report()
+    assert r.score == 100 and r.score_note == ""
+    low = _report(final_url="http://example.az/", cert=None, http_to_https=False, headers={}, html=BAD_HTML,
+                  html_bytes=2_000_000, elapsed_ms=6000, txt_records={"spf": [], "dmarc": []})
+    assert low.score < 39 and low.score_note == ""
+
+
 def test_grade_and_report_order():
     assert [grade(s) for s in (95, 80, 65, 45, 10)] == ["A", "B", "C", "D", "F"]
     c = ctx(txt_records={"spf": [], "dmarc": []})
@@ -146,5 +223,10 @@ def test_scan_end_to_end_without_network(monkeypatch):
 def test_scan_reports_unreachable_site(monkeypatch):
     monkeypatch.setattr(scanner, "check_host_is_public", lambda host: None)
     monkeypatch.setattr(scanner, "collect", lambda url: Context(input_url=url, error="ConnectTimeout"))
-    with pytest.raises(UnsafeTarget, match="açılmadı"):
+    with pytest.raises(UnsafeTarget, match="vaxtında cavab vermədi"):
         scanner.scan("example.az")
+
+
+@pytest.mark.parametrize("error", ["SSLError", "ConnectTimeout", "ReadTimeout", "ConnectionError", "ChunkedEncodingError"])
+def test_error_messages_never_show_exception_names(error):
+    assert error not in scanner.error_message(error) and "açılmadı" in scanner.error_message(error)

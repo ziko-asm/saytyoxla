@@ -44,6 +44,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
           <span className="grade" style={{ background: color }}>{t.grade}: {report.grade}</span>
           <h2>{host}</h2>
           <p>{report.summary}</p>
+          {report.score_note && <p className="score-note">{report.score_note}</p>}
           <div className="chips">
             {!!c.fail && <span className="chip fail">{t.chipFail(c.fail)}</span>}
             {!!c.warn && <span className="chip warn">{t.chipWarn(c.warn)}</span>}

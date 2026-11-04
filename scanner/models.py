@@ -36,7 +36,8 @@ class Context:
     redirect_chain: list = field(default_factory=list)
     http_to_https: bool | None = None               # does http:// end on https://?
     cert: dict | None = None                        # {"days_left", "issuer", "error"}
-    txt_records: dict = field(default_factory=dict)  # {"spf": [...], "dmarc": [...]} or None on error
+    # {"spf": [...], "dmarc": [...], "dmarc_parent": "example.az" when inherited}; a list is None on error
+    txt_records: dict = field(default_factory=dict)
     error: str | None = None
 
 
@@ -49,6 +50,7 @@ class Report:
     summary: str
     findings: list
     scanned_at: str
+    score_note: str = ""   # why the score was held below what the points alone would give
 
     def to_dict(self) -> dict:
         d = asdict(self)

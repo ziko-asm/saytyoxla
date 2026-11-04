@@ -57,6 +57,10 @@ def parse(html: str) -> _Page:
 # ---------------------------------------------------------------- security
 def https_used(ctx: Context, page) -> Finding:
     ok = urlsplit(ctx.final_url).scheme == "https"
+    if ok and ctx.cert and ctx.cert.get("error"):
+        return Finding("https", SEC, "Təhlükəsiz bağlantı (HTTPS)", FAIL,
+                       "Sayt HTTPS ilə açılır, amma sertifikat etibarsız olduğu üçün bu bağlantıya etibar etmək olmur.",
+                       "Hostinq panelindən pulsuz SSL sertifikatı (Let's Encrypt) qoşun.", 20)
     return Finding("https", SEC, "Təhlükəsiz bağlantı (HTTPS)", OK if ok else FAIL,
                    "Sayt şifrələnmiş HTTPS bağlantısı ilə açılır." if ok else
                    "Sayt şifrəsiz (http) açılır. Brauzerlər onu \"Təhlükəli deyil\" kimi göstərir.",
@@ -74,13 +78,29 @@ def http_redirect(ctx: Context, page) -> Finding:
                    "" if v else "Serverdə bütün http sorğularını https-ə yönləndirin (301).", 8)
 
 
+# Fragment of the TLS library's message -> what it means for the site's owner
+CERT_ERRORS = [
+    ("expired", "Sertifikatın vaxtı bitib. Brauzerlər ziyarətçiyə təhlükəsizlik xəbərdarlığı göstərir."),
+    ("self-signed", "Sertifikat özü-imzalıdır, brauzerlər ona etibar etmir və ziyarətçiyə xəbərdarlıq göstərir."),
+    ("self signed", "Sertifikat özü-imzalıdır, brauzerlər ona etibar etmir və ziyarətçiyə xəbərdarlıq göstərir."),
+    ("hostname mismatch", "Sertifikat bu domen adına verilməyib. Brauzerlər ziyarətçiyə təhlükəsizlik xəbərdarlığı göstərir."),
+    ("revoked", "Sertifikat ləğv edilib. Brauzerlər ziyarətçiyə təhlükəsizlik xəbərdarlığı göstərir."),
+    ("issuer", "Sertifikatı etibarlı mərkəz təsdiqləmir və ya zəncir tam deyil. Brauzerlər ziyarətçiyə xəbərdarlıq göstərir."),
+]
+CERT_ERROR_OTHER = "Sertifikat etibarsızdır. Brauzerlər ziyarətçiyə təhlükəsizlik xəbərdarlığı göstərir."
+
+
+def cert_error_text(error: str) -> str:
+    low = error.lower()
+    return next((text for fragment, text in CERT_ERRORS if fragment in low), CERT_ERROR_OTHER)
+
+
 def certificate(ctx: Context, page) -> Finding:
     c = ctx.cert
     if not c:
         return Finding("cert", SEC, "SSL sertifikatı", INFO, "Sertifikat yoxlanılmadı (sayt https deyil).")
     if c.get("error"):
-        return Finding("cert", SEC, "SSL sertifikatı", FAIL,
-                       f"Sertifikat etibarsızdır ({c['error']}). Ziyarətçilər xəbərdarlıq görür.",
+        return Finding("cert", SEC, "SSL sertifikatı", FAIL, cert_error_text(c["error"]),
                        "Sertifikatı yeniləyin və domen adına uyğun olduğunu yoxlayın.", 20)
     d = c["days_left"]
     if d < 7:
@@ -172,6 +192,17 @@ def on_platform(ctx: Context) -> bool:
     return host.endswith(PLATFORM_SUFFIXES)
 
 
+def dmarc_policy(ctx: Context) -> tuple[str | None, str | None]:
+    """The policy that applies to this host and the parent domain it comes from, if any.
+    A record inherited from a parent is read through its subdomain policy (sp=), which defaults to p=."""
+    rec = next((r for r in ctx.txt_records.get("dmarc") or [] if r.lower().startswith("v=dmarc1")), None)
+    if rec is None:
+        return None, None
+    tags = dict(part.strip().lower().split("=", 1) for part in rec.split(";") if "=" in part)
+    parent = ctx.txt_records.get("dmarc_parent")
+    return (tags.get("sp") or tags.get("p")) if parent else tags.get("p"), parent
+
+
 def spf(ctx: Context, page) -> Finding:
     if on_platform(ctx):
         return Finding("spf", MAIL, "E-poçt göndərən icazəsi (SPF)", INFO, PLATFORM_NOTE)
@@ -179,6 +210,10 @@ def spf(ctx: Context, page) -> Finding:
     if recs is None:
         return Finding("spf", MAIL, "E-poçt göndərən icazəsi (SPF)", INFO, "DNS yoxlanıla bilmədi.")
     ok = any(r.lower().startswith("v=spf1") for r in recs)
+    policy, parent = dmarc_policy(ctx)
+    if not ok and parent and policy in ("quarantine", "reject"):    # fake mail is already refused by the parent's rule
+        return Finding("spf", MAIL, "E-poçt göndərən icazəsi (SPF)", INFO,
+                       f"Bu subdomenin öz SPF qeydi yoxdur, amma əsas domenin ({parent}) DMARC qaydası saxta məktubları bloklayır.")
     return Finding("spf", MAIL, "E-poçt göndərən icazəsi (SPF)", OK if ok else FAIL,
                    "Domen adından kimin məktub göndərə biləcəyi müəyyən edilib." if ok else
                    "Hər kəs sizin domen adınızdan saxta məktub göndərə bilər, məktublarınız isə spam-a düşə bilər.",
@@ -191,17 +226,20 @@ def dmarc(ctx: Context, page) -> Finding:
     recs = ctx.txt_records.get("dmarc")
     if recs is None:
         return Finding("dmarc", MAIL, "Saxta məktuba qarşı qoruma (DMARC)", INFO, "DNS yoxlanıla bilmədi.")
-    rec = next((r for r in recs if r.lower().startswith("v=dmarc1")), None)
-    if rec is None:
+    if not any(r.lower().startswith("v=dmarc1") for r in recs):
         return Finding("dmarc", MAIL, "Saxta məktuba qarşı qoruma (DMARC)", FAIL,
                        "Domen adınızdan göndərilən saxta məktublar üçün heç bir qayda yoxdur.",
                        "DNS-ə _dmarc qeydi əlavə edin, əvvəlcə p=none ilə başlayın.", 8)
-    policy = re.search(r"p=(\w+)", rec.lower())
-    if policy and policy.group(1) == "none":
+    policy, parent = dmarc_policy(ctx)
+    if policy == "none":
         return Finding("dmarc", MAIL, "Saxta məktuba qarşı qoruma (DMARC)", WARN,
+                       f"Əsas domenin ({parent}) DMARC qaydası yalnız müşahidə rejimindədir (p=none); saxta məktublar bloklanmır."
+                       if parent else
                        "DMARC var, amma yalnız müşahidə rejimindədir (p=none); saxta məktublar bloklanmır.",
                        "Hesabatları yoxladıqdan sonra siyasəti p=quarantine və ya p=reject edin.", 8)
     return Finding("dmarc", MAIL, "Saxta məktuba qarşı qoruma (DMARC)", OK,
+                   f"Bu subdomenin öz qeydi yoxdur, amma əsas domenin ({parent}) DMARC qaydası saxta məktubları bloklayır."
+                   if parent else
                    "Saxta məktublar qəbul edən tərəfindən bloklanır.", "", 8)
 
 
@@ -240,7 +278,7 @@ def title_tag(ctx: Context, page) -> Finding:
 
 def description(ctx: Context, page) -> Finding:
     d = page.meta.get("description", "").strip()
-    st = OK if 50 <= len(d) <= 170 else WARN if d else FAIL
+    st = OK if 50 <= len(d) <= 170 else WARN       # a search snippet, never a "serious problem" next to security
     return Finding("description", SEO, "Google üçün təsvir", st,
                    "Google axtarışında görünən təsvir yoxdur." if not d else f"Təsvir {len(d)} simvoldur.",
                    "" if st == OK else "50–170 simvolluq, xidməti və əlaqəni göstərən meta description yazın.", 4)
