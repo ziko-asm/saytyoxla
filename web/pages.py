@@ -23,13 +23,13 @@ ROUTES = {path: (key, lang) for key, by_lang in PATHS.items() for lang, path in 
 TOOLS_PATHS = {"az": "/aletler/", "en": "/en/tools/", "ru": "/ru/instrumenty/"}
 TOOLS_META = {  # short name, <title>, description, heading
     "az": ("Alətlər", "SSL, DMARC, SPF, DKIM yoxlama alətləri | SaytYoxla",
-           "SSL sertifikatını, DMARC, SPF və DKIM qeydlərini, təhlükəsizlik başlıqlarını və cookie-ləri ayrı-ayrılıqda pulsuz yoxlayın.",
+           "SSL, DMARC, SPF və DKIM-i ayrıca yoxlayın. DMARC, SPF, CSP, başlıqlar, robots.txt və sitemap üçün hazır qeydlər yaradın. Pulsuz.",
            "Sayt alətləri"),
     "en": ("Tools", "SSL, DMARC, SPF and DKIM checkers | SaytYoxla",
-           "Check an SSL certificate, DMARC, SPF and DKIM records, security headers and cookies one at a time, for free.",
+           "Check SSL, DMARC, SPF and DKIM on their own. Create ready-made DMARC, SPF, CSP, header, robots.txt and sitemap records for free.",
            "Website tools"),
     "ru": ("Инструменты", "Проверка SSL, DMARC, SPF и DKIM | SaytYoxla",
-           "Бесплатно проверьте по отдельности SSL-сертификат, записи DMARC, SPF и DKIM, заголовки безопасности и cookie.",
+           "Проверьте по отдельности SSL, DMARC, SPF и DKIM. Создайте готовые записи DMARC, SPF, CSP, заголовки, robots.txt и sitemap. Бесплатно.",
            "Инструменты для сайта"),
 }
 LINKS = {
@@ -50,7 +50,7 @@ CONTENT = {
         "az": ("SaytYoxla haqqında", "SaytYoxla kiçik bizneslər üçün saytın təhlükəsizliyini, e-poçt qorumasını və sürətini pulsuz yoxlayan alətdir.", f"""
 <p>SaytYoxla kiçik biznes sahibləri və sayt quranlar üçün pulsuz alətdir. Saytın ünvanını yazırsınız, biz təhlükəsizlik, e-poçt qoruması, sürət və telefona uyğunluq ayarlarını yoxlayıb nəticəni sadə dildə izah edirik.</p>
 <h2>Necə işləyir?</h2>
-<p>Yalnız hər kəsə açıq olan məlumata baxırıq: əsas səhifəni, robots.txt və sitemap.xml fayllarını bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Saytı sındırmağa çalışmırıq və heç nəyi dəyişmirik. Bu, tam təhlükəsizlik auditi deyil: kənardan görünməyən problemləri aşkar edə bilmir.</p>
+<p>Yalnız hər kəsə açıq olan məlumata baxırıq: əsas səhifəni, robots.txt və sitemap.xml fayllarını bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Saytı sındırmağa çalışmırıq və heç nəyi dəyişmirik. Açıq fayl və portlara yalnız saytın sahibi bunu təsdiq etdikdən sonra baxırıq. Bu, tam təhlükəsizlik auditi deyil: kənardan görünməyən problemləri aşkar edə bilmir.</p>
 <h2>Müəllif</h2>
 <p>SaytYoxla-nı Ziya Azizov hazırlayıb.</p>
 <h2>Əlaqə</h2>
@@ -58,7 +58,7 @@ CONTENT = {
         "en": ("About SaytYoxla", "SaytYoxla is a free tool that checks a website's security, e-mail protection and speed for small businesses.", f"""
 <p>SaytYoxla is a free tool for small business owners and the people who build their websites. You enter a site's address, and we check its security, e-mail protection, speed and mobile settings, then explain the result in plain words.</p>
 <h2>How it works</h2>
-<p>We only look at information that is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the certificate and public DNS records. We do not try to break into the site and we change nothing. This is not a full security audit: it cannot find problems that are not visible from outside.</p>
+<p>We only look at information that is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the certificate and public DNS records. We do not try to break into the site and we change nothing. Exposed files and ports are looked at only after the site's owner has confirmed it. This is not a full security audit: it cannot find problems that are not visible from outside.</p>
 <h2>Author</h2>
 <p>SaytYoxla was made by Ziya Azizov.</p>
 <h2>Contact</h2>
@@ -66,7 +66,7 @@ CONTENT = {
         "ru": ("О сервисе SaytYoxla", "SaytYoxla — бесплатный инструмент для малого бизнеса: проверка безопасности сайта, защиты почты и скорости.", f"""
 <p>SaytYoxla — бесплатный инструмент для владельцев малого бизнеса и тех, кто делает им сайты. Вы вводите адрес сайта, а мы проверяем безопасность, защиту почты, скорость и адаптацию под телефон и объясняем результат простыми словами.</p>
 <h2>Как это работает</h2>
-<p>Мы смотрим только на открытую информацию: один раз открываем главную страницу, robots.txt и sitemap.xml, читаем сертификат и открытые DNS-записи. Мы не пытаемся взломать сайт и ничего не меняем. Это не полный аудит безопасности: проблемы, которые не видны снаружи, он найти не может.</p>
+<p>Мы смотрим только на открытую информацию: один раз открываем главную страницу, robots.txt и sitemap.xml, читаем сертификат и открытые DNS-записи. Мы не пытаемся взломать сайт и ничего не меняем. Открытые файлы и порты мы смотрим только после подтверждения владельцем сайта. Это не полный аудит безопасности: проблемы, которые не видны снаружи, он найти не может.</p>
 <h2>Автор</h2>
 <p>SaytYoxla создал Ziya Azizov.</p>
 <h2>Контакты</h2>
@@ -85,6 +85,9 @@ CONTENT = {
 <p>Saytda reklam, izləmə skriptləri və kuki faylları yoxdur. Şriftlər də öz serverimizdən yüklənir.</p>
 <h2>Yoxlanılan sayt nə görür?</h2>
 <p>Yoxlama zamanı saytın əsas səhifəsi, robots.txt və sitemap.xml faylları serverimizdən bir dəfə açılır. Sayt sizin IP ünvanınızı yox, serverimizin ünvanını görür.</p>
+<h2>Dərin analiz</h2>
+<p>Dərin analiz domen adını sertifikat qeydlərinə (Cert Spotter, crt.sh), qeydiyyat bazasına (rdap.org) və DNS qara siyahılarına, saytda görünən kitabxananın adı və versiyasını isə zəiflik bazasına (OSV) göndərir. Sayt tərəfdən yalnız əsas səhifə bir dəfə açılır və TLS bağlantısı sınanır. Əvvəlki yoxlama ilə müqayisə yalnız sizin brauzerinizdə (localStorage) saxlanılır, serverə getmir.</p>
+<p>Dərin yoxlama (açıq fayllar və portlar) yalnız saytın sizin olduğunu DNS qeydi və ya fayl ilə sübut etdikdən sonra işləyir. Fayl tapılsa, yalnız yolu göstərilir, məzmunu nə göstərilir, nə də saxlanılır.</p>
 <h2>WhatsApp</h2>
 <p>«WhatsApp-a yazın» düyməsini bassanız, hazır mesaj WhatsApp-da açılır və onu siz özünüz göndərirsiniz. Bundan sonra WhatsApp-ın öz qaydaları tətbiq olunur.</p>
 <h2>Əlaqə</h2>
@@ -101,6 +104,9 @@ CONTENT = {
 <p>The site has no ads, no tracking scripts and no cookies. Fonts are loaded from our own server too.</p>
 <h2>What the checked site sees</h2>
 <p>During a check, the site's home page, robots.txt and sitemap.xml are opened once from our server. The site sees our server's address, not your IP address.</p>
+<h2>Deep analysis</h2>
+<p>The deep analysis sends the domain name to certificate logs (Cert Spotter, crt.sh), a registration database (rdap.org) and DNS blocklists, and the name and version of a library visible on the site to a vulnerability database (OSV). On the site itself only the home page is opened once and TLS connections are tried. The comparison with an earlier check is kept only in your browser (localStorage) and does not reach the server.</p>
+<p>The deep check (exposed files and ports) runs only after you prove the site is yours with a DNS record or a file. If a file is found, only its path is shown; its content is neither shown nor stored.</p>
 <h2>WhatsApp</h2>
 <p>If you press "Message on WhatsApp", a prepared message opens in WhatsApp and you send it yourself. WhatsApp's own rules apply from there.</p>
 <h2>Contact</h2>
@@ -117,6 +123,9 @@ CONTENT = {
 <p>На сайте нет рекламы, скриптов отслеживания и cookie. Шрифты тоже загружаются с нашего сервера.</p>
 <h2>Что видит проверяемый сайт</h2>
 <p>При проверке главная страница сайта, robots.txt и sitemap.xml один раз открываются с нашего сервера. Сайт видит адрес нашего сервера, а не ваш IP-адрес.</p>
+<h2>Глубокий анализ</h2>
+<p>Глубокий анализ отправляет имя домена в журналы сертификатов (Cert Spotter, crt.sh), базу регистрации (rdap.org) и чёрные списки DNS, а название и версию библиотеки, видимой на сайте, в базу уязвимостей (OSV). На самом сайте только один раз открывается главная страница и проверяются соединения TLS. Сравнение с прошлой проверкой хранится только в вашем браузере (localStorage) и на сервер не передаётся.</p>
+<p>Глубокая проверка (открытые файлы и порты) работает только после того, как вы докажете записью DNS или файлом, что сайт ваш. Если файл найден, показывается только путь, а содержимое не показывается и не хранится.</p>
 <h2>WhatsApp</h2>
 <p>Если вы нажмёте «Написать в WhatsApp», готовое сообщение откроется в WhatsApp, и отправляете его вы сами. Дальше действуют правила WhatsApp.</p>
 <h2>Контакты</h2>
@@ -131,7 +140,8 @@ CONTENT = {
 <h2>İstifadə qaydası</h2>
 <ul>
 <li>Xidmətdən başqa saytlara ziyan vurmaq və ya onu həddindən artıq yükləmək üçün istifadə etməyin.</li>
-<li>Limitlər var: bir IP ünvanından dəqiqədə 6, gündə 60 təzə yoxlama.</li>
+<li>Limitlər var: bir IP ünvanından dəqiqədə 6, gündə 60 təzə yoxlama. Dərin analizin hər hissəsi ayrıca sayılır: dəqiqədə 24, gündə 150.</li>
+<li>Dərin yoxlamanı (açıq fayllar və portlar) yalnız sizə aid və ya yoxlamaq üçün icazə aldığınız saytda işlədin.</li>
 <li>Nəticəni başqasını aldatmaq və ya yanıltmaq üçün istifadə etməyin.</li>
 </ul>
 <h2>Əlaqə</h2>
@@ -144,7 +154,8 @@ CONTENT = {
 <h2>Acceptable use</h2>
 <ul>
 <li>Do not use the service to harm other sites or to overload it.</li>
-<li>There are limits: 6 fresh checks a minute and 60 a day from one IP address.</li>
+<li>There are limits: 6 fresh checks a minute and 60 a day from one IP address. Each part of the deep analysis counts on its own: 24 a minute, 150 a day.</li>
+<li>Run the deep check (exposed files and ports) only on a site that is yours or that you have permission to check.</li>
 <li>Do not use a result to deceive or mislead anyone.</li>
 </ul>
 <h2>Contact</h2>
@@ -157,7 +168,8 @@ CONTENT = {
 <h2>Правила использования</h2>
 <ul>
 <li>Не используйте сервис, чтобы навредить другим сайтам или перегрузить его.</li>
-<li>Есть ограничения: 6 новых проверок в минуту и 60 в день с одного IP-адреса.</li>
+<li>Есть ограничения: 6 новых проверок в минуту и 60 в день с одного IP-адреса. Каждая часть глубокого анализа считается отдельно: 24 в минуту, 150 в день.</li>
+<li>Запускайте глубокую проверку (открытые файлы и порты) только на своём сайте или на сайте, который вам разрешили проверять.</li>
 <li>Не используйте результат, чтобы обмануть или ввести кого-либо в заблуждение.</li>
 </ul>
 <h2>Контакты</h2>

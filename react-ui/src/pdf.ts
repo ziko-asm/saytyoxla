@@ -276,7 +276,7 @@ export function buildPdf(images: Uint8Array[], width = W, height = H): Uint8Arra
   return out
 }
 
-function saveFile(file: File) {
+export function saveFile(file: File) {
   const link = document.createElement('a')
   link.href = URL.createObjectURL(file)
   link.download = file.name

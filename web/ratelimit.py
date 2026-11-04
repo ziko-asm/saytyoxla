@@ -31,6 +31,12 @@ RULES = [
     ("ip-day", int(os.getenv("SCAN_DAILY_LIMIT", "60")), 86400),
     ("global-minute", int(os.getenv("SCAN_GLOBAL_LIMIT", "120")), 60),
 ]
+# A deep analysis is several requests at once, so it has its own, larger allowance
+DEEP_RULES = [
+    ("deep-ip-minute", int(os.getenv("DEEP_RATE_LIMIT", "24")), 60),
+    ("deep-ip-day", int(os.getenv("DEEP_DAILY_LIMIT", "150")), 86400),
+    ("global-deep-minute", int(os.getenv("DEEP_GLOBAL_LIMIT", "240")), 60),
+]
 REDIS_TIMEOUT = 2
 
 
@@ -121,11 +127,11 @@ class Limiter:
             log.warning("No Redis configured: scan limits are per instance only. See web/ratelimit.py.")
         return cls()
 
-    def allow(self, ip: str, now: float | None = None) -> bool:
+    def allow(self, ip: str, now: float | None = None, rules: list | None = None) -> bool:
         """True if this scan is within every rule. Every rule is counted, so a refused request still uses
         up its per-IP allowance (a client that keeps hammering stays blocked)."""
         ok = True
-        for name, limit, window in RULES:
+        for name, limit, window in RULES if rules is None else rules:
             key = name if name.startswith("global") else f"{name}:{ip}"
             ok = self._hit(key, limit, window, now) and ok
         return ok

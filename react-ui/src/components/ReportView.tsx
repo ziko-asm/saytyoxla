@@ -4,7 +4,7 @@ import { FindingItem } from './FindingItem'
 import { ReportPreview } from './ReportPreview'
 import { ScoreRing } from './ScoreRing'
 import type { Finding, Report } from '../types'
-import { LANG, LOCALE, t } from '../i18n'
+import { LANG, LOCALE, TOOLS_PATH, t } from '../i18n'
 import { downloadReportPdf, reportPageImages } from '../pdf'
 
 const WA_NUMBER = '994772172358'
@@ -130,6 +130,10 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
           )
         })}
       </div>
+
+      <p className="survey-link deep-link">
+        <a href={`${TOOLS_PATH[LANG]}?tool=deep&url=${encodeURIComponent(host)}`}>{t.deepLink}</a>
+      </p>
 
       <div className="cta-card">
         <div>

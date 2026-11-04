@@ -185,11 +185,11 @@ T = [
      "SaytYoxla проверяет это в разделе «Мобильные и Google» и показывает, какой тег добавить.")),
     ("Yoxlama saytıma zərər verə bilər?", "Can the check harm my website?", "Может ли проверка навредить сайту?"),
     (("Xeyr. Biz yalnız hər kəsə açıq olana baxırıq: əsas səhifəni, robots.txt və sitemap.xml fayllarını bir dəfə açırıq, "
-     "sertifikatı və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq."),
+     "sertifikatı və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq. Açıq fayl və portlara yalnız sayt sahibi təsdiq etdikdən sonra, dərin yoxlamada baxılır."),
      ("No. We only look at what is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the "
-     "certificate and public DNS records. We change nothing and try to break nothing."),
+     "certificate and public DNS records. We change nothing and try to break nothing. Exposed files and ports are looked at only in the deep check, after the site's owner has confirmed it."),
      ("Нет. Мы смотрим только на то, что открыто всем: один раз открываем главную страницу, robots.txt и sitemap.xml, "
-     "читаем сертификат и открытые DNS-записи. Ничего не меняем и ничего не пытаемся взломать.")),
+     "читаем сертификат и открытые DNS-записи. Ничего не меняем и ничего не пытаемся взломать. Открытые файлы и порты смотрим только в глубокой проверке, после подтверждения владельцем сайта.")),
     ("Məlumatlarım saxlanılır?", "Is my data stored?", "Сохраняются ли мои данные?"),
     (("Ad, telefon və ya e-poçt soruşmuruq, kuki və izləmə skriptləri də yoxdur. Yoxlanılan ünvan və nəticə təkrar "
      "yoxlamanı sürətləndirmək üçün 10 dəqiqəyə qədər, IP ünvanınız isə sui-istifadəni məhdudlaşdıran sayğacda ən çox "
@@ -226,7 +226,7 @@ T = [
     ('<a href="/haqqimizda/">Haqqımızda</a>','<a href="/en/about/">About</a>', '<a href="/ru/o-nas/">О сервисе</a>'),
     ('<a href="/mexfilik/">Məxfilik</a>', '<a href="/en/privacy/">Privacy</a>', '<a href="/ru/konfidencialnost/">Конфиденциальность</a>'),
     ('<a href="/sertler/">Şərtlər</a>', '<a href="/en/terms/">Terms</a>', '<a href="/ru/usloviya/">Условия</a>'),
-    ("Yalnız açıq məlumatlar yoxlanılır", "Only public information is checked", "Проверяются только открытые данные"),
+    ("Sahibin təsdiqi olmadan yalnız açıq məlumatlar yoxlanılır", "Without the owner's proof, only public information is checked", "Без подтверждения владельца проверяются только открытые данные"),
     ("Sayt sifarişi və digər sayt nümunələrini görmək üçün:", "To order a website or see more examples:",
      "Заказать сайт или посмотреть другие работы:"),
 ]

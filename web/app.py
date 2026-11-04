@@ -11,12 +11,15 @@ GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 GET  /aletler/, /en/tools/, /ru/instrumenty/   the Tools part of the site
 POST /api/scan    {"url": "example.az", "lang": "az|en|ru"} -> report JSON
 POST /api/tool    {"url": "example.az", "tool": "ssl|email", "lang": "az|en|ru"} -> one narrow check
+POST /api/deep    {"url": "example.az", "module": "surface|mail|tech|tls|reputation|active"} -> one part of the deep analysis
+POST /api/ownership  {"url": "example.az"} -> what to publish to prove the site is yours
 GET  /health      for the hosting platform
 GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (web/seo.py)
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
 import time
@@ -34,11 +37,13 @@ from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import scanner
+from scanner import deep as scanner_deep
 from scanner import i18n
 from scanner import tools as scanner_tools
 from scanner.safety import UnsafeTarget, normalize
 from web import pages, ratelimit, seo, survey
 
+log = logging.getLogger("saytyoxla")
 STATIC = Path(__file__).parent / "static"
 REACT = Path(__file__).parent / "react"      # built by react-ui (npm run build)
 CACHE_SECONDS = 600
@@ -324,6 +329,59 @@ def tool(req: ToolRequest, request: Request):
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     cache_put(key, result)
     return JSONResponse({**i18n.report(result, lang), "cached": False, "benchmarks": survey.benchmarks()})
+
+
+class DeepRequest(BaseModel):
+    url: str = Field(..., max_length=300)
+    module: Literal["surface", "mail", "tech", "tls", "reputation", "active"]
+    lang: str = Field("az", max_length=5)
+    fresh: bool = False
+
+
+@app.post("/api/deep")
+def deep_scan(req: DeepRequest, request: Request):
+    """One part of the deep analysis (scanner/deep.py). Words are chosen by the page; only errors are sentences."""
+    lang = i18n.lang_of(req.lang)
+    try:
+        key = f"deep:{req.module}:{normalize(req.url)}"
+    except UnsafeTarget as e:
+        raise HTTPException(400, i18n.text(str(e), lang)) from None
+    # Whether a site may be probed is decided anew each time: ownership can end
+    hit = None if req.fresh or req.module == "active" else cache_get(key)
+    if hit:
+        return JSONResponse({**hit, "cached": True})
+    if not limiter.allow(client_ip(request), rules=ratelimit.DEEP_RULES):
+        raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
+    try:
+        result = scanner_deep.MODULES[req.module](req.url)
+    except UnsafeTarget as e:
+        raise HTTPException(400, i18n.text(str(e), lang)) from None
+    except Exception:       # one part failing must leave the others standing
+        log.exception("Deep module %s failed", req.module)
+        raise HTTPException(502, i18n.text("Bu hissə indi yoxlanıla bilmədi. Bir az sonra yenidən cəhd edin.", lang)) from None
+    if req.module != "active":
+        cache_put(key, result)
+    return JSONResponse({**result, "cached": False})
+
+
+class OwnershipRequest(BaseModel):
+    url: str = Field(..., max_length=300)
+    lang: str = Field("az", max_length=5)
+
+
+@app.post("/api/ownership")
+def ownership(req: OwnershipRequest):
+    """What to publish to prove a site is yours. Computed only, so it needs no limit."""
+    try:
+        return scanner_deep.ownership(req.url)
+    except UnsafeTarget as e:
+        raise HTTPException(400, i18n.text(str(e), i18n.lang_of(req.lang))) from None
+
+
+@app.get("/.well-known/saytyoxla.txt", include_in_schema=False)
+def own_ownership_file(request: Request):
+    """SaytYoxla's proof that it owns itself, so its own deep check can run on the live site."""
+    return PlainTextResponse(scanner_deep.ownership_token(request.url.hostname or ""))
 
 
 # Keep this last: it matches any single path segment, so earlier routes win.
