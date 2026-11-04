@@ -4,6 +4,7 @@ import { FindingItem } from './FindingItem'
 import { ScoreRing } from './ScoreRing'
 import type { Finding, Report } from '../types'
 import { LANG, LOCALE, t } from '../i18n'
+import { downloadReportPdf } from '../pdf'
 
 const WA_NUMBER = '994772172358'
 const GRADE_COLOR: Record<string, string> = { A: '#047857', B: '#15803d', C: '#b45309', D: '#c2410c', F: '#b91c1c' }
@@ -27,6 +28,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
   const color = GRADE_COLOR[report.grade] || '#047857'
   const host = (report.display_url || report.final_url).replace(/^https?:\/\//, '').replace(/\/$/, '')
   const [copied, setCopied] = useState(false)
+  const [pdfState, setPdfState] = useState<'idle' | 'busy' | 'failed'>('idle')
   const c = report.counts || {}
   const clean = !c.fail && !c.warn
 
@@ -38,6 +40,17 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
   const categories = [...new Set(report.findings.map((f) => f.category))].sort((a, b) => rank(a) - rank(b))
 
   const waText = t.waText(host, report.score, report.grade, clean, !!c.fail)
+  const when = new Date(report.scanned_at).toLocaleString(LOCALE[LANG], { timeZoneName: 'short' })
+
+  async function savePdf() {
+    setPdfState('busy')
+    try {
+      await downloadReportPdf(report, host, color, categories, when)
+      setPdfState('idle')
+    } catch {
+      setPdfState('failed')
+    }
+  }
 
   async function copyLink() {
     try {
@@ -70,11 +83,13 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
             <span className="chip ok">{t.chipOk(c.ok || 0)}</span>
           </div>
           <div className="rep-actions">
+            <button className="btn btn-primary" type="button" onClick={savePdf} disabled={pdfState === 'busy'}>{pdfState === 'busy' ? t.pdfBusy : t.pdf}</button>
             <button className="btn btn-ghost" type="button" onClick={print}><Icon name="i-print" />{t.print}</button>
             <button className="btn btn-ghost" type="button" onClick={copyLink} aria-live="polite">{copied ? t.linkCopied : t.copyLink}</button>
             <button className="btn btn-ghost" type="button" onClick={onRescan} title={t.rescanHint}>{t.rescan}</button>
             <button className="btn btn-ghost" type="button" onClick={onAgain}>{t.again}</button>
           </div>
+          {pdfState === 'failed' && <p className="form-error" role="alert">{t.pdfError}</p>}
         </div>
       </div>
 
@@ -115,7 +130,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
         </a>
       </div>
       <p className="muted small">
-        {t.scannedAt(new Date(report.scanned_at).toLocaleString(LOCALE[LANG], { timeZoneName: 'short' }))}
+        {t.scannedAt(when)}
         {report.cached ? ' ' + t.cachedNote : ''}
       </p>
     </section>
