@@ -114,9 +114,9 @@ T = [
      "Whether others can send fake e-mails in your name.",
      "Могут ли другие отправлять поддельные письма от вашего имени."),
     ("<h3>Sürət</h3>", "<h3>Speed</h3>", "<h3>Скорость</h3>"),
-    ("Serverin ABŞ-dan ölçülən cavab vaxtı və səhifənin HTML həcmi.",
-     "The server's response time, measured from the USA, and the size of the page's HTML.",
-     "Время ответа сервера, измеренное из США, и размер HTML страницы."),
+    ("Serverin ABŞ-dan ölçülən cavab vaxtı və səhifənin HTML həcmi. Şəkil və skriptlərin sürəti ölçülmür.",
+     "The server's response time, measured from the USA, and the size of the page's HTML. Images and scripts are not timed.",
+     "Время ответа сервера, измеренное из США, и размер HTML страницы. Скорость изображений и скриптов не измеряется."),
     ("<h3>Telefon və Google</h3>", "<h3>Mobile and Google</h3>", "<h3>Телефон и Google</h3>"),
     ("Saytın telefonda düzgün görünməsi və Google axtarışında necə göstərildiyi.",
      "Whether the site looks right on a phone and how it shows up in Google search.",
@@ -184,11 +184,11 @@ T = [
      ("Чаще всего на странице нет тега «viewport» — тогда телефон открывает сайт в размере компьютера и уменьшает его. "
      "SaytYoxla проверяет это в разделе «Мобильные и Google» и показывает, какой тег добавить.")),
     ("Yoxlama saytıma zərər verə bilər?", "Can the check harm my website?", "Может ли проверка навредить сайту?"),
-    (("Xeyr. Biz yalnız adi ziyarətçinin brauzerinin gördüyünə baxırıq: əsas səhifəni bir dəfə açırıq, sertifikatı "
-     "və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq."),
-     ("No. We only look at what an ordinary visitor's browser sees: we open the home page once and read the "
+    (("Xeyr. Biz yalnız hər kəsə açıq olana baxırıq: əsas səhifəni, robots.txt və sitemap.xml fayllarını bir dəfə açırıq, "
+     "sertifikatı və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq."),
+     ("No. We only look at what is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the "
      "certificate and public DNS records. We change nothing and try to break nothing."),
-     ("Нет. Мы смотрим только на то, что видит браузер обычного посетителя: один раз открываем главную страницу, "
+     ("Нет. Мы смотрим только на то, что открыто всем: один раз открываем главную страницу, robots.txt и sitemap.xml, "
      "читаем сертификат и открытые DNS-записи. Ничего не меняем и ничего не пытаемся взломать.")),
     ("Məlumatlarım saxlanılır?", "Is my data stored?", "Сохраняются ли мои данные?"),
     (("Ad, telefon və ya e-poçt soruşmuruq, kuki və izləmə skriptləri də yoxdur. Yoxlanılan ünvan və nəticə təkrar "

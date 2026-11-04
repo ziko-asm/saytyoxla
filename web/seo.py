@@ -12,7 +12,7 @@ import os
 import re
 
 SITE_URL = os.getenv("SITE_URL", "https://saytyoxla.vercel.app").rstrip("/")
-LASTMOD = "2026-11-04"          # bump when the front page changes
+LASTMOD = "2026-11-05"          # bump when the front page changes
 
 # Google Search Console "HTML file" verification. Only the exact file names listed
 # here (or in the GOOGLE_VERIFY_FILES env var, comma-separated) are served, so no
@@ -70,14 +70,14 @@ def llms_txt() -> str:
 > SaytYoxla istənilən saytın təhlükəsizliyini, SSL sertifikatını, e-poçt qorumasını (SPF, DMARC), sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayır və nəticəni sadə Azərbaycan dilində izah edir (nəticə ingilis və rus dilində də var). Qeydiyyat tələb olunmur.
 
 ## Nəyi yoxlayır
-- Təhlükəsizlik: HTTPS, sertifikatın bitmə tarixi, HTTP→HTTPS yönləndirmə, HSTS, clickjacking qorunması, nosniff, CSP, Referrer-Policy, server versiyasının açıqlanması, qarışıq məzmun
-- E-poçt: SPF və DMARC qeydləri (saxta məktublara qarşı)
-- Sürət: serverin cavab vaxtı, səhifənin həcmi
-- Telefon və Google: viewport, səhifə başlığı (title), təsvir (meta description)
+- Təhlükəsizlik: HTTPS, sertifikatın bitmə tarixi, TLS versiyası, HTTP→HTTPS yönləndirmə, HSTS, clickjacking qorunması, nosniff, CSP-nin keyfiyyəti, Referrer-Policy, cookie qoruması, server versiyasının açıqlanması, qarışıq məzmun
+- E-poçt: SPF, DMARC və geniş yayılmış adlarda DKIM qeydləri (saxta məktublara qarşı)
+- Sürət: serverin cavab vaxtı, HTML həcmi
+- Telefon və Google: viewport, başlıq (title), təsvir, H1, səhifənin dili, canonical, sosial şəbəkə kartı, noindex, robots.txt, sitemap
 
 ## Necə işləyir
 - Nəticə 0–100 bal və A–F qiyməti ilə verilir; hər problemin altında necə düzəldiləcəyi yazılır
-- Yalnız açıq məlumatlara baxılır: əsas səhifə bir dəfə açılır, sertifikat və açıq DNS qeydləri oxunur. Gizli yollar yoxlanılmır, heç nə sındırılmağa çalışılmır
+- Yalnız açıq məlumatlara baxılır: əsas səhifə, robots.txt və sitemap.xml bir dəfə açılır, sertifikat və açıq DNS qeydləri oxunur. Gizli yollar yoxlanılmır, heç nə sındırılmağa çalışılmır
 - Hesabatı PDF kimi saxlamaq və WhatsApp ilə göndərmək olar
 
 ## Kim üçündür

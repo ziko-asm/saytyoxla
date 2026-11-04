@@ -269,7 +269,7 @@ def scan(req: ScanRequest, request: Request):
 
     hit = None if req.fresh else cache_get(key)
     if hit:
-        return JSONResponse({**i18n.report(hit, lang), "cached": True})
+        return JSONResponse({**i18n.report(hit, lang), "cached": True, "benchmarks": survey.benchmarks()})
 
     if not limiter.allow(client_ip(request)):
         raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
@@ -278,7 +278,7 @@ def scan(req: ScanRequest, request: Request):
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     cache_put(key, report)
-    return JSONResponse({**i18n.report(report, lang), "cached": False})
+    return JSONResponse({**i18n.report(report, lang), "cached": False, "benchmarks": survey.benchmarks()})
 
 
 # Keep this last: it matches any single path segment, so earlier routes win.

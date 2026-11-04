@@ -43,6 +43,7 @@ jobs:
           cache-dependency-path: react-ui/package-lock.json
       - run: python3 make_pages.py
       - run: npm ci
+      - run: npm test
       - run: npm run build
       - name: web/react is the build of react-ui (no hand edits, nothing forgotten)
         working-directory: .

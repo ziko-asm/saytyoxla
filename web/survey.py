@@ -61,6 +61,11 @@ def stats() -> dict:
     return json.loads(DATA.read_text(encoding="utf-8"))
 
 
+def benchmarks() -> dict:
+    """Check id -> % of surveyed sites that pass it, shown next to a site's own problems. Empty until published."""
+    return stats()["all"]["pass"] if DATA.exists() else {}
+
+
 def date_text(iso: str, lang: str) -> str:
     y, m, d = (int(x) for x in iso.split("-"))
     return f"{d} {MONTHS[lang][m - 1]} {y}"
