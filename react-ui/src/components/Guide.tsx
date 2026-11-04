@@ -4,10 +4,9 @@ import { t } from '../i18n'
 
 const LEGEND = ['fail', 'warn', 'ok', 'info']
 
-export function Guide({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
+// While a dialog is open: focus its close button, lock page scroll, close on Escape
+export function useDialog(onClose: () => void) {
   const closeBtn = useRef<HTMLButtonElement>(null)
-
-  // While open: focus the close button, lock page scroll, close on Escape
   useEffect(() => {
     const before = document.activeElement as HTMLElement | null
     closeBtn.current?.focus()
@@ -20,6 +19,11 @@ export function Guide({ onClose, onStart }: { onClose: () => void; onStart: () =
       before?.focus()
     }
   }, [onClose])
+  return closeBtn
+}
+
+export function Guide({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
+  const closeBtn = useDialog(onClose)
 
   return (
     <div className="guide" role="dialog" aria-modal="true" aria-labelledby="guideTitle"

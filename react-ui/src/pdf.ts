@@ -286,11 +286,21 @@ function saveFile(file: File) {
   setTimeout(() => URL.revokeObjectURL(link.href), 60_000)
 }
 
-export async function downloadReportPdf(report: Report, host: string, color: string, categories: string[], when: string) {
+async function renderPages(report: Report, host: string, color: string, categories: string[], when: string) {
   try {
     await Promise.all(['400 24px Inter', '600 24px Inter', '700 24px Inter', '800 24px Inter'].map((f) => document.fonts.load(f, 'əşğ')))
   } catch { /* the system font is good enough */ }
-  const images = await Promise.all(drawPages(report, host, color, categories, when).map(jpegOf))
+  return drawPages(report, host, color, categories, when)
+}
+
+// The same pages for showing on screen. Phones often turn an opened PDF into a download, so "View" uses images.
+export async function reportPageImages(report: Report, host: string, color: string, categories: string[], when: string) {
+  const pages = await renderPages(report, host, color, categories, when)
+  return pages.map((canvas) => canvas.toDataURL('image/jpeg', 0.9))
+}
+
+export async function downloadReportPdf(report: Report, host: string, color: string, categories: string[], when: string) {
+  const images = await Promise.all((await renderPages(report, host, color, categories, when)).map(jpegOf))
   const name = `saytyoxla-${host.replace(/[^\p{L}\p{N}.-]+/gu, '-')}.pdf`
   const file = new File([buildPdf(images) as BlobPart], name, { type: 'application/pdf' })
 

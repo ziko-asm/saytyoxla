@@ -324,7 +324,8 @@ def test_built_front_end_keeps_the_result_in_the_link():
     import re
     js = client.get(re.search(r'src="(/react/assets/[^"]+\.js)"', client.get("/").text).group(1)).text
     assert "replaceState" in js and "Linki kopyala" in js        # react-ui was rebuilt after the change
-    assert "PDF yüklə" in js and "application/pdf" in js         # the report downloads without the print dialog
+    assert "PDF kimi saxla" in js and "application/pdf" in js    # the report downloads without the print dialog
+    assert "Hesabata bax" in js                                  # and can be viewed without a download
 
 
 def test_indexnow_key_file():
