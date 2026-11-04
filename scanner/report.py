@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 from scanner.models import FAIL, WARN, Context, Finding, Report
 
@@ -37,6 +38,14 @@ def grade(s: int) -> str:
     return next(g for limit, g in GRADES if s >= limit)
 
 
+def display_url(url: str) -> str:
+    host = urlsplit(url).hostname or ""
+    try:
+        return url.replace(host, host.encode("ascii").decode("idna"), 1)
+    except UnicodeError:
+        return url
+
+
 def summary(findings: list[Finding]) -> str:
     fails = sum(f.status == FAIL for f in findings)
     warns = sum(f.status == WARN for f in findings)
@@ -56,7 +65,8 @@ def build(ctx: Context, findings: list[Finding]) -> Report:
     points = score(findings)
     cap, note = score_cap(findings)
     s = min(points, cap)
-    return Report(url=ctx.input_url, final_url=ctx.final_url or ctx.input_url, score=s, grade=grade(s),
+    final = ctx.final_url or ctx.input_url
+    return Report(url=ctx.input_url, final_url=final, score=s, grade=grade(s),
                   summary=summary(findings), findings=findings,
                   scanned_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                  score_note=note if points > cap else "")
+                  score_note=note if points > cap else "", display_url=display_url(final))

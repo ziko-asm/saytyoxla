@@ -51,6 +51,7 @@ class Report:
     findings: list
     scanned_at: str
     score_note: str = ""   # why the score was held below what the points alone would give
+    display_url: str = ""  # final_url as people write it: münchen.de, not xn--mnchen-3ya.de
 
     def to_dict(self) -> dict:
         d = asdict(self)

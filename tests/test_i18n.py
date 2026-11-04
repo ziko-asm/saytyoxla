@@ -88,6 +88,11 @@ def test_every_error_is_translated(msg, lang):
     assert i18n.known(msg) and t != msg and not AZ_LETTERS.search(t), t
 
 
+def test_milliseconds_are_translated():
+    assert i18n.text("Server 120 millisaniyəyə cavab verdi.", "en") == "The server responded in 120 milliseconds."
+    assert i18n.text("Server 120 millisaniyəyə cavab verdi.", "ru") == "Сервер ответил за 120 мс."
+
+
 def test_dynamic_values_survive():
     assert i18n.text("Server 2.3 saniyəyə cavab verdi.", "en") == "The server responded in 2.3 seconds."
     assert "14" in i18n.text("Sertifikatın vaxtı 14 gün sonra bitir.", "ru")

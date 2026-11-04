@@ -14,6 +14,7 @@ export type Finding = {
 export type Report = {
   url: string
   final_url: string
+  display_url?: string // final_url as people write it: münchen.de, not xn--mnchen-3ya.de
   score: number
   grade: string
   summary: string

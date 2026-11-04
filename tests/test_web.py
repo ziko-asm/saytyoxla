@@ -243,6 +243,71 @@ def test_survey_says_tls_failures_are_left_out_of_the_https_figure(monkeypatch, 
     survey.stats.cache_clear()
 
 
+def test_own_pages_pass_our_own_length_checks():
+    import re
+    from html import unescape
+    paths = ["/", "/en/", "/ru/", "/hesabat/", "/en/report/", "/ru/otchet/"]
+    paths += [p for by_lang in webapp.pages.PATHS.values() for p in by_lang.values()]
+    for path in paths:
+        t = client.get(path).text
+        title = unescape(re.search(r"<title>(.*?)</title>", t, re.DOTALL).group(1))
+        desc = unescape(re.search(r'name="description" content="(.*?)"', t).group(1))
+        assert 10 <= len(title) <= 70, (path, len(title))
+        assert 50 <= len(desc) <= 170, (path, len(desc))
+
+
+def test_info_pages_in_every_language():
+    for by_lang in webapp.pages.PATHS.values():
+        for lang, path in by_lang.items():
+            r = client.get(path)
+            assert r.status_code == 200 and f'<html lang="{lang}">' in r.text and "<h1>" in r.text, path
+            assert f'<link rel="canonical" href="https://saytyoxla.vercel.app{path}">' in r.text
+            for other in by_lang.values():
+                assert f'href="{other}"' in r.text              # the language switch stays on this page
+            assert client.get(path.rstrip("/"), follow_redirects=False).headers["location"].endswith(path)
+            assert f"<loc>https://saytyoxla.vercel.app{path}</loc>" in client.get("/sitemap.xml").text
+
+
+def test_home_pages_link_to_info_pages_in_their_language():
+    for home, lang in (("/", "az"), ("/en/", "en"), ("/ru/", "ru")):
+        t = client.get(home).text
+        for by_lang in webapp.pages.PATHS.values():
+            assert f'href="{by_lang[lang]}"' in t
+
+
+def test_privacy_page_matches_the_code():
+    assert webapp.CACHE_SECONDS == 600                               # "10 minutes"
+    assert max(w for _, _, w in ratelimit.RULES) == 86400            # "up to 1 day"
+    minute, day = {n: l for n, l, _ in ratelimit.RULES}["ip-minute"], {n: l for n, l, _ in ratelimit.RULES}["ip-day"]
+    assert f"dəqiqədə {minute}, gündə {day}" in client.get("/sertler/").text
+    for path in ("/", "/mexfilik/"):
+        assert "set-cookie" not in client.get(path).headers
+
+
+@pytest.mark.parametrize("path,lang,word", [
+    ("/bu-sehife-yoxdur", "az", "Səhifə tapılmadı"), ("/a/b/c", "az", "Səhifə tapılmadı"),
+    ("/en/nope", "en", "Page not found"), ("/ru/nope", "ru", "Страница не найдена"),
+])
+def test_missing_page_is_a_page(path, lang, word):
+    r = client.get(path)
+    assert r.status_code == 404 and r.headers["content-type"].startswith("text/html")
+    assert word in r.text and f'<html lang="{lang}">' in r.text and 'content="noindex"' in r.text
+    assert "content-security-policy" in r.headers
+
+
+def test_missing_api_and_files_stay_short():
+    for path in ("/api/nope", "/static/nope.png"):
+        r = client.get(path)
+        assert r.status_code == 404 and r.headers["content-type"].startswith("application/json"), path
+    assert client.get("/api/scan").status_code == 405
+
+
+def test_built_front_end_keeps_the_result_in_the_link():
+    import re
+    js = client.get(re.search(r'src="(/react/assets/[^"]+\.js)"', client.get("/").text).group(1)).text
+    assert "replaceState" in js and "Linki kopyala" in js        # react-ui was rebuilt after the change
+
+
 def test_indexnow_key_file():
     from web import seo
     assert client.get(f"/{seo.INDEXNOW_KEY}.txt").text == seo.INDEXNOW_KEY

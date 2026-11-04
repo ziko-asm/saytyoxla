@@ -15,8 +15,9 @@ from html import escape
 from pathlib import Path
 
 from scanner import i18n
+from web.pages import footer_links
 
-SITE = "https://saytyoxla.vercel.app"
+SITE ="https://saytyoxla.vercel.app"
 DATA = Path(__file__).parent / "survey_stats.json"
 PATHS = {"az": "/hesabat/", "en": "/en/report/", "ru": "/ru/otchet/"}
 HOMES = {"az": "/", "en": "/en/", "ru": "/ru/"}
@@ -139,8 +140,8 @@ def page(lang: str) -> str:
               f"How secure are Azerbaijani websites? {a['n']} sites checked",
               f"Насколько защищены сайты Азербайджана: проверено {a['n']} сайтов")
     desc = L(lang,
-             f"{a['n']} Azərbaycan saytının passiv yoxlaması: banklar, universitetlər, dövlət qurumları, xəbər saytları. "
-             f"Saytların {100 - p['csp']}%-ində CSP, {100 - p['hsts']}%-ində HSTS yoxdur; {no_dmarc}%-i saxta məktubları bloklamır.",
+             f"{a['n']} Azərbaycan saytının passiv yoxlaması: banklar, dövlət, xəbər saytları. "
+             f"{100 - p['csp']}%-ində CSP, {100 - p['hsts']}%-ində HSTS yoxdur; {no_dmarc}%-i saxta məktubları bloklamır.",
              f"A passive check of {a['n']} Azerbaijani websites: banks, universities, government, news and more. "
              f"{100 - p['csp']}% have no CSP, {100 - p['hsts']}% no HSTS, and {no_dmarc}% do not block fake e-mails.",
              f"Пассивная проверка {a['n']} сайтов Азербайджана: банки, университеты, госорганы, СМИ и другие. "
@@ -216,12 +217,13 @@ def page(lang: str) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{escape(title)} | SaytYoxla</title>
+<title>{escape(title) if len(title) > 58 else escape(title) + " | SaytYoxla"}</title>
 <meta name="description" content="{escape(desc)}">
 <link rel="canonical" href="{SITE}{PATHS[lang]}">
 {alt}
 <link rel="alternate" hreflang="x-default" href="{SITE}{PATHS['az']}">
 <meta property="og:type" content="article">
+<meta property="og:locale" content="{ {"az": "az_AZ", "en": "en_US", "ru": "ru_RU"}[lang] }">
 <meta property="og:title" content="{escape(title)}">
 <meta property="og:description" content="{escape(desc)}">
 <meta property="og:url" content="{SITE}{PATHS[lang]}">
@@ -329,7 +331,7 @@ footer{{color:var(--muted);font-size:14px;padding:32px 0 40px}}
   <h2>{L(lang, "Necə yoxlandı", "How it was checked", "Как проверяли")}</h2>
   <p class="method">{method}</p>
 </main>
-<footer><div class="wrap">SaytYoxla · <a href="https://ayfar.vercel.app/">ayfar.vercel.app</a> · <a href="https://www.linkedin.com/in/ziya-azizov-91bba638a">Ziya Azizov</a></div></footer>
+<footer><div class="wrap">SaytYoxla · <a href="https://ayfar.vercel.app/">ayfar.vercel.app</a> · <a href="https://www.linkedin.com/in/ziya-azizov-91bba638a">Ziya Azizov</a> · {footer_links(lang)}</div></footer>
 </body>
 </html>
 """

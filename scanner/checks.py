@@ -19,14 +19,18 @@ class _Page(HTMLParser):
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.title, self._in_title = "", False
+        self.title, self._in_title, self._title_seen = "", False, False
+        self._svg_depth = 0
         self.meta = {}
         self.insecure = set()
 
     def handle_starttag(self, tag, attrs):
         a = {k.lower(): (v or "") for k, v in attrs}
-        if tag == "title":
-            self._in_title = True
+        if tag == "svg":
+            self._svg_depth += 1
+        elif tag == "title":
+            # Only the page's own title: every <svg> icon may carry a <title> of its own
+            self._in_title = not self._svg_depth and not self._title_seen
         elif tag == "meta" and a.get("name"):
             self.meta[a["name"].lower()] = a.get("content", "")
         if tag in ("script", "img", "iframe", "source", "video", "audio"):
@@ -39,7 +43,10 @@ class _Page(HTMLParser):
             self.insecure.add(url)
 
     def handle_endtag(self, tag):
-        if tag == "title":
+        if tag == "svg":
+            self._svg_depth = max(0, self._svg_depth - 1)
+        elif tag == "title":
+            self._title_seen = self._title_seen or self._in_title
             self._in_title = False
 
     def handle_data(self, data):
@@ -248,6 +255,7 @@ def response_time(ctx: Context, page) -> Finding:
     ms = ctx.elapsed_ms or 0
     st = OK if ms < 1500 else WARN if ms < 4000 else FAIL
     return Finding("speed", SPEED, "Serverin cavab sürəti", st,
+                   f"Server {ms:.0f} millisaniyəyə cavab verdi." if ms < 1000 else
                    f"Server {ms / 1000:.1f} saniyəyə cavab verdi.",
                    "" if st == OK else "Hostinqi, keşləməni və ağır plaginləri yoxlayın.", 8)
 

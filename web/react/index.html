@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saytı pulsuz yoxla: təhlükəsizlik, SSL, sürət | SaytYoxla</title>
-<meta name="description" content="Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan, ingilis və ya rus dilində.">
+<meta name="description" content="Saytınızın təhlükəsizliyini, SSL sertifikatını, e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Qeydiyyat tələb olunmur.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="Ziya Azizov">
 <link rel="canonical" href="https://saytyoxla.vercel.app/">
@@ -41,7 +41,7 @@
    "@id": "https://saytyoxla.vercel.app/#app",
    "name": "SaytYoxla",
    "url": "https://saytyoxla.vercel.app/",
-   "description": "Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan, ingilis və ya rus dilində.",
+   "description": "Saytınızın təhlükəsizliyini, SSL sertifikatını, e-poçt qorumasını, sürətini və telefona uyğunluğunu 30 saniyəyə pulsuz yoxlayın. Qeydiyyat tələb olunmur.",
    "applicationCategory": "SecurityApplication",
    "operatingSystem": "Any (brauzerdə işləyir)",
    "inLanguage": "az",
@@ -147,7 +147,7 @@
      "name": "Məlumatlarım saxlanılır?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Xeyr. Nəticə yalnız ekranınızda göstərilir və 10 dəqiqə ərzində təkrar yoxlamanı sürətləndirmək üçün müvəqqəti yadda saxlanılır. Ad, telefon və ya e-poçt soruşmuruq."
+      "text": "Ad, telefon və ya e-poçt soruşmuruq, kuki və izləmə skriptləri də yoxdur. Yoxlanılan ünvan və nəticə təkrar yoxlamanı sürətləndirmək üçün 10 dəqiqəyə qədər, IP ünvanınız isə sui-istifadəni məhdudlaşdıran sayğacda ən çox 1 gün qalır."
      }
     },
     {
@@ -175,7 +175,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a4a'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='%2334d399' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preload" href="/static/fonts/inter-4-latin.woff2" as="font" type="font/woff2" crossorigin >
 <link rel="stylesheet" href="/static/fonts.css" >
-  <script type="module" crossorigin src="/react/assets/main-BYI_C5Ix.js"></script>
+  <script type="module" crossorigin src="/react/assets/main-CZlCE7pW.js"></script>
   <link rel="stylesheet" crossorigin href="/react/assets/main-D0-YIeoE.css">
 </head>
 <body>
@@ -253,7 +253,7 @@
       <div class="cats">
         <div class="cat"><span class="ci sec"><svg class="ico"><use href="#i-lock"/></svg></span><h3>Təhlükəsizlik</h3><p>Saytın şifrəli bağlantısı, sertifikatın vaxtı və hücumlara qarşı qoruyucu ayarlar.</p></div>
         <div class="cat"><span class="ci mail"><svg class="ico"><use href="#i-mail"/></svg></span><h3>E-poçt</h3><p>Başqalarının sizin adınızdan saxta məktub göndərə bilib-bilməyəcəyi.</p></div>
-        <div class="cat"><span class="ci speed"><svg class="ico"><use href="#i-bolt"/></svg></span><h3>Sürət</h3><p>Saytın nə qədər tez açıldığı və səhifənin həcmi.</p></div>
+        <div class="cat"><span class="ci speed"><svg class="ico"><use href="#i-bolt"/></svg></span><h3>Sürət</h3><p>Serverin ABŞ-dan ölçülən cavab vaxtı və səhifənin HTML həcmi.</p></div>
         <div class="cat"><span class="ci mob"><svg class="ico"><use href="#i-phone"/></svg></span><h3>Telefon və Google</h3><p>Saytın telefonda düzgün görünməsi və Google axtarışında necə göstərildiyi.</p></div>
       </div>
       <p class="survey-link"><a href="/hesabat/">Azərbaycan saytlarının təhlükəsizlik hesabatı: banklar, universitetlər, dövlət qurumları →</a></p>
@@ -271,7 +271,7 @@
       <details><summary>Saytım niyə Google-da çıxmır?<svg class="ico"><use href="#i-down"/></svg></summary><p>Ən çox rast gəlinən səbəblər: səhifənin başlığı (title) və təsviri (meta description) yoxdur və ya zəifdir, sayt telefona uyğun deyil, ya da sayt Google-a heç təqdim olunmayıb. SaytYoxla başlığı, təsviri və telefona uyğunluğu yoxlayır. Yeni saytı isə Google Search Console-a əlavə edib sitemap göndərmək lazımdır.</p></details>
       <details><summary>Saytım telefonda niyə düzgün görünmür?<svg class="ico"><use href="#i-down"/></svg></summary><p>Çox vaxt səbəb səhifədə «viewport» teqinin olmamasıdır — onda telefon saytı kompüter ölçüsündə açıb kiçildir. SaytYoxla bunu «Telefon və Google» bölməsində yoxlayır və əlavə ediləcək teqi göstərir.</p></details>
       <details><summary>Yoxlama saytıma zərər verə bilər?<svg class="ico"><use href="#i-down"/></svg></summary><p>Xeyr. Biz yalnız adi ziyarətçinin brauzerinin gördüyünə baxırıq: əsas səhifəni bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq.</p></details>
-      <details><summary>Məlumatlarım saxlanılır?<svg class="ico"><use href="#i-down"/></svg></summary><p>Xeyr. Nəticə yalnız ekranınızda göstərilir və 10 dəqiqə ərzində təkrar yoxlamanı sürətləndirmək üçün müvəqqəti yadda saxlanılır. Ad, telefon və ya e-poçt soruşmuruq.</p></details>
+      <details><summary>Məlumatlarım saxlanılır?<svg class="ico"><use href="#i-down"/></svg></summary><p>Ad, telefon və ya e-poçt soruşmuruq, kuki və izləmə skriptləri də yoxdur. Yoxlanılan ünvan və nəticə təkrar yoxlamanı sürətləndirmək üçün 10 dəqiqəyə qədər, IP ünvanınız isə sui-istifadəni məhdudlaşdıran sayğacda ən çox 1 gün qalır.</p></details>
       <details><summary>Bal nə deməkdir?<svg class="ico"><use href="#i-down"/></svg></summary><p>100 ən yaxşı nəticədir. 90+ — əla (A), 75+ — yaxşı (B), 60+ — orta (C), 40+ — zəif (D), 40-dan aşağı — ciddi diqqət lazımdır (F). Qırmızı problemlər balı daha çox azaldır. Əsas qoruma çatışmayanda bal məhdudlaşır: etibarlı HTTPS yoxdursa 39-dan, sertifikatın bitməsinə 7 gündən az qalıbsa 59-dan, 4–5 əsas ayar yoxdursa 74-dən, 2–3 ayar yoxdursa 89-dan yuxarı olmur.</p></details>
       <details><summary>Problemləri kim düzəltməlidir?<svg class="ico"><use href="#i-down"/></svg></summary><p>Saytınızı quran proqramçıya və ya hostinq şirkətinə hesabatı göstərin — hər problemin altında nə ediləcəyi yazılıb. İstəsəniz, WhatsApp-a yazın, kömək edək.</p></details>
     </div>
@@ -279,7 +279,7 @@
 </section>
 
 <footer class="foot">
-  <div class="wrap">SaytYoxla · Yalnız açıq məlumatlar yoxlanılır · <a href="https://www.linkedin.com/in/ziya-azizov-91bba638a" target="_blank" rel="noopener">Ziya Azizov</a><span style="display:block;margin-top:14px;padding-top:12px;border-top:1px solid rgba(128,128,128,.3);font-weight:600">Sayt sifarişi və digər sayt nümunələrini görmək üçün: <a href="https://ayfar.vercel.app/" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline">ayfar.vercel.app</a> · <a href="https://www.instagram.com/ayfar.web/" target="_blank" rel="noopener">Instagram</a></span></div>
+  <div class="wrap">SaytYoxla · Yalnız açıq məlumatlar yoxlanılır · <a href="https://www.linkedin.com/in/ziya-azizov-91bba638a" target="_blank" rel="noopener">Ziya Azizov</a><span style="display:block;margin-top:14px;padding-top:12px;border-top:1px solid rgba(128,128,128,.3);font-weight:600">Sayt sifarişi və digər sayt nümunələrini görmək üçün: <a href="https://ayfar.vercel.app/" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline">ayfar.vercel.app</a> · <a href="https://www.instagram.com/ayfar.web/" target="_blank" rel="noopener">Instagram</a></span><span style="display:block;margin-top:10px"><a href="/haqqimizda/">Haqqımızda</a> · <a href="/mexfilik/">Məxfilik</a> · <a href="/sertler/">Şərtlər</a></span></div>
 </footer>
 
 </body>

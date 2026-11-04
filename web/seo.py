@@ -12,7 +12,7 @@ import os
 import re
 
 SITE_URL = os.getenv("SITE_URL", "https://saytyoxla.vercel.app").rstrip("/")
-LASTMOD = "2026-11-01"          # bump when the front page changes
+LASTMOD = "2026-11-04"          # bump when the front page changes
 
 # Google Search Console "HTML file" verification. Only the exact file names listed
 # here (or in the GOOGLE_VERIFY_FILES env var, comma-separated) are served, so no
@@ -50,8 +50,18 @@ def sitemap_xml() -> str:
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
-        + urls + report + "</urlset>\n"
+        + urls + report + _info_urls() + "</urlset>\n"
     )
+
+
+def _info_urls() -> str:
+    from web.pages import PATHS as INFO
+    out = ""
+    for by_lang in INFO.values():
+        alts = "".join(f'    <xhtml:link rel="alternate" hreflang="{l}" href="{SITE_URL}{p}"/>\n' for l, p in by_lang.items())
+        out += "".join(f"  <url>\n    <loc>{SITE_URL}{p}</loc>\n    <lastmod>{LASTMOD}</lastmod>\n{alts}  </url>\n"
+                       for p in by_lang.values())
+    return out
 
 
 def llms_txt() -> str:
@@ -79,6 +89,7 @@ Ziya Azizov — https://www.linkedin.com/in/ziya-azizov-91bba638a
 ## Səhifələr
 - [SaytYoxla]({SITE_URL}/): saytı yoxlama forması, bələdçi və tez-tez verilən suallar
 - [Azərbaycan saytlarının təhlükəsizlik vəziyyəti]({SITE_URL}/hesabat/): yüzdən çox açıq saytın passiv yoxlamasının ümumi nəticələri (sayt adları olmadan)
+- [Haqqımızda]({SITE_URL}/haqqimizda/), [Məxfilik]({SITE_URL}/mexfilik/), [Şərtlər]({SITE_URL}/sertler/)
 - [SaytYoxla in English]({SITE_URL}/en/): the same free website check in English
 - [SaytYoxla на русском]({SITE_URL}/ru/): та же бесплатная проверка сайта на русском
 """

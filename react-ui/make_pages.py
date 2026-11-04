@@ -45,12 +45,12 @@ T = [
     ("Saytı pulsuz yoxla: təhlükəsizlik, SSL, sürət | SaytYoxla",
      "Free website check: security, SSL, speed | SaytYoxla",
      "Бесплатная проверка сайта: безопасность, SSL, скорость | SaytYoxla"),
-    (("Saytınızın təhlükəsizliyini, SSL sertifikatını, SPF/DMARC e-poçt qorumasını, sürətini və telefona uyğunluğunu "
-     "30 saniyəyə pulsuz yoxlayın. Nəticə Azərbaycan, ingilis və ya rus dilində."),
-     ("Check your website's security, SSL certificate, SPF/DMARC e-mail protection, speed and mobile-friendliness "
-     "for free in 30 seconds. Results in English, Azerbaijani or Russian."),
-     ("Бесплатно проверьте безопасность сайта, SSL-сертификат, защиту почты SPF/DMARC, скорость и адаптацию "
-     "под телефон за 30 секунд. Результат на русском, азербайджанском или английском.")),
+    (("Saytınızın təhlükəsizliyini, SSL sertifikatını, e-poçt qorumasını, sürətini və telefona uyğunluğunu "
+     "30 saniyəyə pulsuz yoxlayın. Qeydiyyat tələb olunmur."),
+     ("Check your website's security, SSL certificate, e-mail protection, speed and mobile-friendliness "
+     "for free in 30 seconds. No sign-up needed."),
+     ("Бесплатно проверьте безопасность сайта, SSL-сертификат, защиту почты, скорость и адаптацию "
+     "под телефон за 30 секунд. Без регистрации.")),
     ("SaytYoxla — saytınızı 30 saniyəyə pulsuz yoxlayın",
      "SaytYoxla — check your website for free in 30 seconds",
      "SaytYoxla — бесплатная проверка сайта за 30 секунд"),
@@ -112,8 +112,9 @@ T = [
      "Whether others can send fake e-mails in your name.",
      "Могут ли другие отправлять поддельные письма от вашего имени."),
     ("<h3>Sürət</h3>", "<h3>Speed</h3>", "<h3>Скорость</h3>"),
-    ("Saytın nə qədər tez açıldığı və səhifənin həcmi.", "How fast the site opens and how heavy the page is.",
-     "Как быстро открывается сайт и сколько весит страница."),
+    ("Serverin ABŞ-dan ölçülən cavab vaxtı və səhifənin HTML həcmi.",
+     "The server's response time, measured from the USA, and the size of the page's HTML.",
+     "Время ответа сервера, измеренное из США, и размер HTML страницы."),
     ("<h3>Telefon və Google</h3>", "<h3>Mobile and Google</h3>", "<h3>Телефон и Google</h3>"),
     ("Saytın telefonda düzgün görünməsi və Google axtarışında necə göstərildiyi.",
      "Whether the site looks right on a phone and how it shows up in Google search.",
@@ -188,12 +189,15 @@ T = [
      ("Нет. Мы смотрим только на то, что видит браузер обычного посетителя: один раз открываем главную страницу, "
      "читаем сертификат и открытые DNS-записи. Ничего не меняем и ничего не пытаемся взломать.")),
     ("Məlumatlarım saxlanılır?", "Is my data stored?", "Сохраняются ли мои данные?"),
-    (("Xeyr. Nəticə yalnız ekranınızda göstərilir və 10 dəqiqə ərzində təkrar yoxlamanı sürətləndirmək üçün "
-     "müvəqqəti yadda saxlanılır. Ad, telefon və ya e-poçt soruşmuruq."),
-     ("No. The result is shown only on your screen and kept briefly for 10 minutes to speed up a repeat check. "
-     "We do not ask for your name, phone or e-mail."),
-     ("Нет. Результат показывается только на вашем экране и временно хранится 10 минут, чтобы ускорить повторную "
-     "проверку. Мы не спрашиваем имя, телефон или e-mail.")),
+    (("Ad, telefon və ya e-poçt soruşmuruq, kuki və izləmə skriptləri də yoxdur. Yoxlanılan ünvan və nəticə təkrar "
+     "yoxlamanı sürətləndirmək üçün 10 dəqiqəyə qədər, IP ünvanınız isə sui-istifadəni məhdudlaşdıran sayğacda ən çox "
+     "1 gün qalır."),
+     ("We do not ask for your name, phone or e-mail, and there are no cookies or tracking scripts. The checked address "
+     "and its result stay for up to 10 minutes to speed up a repeat check, and your IP address stays for up to 1 day "
+     "in the counter that limits abuse."),
+     ("Мы не спрашиваем имя, телефон или e-mail, cookie и скриптов отслеживания нет. Проверенный адрес и результат "
+     "хранятся до 10 минут, чтобы ускорить повторную проверку, а ваш IP-адрес — до 1 дня в счётчике, ограничивающем "
+     "злоупотребления.")),
     ("Bal nə deməkdir?", "What does the score mean?", "Что означает балл?"),
     (("100 ən yaxşı nəticədir. 90+ — əla (A), 75+ — yaxşı (B), 60+ — orta (C), 40+ — zəif (D), 40-dan aşağı — "
      "ciddi diqqət lazımdır (F). Qırmızı problemlər balı daha çox azaldır. Əsas qoruma çatışmayanda bal məhdudlaşır: "
@@ -216,6 +220,9 @@ T = [
      "Если хотите, напишите в WhatsApp, мы поможем.")),
 
     # footer
+    ('<a href="/haqqimizda/">Haqqımızda</a>', '<a href="/en/about/">About</a>', '<a href="/ru/o-nas/">О сервисе</a>'),
+    ('<a href="/mexfilik/">Məxfilik</a>', '<a href="/en/privacy/">Privacy</a>', '<a href="/ru/konfidencialnost/">Конфиденциальность</a>'),
+    ('<a href="/sertler/">Şərtlər</a>', '<a href="/en/terms/">Terms</a>', '<a href="/ru/usloviya/">Условия</a>'),
     ("Yalnız açıq məlumatlar yoxlanılır", "Only public information is checked", "Проверяются только открытые данные"),
     ("Sayt sifarişi və digər sayt nümunələrini görmək üçün:", "To order a website or see more examples:",
      "Заказать сайт или посмотреть другие работы:"),
