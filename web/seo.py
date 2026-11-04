@@ -56,8 +56,9 @@ def sitemap_xml() -> str:
 
 def _info_urls() -> str:
     from web.pages import PATHS as INFO
+    from web.pages import TOOLS_PATHS
     out = ""
-    for by_lang in INFO.values():
+    for by_lang in [TOOLS_PATHS, *INFO.values()]:
         alts = "".join(f'    <xhtml:link rel="alternate" hreflang="{l}" href="{SITE_URL}{p}"/>\n' for l, p in by_lang.items())
         out += "".join(f"  <url>\n    <loc>{SITE_URL}{p}</loc>\n    <lastmod>{LASTMOD}</lastmod>\n{alts}  </url>\n"
                        for p in by_lang.values())
@@ -89,6 +90,7 @@ Ziya Azizov — https://www.linkedin.com/in/ziya-azizov-91bba638a
 ## Səhifələr
 - [SaytYoxla]({SITE_URL}/): saytı yoxlama forması, bələdçi və tez-tez verilən suallar
 - [Azərbaycan saytlarının təhlükəsizlik vəziyyəti]({SITE_URL}/hesabat/): yüzdən çox açıq saytın passiv yoxlamasının ümumi nəticələri (sayt adları olmadan)
+- [Alətlər]({SITE_URL}/aletler/): SSL, DMARC, SPF, DKIM, təhlükəsizlik başlıqları və cookie-ləri ayrıca yoxlamaq
 - [Haqqımızda]({SITE_URL}/haqqimizda/), [Məxfilik]({SITE_URL}/mexfilik/), [Şərtlər]({SITE_URL}/sertler/)
 - [SaytYoxla in English]({SITE_URL}/en/): the same free website check in English
 - [SaytYoxla на русском]({SITE_URL}/ru/): та же бесплатная проверка сайта на русском

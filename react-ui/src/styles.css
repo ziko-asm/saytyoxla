@@ -54,10 +54,19 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 .langs a+a{border-left:1px solid var(--line-2)}
 .langs a:hover{color:var(--brand-2)}
 .langs a[aria-current]{background:var(--brand);color:#fff}
+.parts{display:flex;border:1px solid var(--line-2);border-radius:12px;overflow:hidden;background:var(--bg)}
+.parts a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;font:700 15px/1 var(--font);color:var(--ink-2);text-decoration:none}
+.parts a:hover{color:var(--brand-2)}
+.parts a[aria-current],.parts a[aria-current]:hover{background:#1d4ed8;color:#fff}
+@media (max-width:980px){.btn-help span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.btn-help{width:44px;height:44px;padding:0}}
 /* phones: one row, so the sticky header takes little of the screen; the help button keeps its name for screen readers */
 @media (max-width:640px){
-  .top .wrap{height:60px;padding:0 12px;gap:8px}
-  .top-right{gap:8px}
+  .top{position:static}
+  .top .wrap{height:auto;padding:8px 12px;gap:8px;flex-wrap:wrap}
+  .top-right{gap:8px;display:contents}
+  .top .langs{margin-left:auto}
+  .parts{order:9;flex:1 0 100%}
+  .parts a{flex:1}
   .brand{font-size:18px;gap:8px}
   .mark{width:32px;height:32px}
   .langs a{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:44px;padding:0 4px}
@@ -230,6 +239,21 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
   .snips{display:none}
 }
 
+/* tools */
+.tools-hero{padding-bottom:24px}
+.tool-list{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 0 14px}
+.tool-tab{min-height:44px;padding:0 16px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);color:var(--ink);font:700 15px/1 var(--font);cursor:pointer}
+.tool-tab:hover{border-color:var(--brand-2);color:var(--brand-2)}
+.tool-tab.on,.tool-tab.on:hover{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.tool-about{text-align:center;color:var(--ink-2);margin:0 auto 18px;min-height:3.2em}
+.tool-result{padding-bottom:56px}
+.tool-result h2{font-size:22px;font-weight:800;margin:0 0 14px;word-break:break-word}
+.facts{margin:0 0 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.facts div{display:flex;flex-wrap:wrap;gap:4px 14px;padding:6px 0}
+.facts dt{flex:0 0 150px;color:var(--muted);font-size:14px}
+.facts dd{flex:1 1 200px;margin:0;font-weight:600;overflow-wrap:anywhere}
+.tool-more{margin:10px 0 0;font-weight:600}
+.tool-more a{display:inline-block;padding:12px 0}
 .survey-link{margin:22px 0 0;text-align:center;font-weight:600}
 .survey-link a{display:inline-block;padding:12px 16px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);text-decoration:none}
 .survey-link a:hover{border-color:var(--brand-2)}
