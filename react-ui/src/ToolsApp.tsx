@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FindingItem } from './components/FindingItem'
+import { Generator } from './components/Generators'
 import { Guide } from './components/Guide'
 import { Header } from './components/Header'
+import { sslReminder } from './generators'
+import { GENERATOR_IDS, g } from './genText'
+import type { GeneratorId } from './genText'
 import { LANG, t } from './i18n'
+import { saveFile } from './pdf'
 import type { Finding } from './types'
 
 // "ssl" and "email" ask /api/tool, which never opens the page, so they work behind bot protection too.
@@ -40,8 +45,12 @@ function factRows(tool: ToolId, facts: Facts | undefined): [string, string][] {
 
 export default function ToolsApp() {
   const params = new URLSearchParams(window.location.search)
-  const start = TOOLS.some((x) => x.id === params.get('tool')) ? (params.get('tool') as ToolId) : 'ssl'
+  const asked = params.get('tool') || ''
+  const start = TOOLS.some((x) => x.id === asked) ? (asked as ToolId) : 'ssl'
   const [tool, setTool] = useState<ToolId>(start)
+  // A generator takes the place of a check; "gen-dmarc" in the address opens it directly
+  const [generator, setGenerator] = useState<GeneratorId | null>(
+    asked.startsWith('gen-') && GENERATOR_IDS.includes(asked.slice(4) as GeneratorId) ? (asked.slice(4) as GeneratorId) : null)
   const [url, setUrl] = useState(params.get('url') || '')
   const [checked, setChecked] = useState('')
   const [loading, setLoading] = useState(false)
@@ -94,14 +103,23 @@ export default function ToolsApp() {
 
   useEffect(() => {
     const first = new URLSearchParams(window.location.search).get('url')
-    if (first) run(start, first)
+    if (first && !generator) run(start, first)
     // only the address the page was opened with
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  function chooseGenerator(next: GeneratorId) {
+    setGenerator(next)
+    setResult(null)
+    setError('')
+    window.history.replaceState(null, '', `${window.location.pathname}?tool=gen-${next}`)
+  }
+
   function choose(next: ToolId) {
+    setGenerator(null)
     setTool(next)
     setResult(null)
+    window.history.replaceState(null, '', `${window.location.pathname}?tool=${next}`)
     setError('')
     if (url.trim()) run(next, url)
   }
@@ -113,43 +131,69 @@ export default function ToolsApp() {
     .sort((a, b) => ORDER[a.status] - ORDER[b.status])
   const facts = factRows(tool, result?.facts)
   const host = result?.host || (result?.final_url || checked).replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+  const expires = tool === 'ssl' ? result?.facts?.expires : ''
+
+  function addReminder() {
+    if (!expires) return
+    const ics = sslReminder(host, expires, g.reminderTitle(host), g.reminderBody(host, expires))
+    saveFile(new File([ics], `ssl-${host}.ics`, { type: 'text/calendar' }))
+  }
 
   return (
     <>
-      <Header onHelp={() => setGuideOpen(true)} checked={checked} tools={tool} />
+      <Header onHelp={() => setGuideOpen(true)} checked={generator ? '' : checked} tools={generator ? `gen-${generator}` : tool} />
       <main id="main">
         <section className="hero tools-hero">
           <div className="wrap narrow">
             <h1>{t.toolsTitle}</h1>
             <p className="lead">{t.toolsLead}</p>
-            <div className="tool-list" role="group" aria-label={t.partTools}>
+            <h2 className="tool-group">{g.groupCheck}</h2>
+            <div className="tool-list" role="group" aria-label={g.groupCheck}>
               {TOOLS.map((x) => (
-                <button key={x.id} type="button" className={x.id === tool ? 'tool-tab on' : 'tool-tab'}
-                  aria-pressed={x.id === tool} onClick={() => choose(x.id)}>
+                <button key={x.id} type="button" className={!generator && x.id === tool ? 'tool-tab on' : 'tool-tab'}
+                  aria-pressed={!generator && x.id === tool} onClick={() => choose(x.id)}>
                   {t.tools[x.id][0]}
                 </button>
               ))}
             </div>
-            <p className="tool-about">{t.tools[tool][1]}</p>
-            <form className="scan" noValidate onSubmit={(e) => { e.preventDefault(); run(tool, url) }}>
-              <label htmlFor="url" className="sr">{t.urlLabel}</label>
-              <input ref={input} id="url" name="url" type="text" inputMode="url" autoComplete="url" autoCapitalize="off"
-                spellCheck={false} maxLength={300} placeholder={t.placeholder} value={url}
-                onInput={(e) => setUrl(e.currentTarget.value)} />
-              <button className="btn btn-primary" type="submit" disabled={loading}>{loading ? t.scanning : t.scan}</button>
-            </form>
+            <h2 className="tool-group">{g.groupCreate}</h2>
+            <div className="tool-list" role="group" aria-label={g.groupCreate}>
+              {GENERATOR_IDS.map((id) => (
+                <button key={id} type="button" className={generator === id ? 'tool-tab on' : 'tool-tab'}
+                  aria-pressed={generator === id} onClick={() => chooseGenerator(id)}>
+                  {g.gens[id][0]}
+                </button>
+              ))}
+            </div>
+            <p className="tool-about">{generator ? g.gens[generator][1] : t.tools[tool][1]}</p>
+            {!generator && (
+              <form className="scan" noValidate onSubmit={(e) => { e.preventDefault(); run(tool, url) }}>
+                <label htmlFor="url" className="sr">{t.urlLabel}</label>
+                <input ref={input} id="url" name="url" type="text" inputMode="url" autoComplete="url" autoCapitalize="off"
+                  spellCheck={false} maxLength={300} placeholder={t.placeholder} value={url}
+                  onInput={(e) => setUrl(e.currentTarget.value)} />
+                <button className="btn btn-primary" type="submit" disabled={loading}>{loading ? t.scanning : t.scan}</button>
+              </form>
+            )}
             {error && <p className="form-error" role="alert">{error}</p>}
           </div>
         </section>
         <section className="wrap narrow tool-result" aria-live="polite">
+          {generator && <Generator key={generator} id={generator} />}
           {loading && <div className="spinner" role="status" aria-label={t.scanning}></div>}
-          {result && (
+          {!generator && result && (
             <>
               <h2>{t.tools[tool][0]}: {host}</h2>
               {facts.length > 0 && (
                 <dl className="facts">
                   {facts.map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}
                 </dl>
+              )}
+              {expires && (
+                <p className="tool-reminder">
+                  <button className="btn btn-ghost" type="button" onClick={addReminder}>{g.reminder}</button>
+                  <span>{g.reminderHint}</span>
+                </p>
               )}
               {findings.map((f) => <FindingItem key={f.id} f={f} benchmark={result.benchmarks?.[f.id]} />)}
               <p className="tool-more"><a href={`${window.location.pathname.replace(/[^/]+\/$/, '')}?url=${encodeURIComponent(checked)}`}>{t.toolsFull}</a></p>

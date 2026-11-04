@@ -90,7 +90,7 @@ Ziya Azizov — https://www.linkedin.com/in/ziya-azizov-91bba638a
 ## Səhifələr
 - [SaytYoxla]({SITE_URL}/): saytı yoxlama forması, bələdçi və tez-tez verilən suallar
 - [Azərbaycan saytlarının təhlükəsizlik vəziyyəti]({SITE_URL}/hesabat/): yüzdən çox açıq saytın passiv yoxlamasının ümumi nəticələri (sayt adları olmadan)
-- [Alətlər]({SITE_URL}/aletler/): SSL, DMARC, SPF, DKIM, təhlükəsizlik başlıqları və cookie-ləri ayrıca yoxlamaq
+- [Alətlər]({SITE_URL}/aletler/): SSL, DMARC, SPF, DKIM, başlıqlar və cookie-ləri ayrıca yoxlamaq; DMARC, SPF, CSP, başlıqlar, robots.txt, meta teqlər, sitemap, security.txt və yönləndirmə generatorları
 - [Haqqımızda]({SITE_URL}/haqqimizda/), [Məxfilik]({SITE_URL}/mexfilik/), [Şərtlər]({SITE_URL}/sertler/)
 - [SaytYoxla in English]({SITE_URL}/en/): the same free website check in English
 - [SaytYoxla на русском]({SITE_URL}/ru/): та же бесплатная проверка сайта на русском

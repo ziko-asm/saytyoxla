@@ -23,13 +23,13 @@ ROUTES = {path: (key, lang) for key, by_lang in PATHS.items() for lang, path in 
 TOOLS_PATHS = {"az": "/aletler/", "en": "/en/tools/", "ru": "/ru/instrumenty/"}
 TOOLS_META = {  # short name, <title>, description, heading
     "az": ("Alətlər", "SSL, DMARC, SPF, DKIM yoxlama alətləri | SaytYoxla",
-           "SSL sertifikatını, DMARC, SPF və DKIM qeydlərini, təhlükəsizlik başlıqlarını və cookie-ləri ayrı-ayrılıqda pulsuz yoxlayın.",
+           "SSL, DMARC, SPF və DKIM-i ayrıca yoxlayın. DMARC, SPF, CSP, başlıqlar, robots.txt və sitemap üçün hazır qeydlər yaradın. Pulsuz.",
            "Sayt alətləri"),
     "en": ("Tools", "SSL, DMARC, SPF and DKIM checkers | SaytYoxla",
-           "Check an SSL certificate, DMARC, SPF and DKIM records, security headers and cookies one at a time, for free.",
+           "Check SSL, DMARC, SPF and DKIM on their own. Create ready-made DMARC, SPF, CSP, header, robots.txt and sitemap records for free.",
            "Website tools"),
     "ru": ("Инструменты", "Проверка SSL, DMARC, SPF и DKIM | SaytYoxla",
-           "Бесплатно проверьте по отдельности SSL-сертификат, записи DMARC, SPF и DKIM, заголовки безопасности и cookie.",
+           "Проверьте по отдельности SSL, DMARC, SPF и DKIM. Создайте готовые записи DMARC, SPF, CSP, заголовки, robots.txt и sitemap. Бесплатно.",
            "Инструменты для сайта"),
 }
 LINKS = {

@@ -131,5 +131,7 @@ def test_tools_pages_have_their_own_addresses(lang):
 
 def test_built_front_end_has_the_tools():
     import re
-    js = client.get(re.search(r'src="(/react/assets/[^"]+\.js)"', client.get("/").text).group(1)).text
-    assert "/api/tool" in js and "Alətlər" in js
+    main = client.get(re.search(r'src="(/react/assets/[^"]+\.js)"', client.get("/").text).group(1)).text
+    assert "Alətlər" in main and "BEGIN:VCALENDAR" not in main                     # the home page stays light
+    chunks = "".join(f.read_text(encoding="utf-8") for f in (webapp.REACT / "assets").glob("*.js"))
+    assert "/api/tool" in chunks and "_dmarc" in chunks and "BEGIN:VCALENDAR" in chunks
