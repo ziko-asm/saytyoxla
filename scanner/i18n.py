@@ -237,6 +237,94 @@ EXACT: dict[str, tuple[str, str]] = {
     "Əla nəticə: ciddi problem tapılmadı.": (
         "Great result: no serious problems found.", "Отличный результат: серьёзных проблем не найдено."),
 
+    # deeper checks: titles
+    "Cookie təhlükəsizliyi": ("Cookie security", "Безопасность cookie"),
+    "Şifrələmə versiyası (TLS)": ("Encryption version (TLS)", "Версия шифрования (TLS)"),
+    "E-poçt imzası (DKIM)": ("E-mail signature (DKIM)", "Подпись писем (DKIM)"),
+    "Əsas başlıq (H1)": ("Main heading (H1)", "Основной заголовок (H1)"),
+    "Səhifənin dili": ("Page language", "Язык страницы"),
+    "Əsas ünvan (canonical)": ("Main address (canonical)", "Основной адрес (canonical)"),
+    "Sosial şəbəkə kartı": ("Social media card", "Карточка для соцсетей"),
+    "Google-da görünmə icazəsi": ("Permission to appear in Google", "Разрешение на показ в Google"),
+    "Sayt xəritəsi (sitemap)": ("Sitemap", "Карта сайта (sitemap)"),
+
+    # deeper checks: details and fixes
+    "Sertifikat vaxtında oxuna bilmədi.": ("The certificate could not be read in time.", "Не удалось вовремя прочитать сертификат."),
+    "HSTS müddətini ən azı 180 günə qaldırın (max-age=31536000 tövsiyə olunur).": (
+        "Raise the HSTS time to at least 180 days (max-age=31536000 is recommended).",
+        "Увеличьте срок HSTS минимум до 180 дней (рекомендуется max-age=31536000)."),
+    "X-Content-Type-Options başlığının dəyəri səhvdir, brauzer onu nəzərə almır.": (
+        "The X-Content-Type-Options header has a wrong value, so browsers ignore it.",
+        "У заголовка X-Content-Type-Options неверное значение, браузеры его игнорируют."),
+    "Referrer-Policy digər saytlara səhifənin tam ünvanını ötürməyə icazə verir.": (
+        "Referrer-Policy lets other sites receive the page's full address.",
+        "Referrer-Policy разрешает передавать другим сайтам полный адрес страницы."),
+    "CSP yalnız müşahidə rejimindədir (report-only), heç nəyi bloklamır.": (
+        "CSP is only in monitoring mode (report-only) and blocks nothing.",
+        "CSP только в режиме наблюдения (report-only) и ничего не блокирует."),
+    "Hesabatları yoxladıqdan sonra başlığı Content-Security-Policy adı ilə işə salın.": (
+        "After reviewing the reports, turn the header on under the name Content-Security-Policy.",
+        "Изучив отчёты, включите заголовок под именем Content-Security-Policy."),
+    "script-src qaydasından unsafe-inline, unsafe-eval və * dəyərlərini çıxarın, nonce və ya hash işlədin.": (
+        "Remove unsafe-inline, unsafe-eval and * from script-src, and use a nonce or hash.",
+        "Уберите из script-src unsafe-inline, unsafe-eval и *, используйте nonce или hash."),
+    "Əsas səhifə cookie yazmır.": ("The home page sets no cookies.", "Главная страница не устанавливает cookie."),
+    "Cookie-lərə Secure və SameSite=Lax, giriş cookie-lərinə HttpOnly da əlavə edin.": (
+        "Add Secure and SameSite=Lax to cookies, and HttpOnly to login cookies as well.",
+        "Добавьте cookie атрибуты Secure и SameSite=Lax, а cookie входа ещё и HttpOnly."),
+    "TLS versiyası oxunmadı.": ("The TLS version was not read.", "Версия TLS не прочитана."),
+    "Geniş yayılmış adlarda DKIM açarı tapılmadı. Bu, DKIM-in olmadığını sübut etmir.": (
+        "No DKIM key was found under the common names. This does not prove that DKIM is missing.",
+        "Ключ DKIM не найден под распространёнными именами. Это не доказывает, что DKIM нет."),
+    "Səhifədə bir əsas başlıq var.": ("The page has one main heading.", "На странице один основной заголовок."),
+    "Səhifədə əsas başlıq (H1) yoxdur.": ("The page has no main heading (H1).", "На странице нет основного заголовка (H1)."),
+    "Səhifənin mövzusunu izah edən bir H1 başlığı saxlayın.": (
+        "Keep one H1 heading that explains what the page is about.",
+        "Оставьте один заголовок H1, объясняющий тему страницы."),
+    "Səhifənin dili göstərilməyib.": ("The page's language is not set.", "Язык страницы не указан."),
+    "<html> teqinə dili əlavə edin, məsələn: <html lang=\"az\">.": (
+        "Add the language to the <html> tag, for example: <html lang=\"az\">.",
+        "Добавьте язык в тег <html>, например: <html lang=\"az\">."),
+    "Google-a səhifənin əsas ünvanı göstərilib.": (
+        "Google is told the page's main address.", "Google указан основной адрес страницы."),
+    "Google-a səhifənin əsas ünvanı göstərilməyib.": (
+        "Google is not told the page's main address.", "Google не указан основной адрес страницы."),
+    "Səhifəyə <link rel=\"canonical\" href=\"...\"> əlavə edin.": (
+        "Add <link rel=\"canonical\" href=\"...\"> to the page.", "Добавьте на страницу <link rel=\"canonical\" href=\"...\">."),
+    "Link paylaşılanda başlıq və şəkil görünür.": (
+        "A shared link shows a title and an image.", "При отправке ссылки видны заголовок и картинка."),
+    "Link WhatsApp və Facebook-da paylaşılanda başlıq və ya şəkil görünməyə bilər.": (
+        "A link shared on WhatsApp or Facebook may show no title or image.",
+        "Ссылка в WhatsApp и Facebook может отображаться без заголовка или картинки."),
+    "Səhifəyə og:title və og:image meta teqlərini əlavə edin.": (
+        "Add the og:title and og:image meta tags to the page.", "Добавьте на страницу мета-теги og:title и og:image."),
+    "Səhifə Google-dan gizlədilib (noindex), axtarışda çıxmayacaq.": (
+        "The page is hidden from Google (noindex) and will not appear in search.",
+        "Страница скрыта от Google (noindex) и не появится в поиске."),
+    "Sayt açıqdırsa, robots meta teqindən və ya X-Robots-Tag başlığından noindex-i çıxarın.": (
+        "If the site is public, remove noindex from the robots meta tag or the X-Robots-Tag header.",
+        "Если сайт открытый, уберите noindex из мета-тега robots или заголовка X-Robots-Tag."),
+    "robots.txt vaxtında oxuna bilmədi.": ("robots.txt could not be read in time.", "Не удалось вовремя прочитать robots.txt."),
+    "robots.txt bütün sayta girişi bağlayır, sayt axtarışda çıxmayacaq.": (
+        "robots.txt blocks the whole site, so it will not appear in search.",
+        "robots.txt закрывает весь сайт, он не появится в поиске."),
+    "Sayt açıqdırsa, robots.txt-dən \"Disallow: /\" sətrini çıxarın.": (
+        "If the site is public, remove the \"Disallow: /\" line from robots.txt.",
+        "Если сайт открытый, уберите из robots.txt строку «Disallow: /»."),
+    "Axtarış sistemlərinə sayta baxmaq icazəsi verilib.": (
+        "Search engines are allowed to look at the site.", "Поисковым системам разрешено просматривать сайт."),
+    "Sayt xəritəsi vaxtında oxuna bilmədi.": ("The sitemap could not be read in time.", "Не удалось вовремя прочитать карту сайта."),
+    "Sayt xəritəsi tapıldı.": ("A sitemap was found.", "Карта сайта найдена."),
+    "Sayt xəritəsi (sitemap.xml) tapılmadı.": ("No sitemap (sitemap.xml) was found.", "Карта сайта (sitemap.xml) не найдена."),
+    "sitemap.xml yaradın və ünvanını robots.txt-ə yazın.": (
+        "Create sitemap.xml and write its address in robots.txt.", "Создайте sitemap.xml и укажите его адрес в robots.txt."),
+    "Səhifə JavaScript ilə qurulur, bu məlumat brauzerdə əlavə oluna bilər və burada yoxlanılmadı. "
+    "Bu yoxlama bala təsir etmir.": (
+        ("The page is built by JavaScript, so this may be added in the browser and was not checked here. "
+        "This check does not affect the score."),
+        ("Страница строится на JavaScript, поэтому эти данные могут добавляться в браузере и здесь не проверялись. "
+        "Эта проверка не влияет на балл.")),
+
     # score limits
     "Sayt etibarlı HTTPS ilə açılmadığı üçün bal 39-dan yuxarı ola bilməz.": (
         "The score cannot go above 39 because the site does not open over trusted HTTPS.",
@@ -325,9 +413,43 @@ PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.DOTALL), en, ru
      r"The DMARC rule of the main domain (\1) only monitors (p=none); fake e-mails are not blocked.",
      r"Правило DMARC основного домена (\1) только наблюдает (p=none); поддельные письма не блокируются."),
     # score limits
-    (r"(\d+) əsas qoruma ayarı çatışmadığı üçün bal (\d+)-(?:dən|dan) yuxarı ola bilməz\.",
-     r"The score cannot go above \2 because \1 basic protection settings are missing.",
-     r"Балл не может быть выше \2: не хватает основных настроек защиты (\1)."),
+    (r"(\d+) əsas qoruma ayarı çatışmadığı və ya zəif olduğu üçün bal (\d+)-(?:dən|dan) yuxarı ola bilməz\.",
+     r"The score cannot go above \2 because \1 basic protection settings are missing or weak.",
+     r"Балл не может быть выше \2: основные настройки защиты отсутствуют или слабые (\1)."),
+    # deeper checks
+    (r"HSTS çox qısa müddətə qurulub \((\d+) gün\), brauzerlər bu əmri tez unudur\.",
+     r"HSTS is set for too short a time (\1 days), so browsers soon forget it.",
+     r"HSTS задан на слишком короткий срок (дней: \1), браузеры быстро его забывают."),
+    (r"CSP var, amma skriptləri az məhdudlaşdırır: unsafe-inline\.",
+     r"CSP is set, but it does little to limit scripts: unsafe-inline.",
+     r"CSP есть, но мало ограничивает скрипты: unsafe-inline."),
+    (r"CSP var, amma skriptləri az məhdudlaşdırır: unsafe-eval\.",
+     r"CSP is set, but it does little to limit scripts: unsafe-eval.",
+     r"CSP есть, но мало ограничивает скрипты: unsafe-eval."),
+    (r"CSP var, amma skriptləri az məhdudlaşdırır: skriptlər üçün qayda yoxdur\.",
+     r"CSP is set, but it does little to limit scripts: it has no rule for scripts.",
+     r"CSP есть, но мало ограничивает скрипты: нет правила для скриптов."),
+    (r"CSP var, amma skriptləri az məhdudlaşdırır: hər yerdən skriptə icazə\.",
+     r"CSP is set, but it does little to limit scripts: scripts are allowed from anywhere.",
+     r"CSP есть, но мало ограничивает скрипты: скрипты разрешены отовсюду."),
+    (r"Cookie-lər qorunub \((\d+) ədəd\)\.",
+     r"The cookies are protected (\1).",
+     r"Cookie защищены (\1)."),
+    (r"(\d+) cookie-də qoruma çatışmır: (.+)\.",
+     r"Protection is missing on \1 cookie(s): \2.",
+     r"Не хватает защиты у cookie (\1): \2."),
+    (r"Bağlantı (TLS [\d.]+) ilə qurulur\.",
+     r"The connection uses \1.",
+     r"Соединение использует \1."),
+    (r"Məktubları imzalayan DKIM açarı tapıldı \((.+)\)\.",
+     r"A DKIM key that signs e-mails was found (\1).",
+     r"Найден ключ DKIM, подписывающий письма (\1)."),
+    (r"Səhifədə (\d+) əsas başlıq \(H1\) var\.",
+     r"The page has \1 main headings (H1).",
+     r"На странице несколько основных заголовков H1: \1."),
+    (r"Səhifənin dili göstərilib \((.+)\)\.",
+     r"The page's language is set (\1).",
+     r"Язык страницы указан (\1)."),
     # summary
     (r"(\d+) ciddi problem və (\d+) təkmilləşdirmə tövsiyəsi tapıldı\.",
      r"Found \1 serious problem(s) and \2 improvement(s) to make.",

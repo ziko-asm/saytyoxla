@@ -1,6 +1,7 @@
 """
 Collect what a normal visitor's browser would see: one page load (following
-redirects, each hop checked), the TLS certificate, and two public DNS records.
+redirects, each hop checked), the TLS certificate, public DNS records, and the two
+files sites publish for crawlers (robots.txt, sitemap.xml).
 Nothing here probes hidden paths or sends unusual requests.
 
 Every connection goes to an address that was resolved and checked just before (see _PinnedAdapter):
@@ -14,6 +15,8 @@ import re
 import socket
 import ssl
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import wait as wait_for
 from datetime import datetime, timezone
 from urllib.parse import urljoin, urlsplit
 
@@ -37,6 +40,10 @@ MAX_REDIRECTS = 5
 MAX_HTML = 3_000_000
 META_CHARSET = re.compile(rb"""<meta[^>]+charset=["']?([A-Za-z0-9_\-]+)""", re.IGNORECASE)
 MAX_DMARC_PARENTS = 2   # docs.shop.example.az -> shop.example.az, example.az
+EXTRAS_BUDGET = 12      # seconds for everything after the page itself (they run side by side)
+CRAWLER_FILE_BUDGET = 5
+# DNS cannot list a domain's DKIM keys, so only the names mail providers commonly use can be asked for
+DKIM_SELECTORS = ("google", "default", "selector1", "selector2", "k1", "k2", "mail", "dkim", "s1", "s2")
 
 urllib3.disable_warnings(InsecureRequestWarning)    # verify=False is deliberate, see _open()
 
@@ -153,10 +160,11 @@ def cert_info(host: str, ip: str | None = None, port: int = 443) -> dict:
             ctx.wrap_socket(sock, server_hostname=host) as tls,
         ):
             c = tls.getpeercert()
+            version = tls.version()
         expires = datetime.fromtimestamp(ssl.cert_time_to_seconds(c["notAfter"]), tz=timezone.utc)
         issuer = dict(x[0] for x in c.get("issuer", ())).get("organizationName", "")
         return {"days_left": (expires - datetime.now(timezone.utc)).days, "issuer": issuer,
-                "expires": expires.date().isoformat(), "error": None}
+                "expires": expires.date().isoformat(), "error": None, "tls": version}
     except ssl.SSLCertVerificationError as e:
         return {"days_left": None, "issuer": "", "expires": None, "error": e.verify_message or "invalid"}
     except UnsafeTarget:
@@ -205,6 +213,51 @@ def dmarc_records(domain: str) -> tuple[list | None, str | None]:
     return records, None
 
 
+def dkim_selectors(domain: str) -> list | None:
+    """The common selectors with a DKIM key. None if DNS did not answer at all, so nothing can be said."""
+    with ThreadPoolExecutor(max_workers=len(DKIM_SELECTORS)) as pool:
+        answers = list(pool.map(lambda s: (s, txt_records(f"{s}._domainkey.{domain}")), DKIM_SELECTORS))
+    if all(records is None for _, records in answers):
+        return None
+    return [s for s, records in answers if records and any("p=" in r for r in records)]
+
+
+def _public_file(url: str, verify: bool) -> tuple[str, str] | None:
+    """(content type, text) of a file the site publishes for crawlers; None if it is not there.
+    Hops are checked like every other request. Many sites answer 200 with an HTML page for any address."""
+    try:
+        r, _, _, _, body, _ = _get(url, budget=CRAWLER_FILE_BUDGET, verify=verify)
+    except (requests.RequestException, UnsafeTarget):
+        return None
+    if r.status_code != 200:
+        return None
+    return r.headers.get("content-type", "").lower(), body.decode("utf-8", "replace")
+
+
+def robots_txt(base: str, verify: bool) -> str:
+    found = _public_file(base + "/robots.txt", verify)
+    if not found or "html" in found[0] or "<html" in found[1][:500].lower():
+        return ""
+    return found[1]
+
+
+def has_sitemap(base: str, robots: str, verify: bool) -> bool:
+    if re.search(r"(?im)^\s*sitemap\s*:\s*\S", robots):
+        return True
+    found = _public_file(base + "/sitemap.xml", verify)
+    if not found or "html" in found[0]:
+        return False
+    return "<urlset" in found[1][:2000] or "<sitemapindex" in found[1][:2000]
+
+
+def set_cookies(r) -> list:
+    """Every Set-Cookie value (requests joins them into one string, which cannot be split back reliably)."""
+    try:
+        return list(r.raw.headers.getlist("set-cookie"))
+    except AttributeError:
+        return []
+
+
 def _open(url: str):
     """Load the page, returning _get()'s values and whether the certificate was accepted. A bad certificate is
     a finding, not a dead end: the page is read anyway so its owner gets a report. Nothing secret is sent, and
@@ -239,20 +292,49 @@ def collect(url: str) -> Context:
     ctx.final_url, ctx.redirect_chain, ctx.elapsed_ms = final, chain, elapsed
     ctx.status_code = r.status_code
     ctx.headers = {k.lower(): v for k, v in r.headers.items()}
+    ctx.cookies = set_cookies(r)
     ctx.html_bytes = len(body)
     ctx.html = body.decode(_encoding(r, body), "replace")
 
-    final_host = urlsplit(final).hostname or ctx.host
-    if urlsplit(final).scheme == "https":
-        ctx.cert = cert_info(final_host, ip)
-    # Does the plain-http address end up on https?
-    try:
-        _, http_final, _, _, _, _ = _get("http://" + ctx.host + "/", budget=HTTP_CHECK_BUDGET, verify=verified)
-        ctx.http_to_https = urlsplit(http_final).scheme == "https"
-    except (requests.RequestException, UnsafeTarget):
-        ctx.http_to_https = None
-
+    parts = urlsplit(final)
+    final_host = parts.hostname or ctx.host
+    base = f"{parts.scheme}://{parts.netloc}"
     domain = mail_domain(final_host)
-    dmarc, dmarc_parent = dmarc_records(domain)
-    ctx.txt_records = {"spf": txt_records(domain), "dmarc": dmarc, "dmarc_parent": dmarc_parent}
+
+    def http_redirects():    # does the plain-http address end up on https?
+        _, http_final, _, _, _, _ = _get("http://" + ctx.host + "/", budget=HTTP_CHECK_BUDGET, verify=verified)
+        return urlsplit(http_final).scheme == "https"
+
+    def crawler_files():
+        robots = robots_txt(base, verified)
+        return robots, has_sitemap(base, robots, verified)
+
+    # Side by side, so a slow DNS server or a missing file cannot use up the time of the whole scan.
+    # Whatever is not back in time stays unknown and the report says it was not checked.
+    pool = ThreadPoolExecutor(max_workers=6)
+    jobs = {
+        "http": pool.submit(http_redirects),
+        "spf": pool.submit(txt_records, domain),
+        "dmarc": pool.submit(dmarc_records, domain),
+        "dkim": pool.submit(dkim_selectors, domain),
+        "files": pool.submit(crawler_files),
+    }
+    if parts.scheme == "https":
+        jobs["cert"] = pool.submit(cert_info, final_host, ip)
+    wait_for(jobs.values(), timeout=EXTRAS_BUDGET)
+    pool.shutdown(wait=False, cancel_futures=True)
+
+    def result(name, default=None):
+        job = jobs.get(name)
+        if job is None or not job.done() or job.cancelled() or job.exception():
+            return default
+        return job.result()
+
+    if "cert" in jobs:
+        ctx.cert = result("cert", {"days_left": None, "issuer": "", "expires": None, "error": None, "unknown": True})
+    ctx.http_to_https = result("http")
+    dmarc, dmarc_parent = result("dmarc", (None, None))
+    ctx.txt_records = {"spf": result("spf"), "dmarc": dmarc, "dmarc_parent": dmarc_parent}
+    ctx.dkim = result("dkim")
+    ctx.robots, ctx.sitemap = result("files", (None, None))
     return ctx

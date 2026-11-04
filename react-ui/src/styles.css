@@ -138,6 +138,13 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 .f .fix{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warn-bg);color:#5b3b04;font-size:14.5px}
 .f.fail .fix{background:var(--fail-bg);color:#7f1d1d}
 .f .fix strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.f-body{min-width:0;flex:1}
+.f .bench{margin-top:8px;font-size:13.5px;color:var(--muted)}
+.snips{margin-top:6px}
+.snips summary{cursor:pointer;color:var(--brand-2);font-weight:600;font-size:14px;display:flex;align-items:center;min-height:44px}
+.snip{margin-top:8px}
+.snip span{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.snip pre{margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);overflow-x:auto;font-size:13px;line-height:1.5}
 .ok-list summary{cursor:pointer;color:var(--ok);font-weight:700;display:flex;align-items:center;min-height:44px;padding:6px 4px;list-style:none}
 .ok-list summary::-webkit-details-marker{display:none}
 
@@ -220,6 +227,7 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
   .score{background:none;border:10px solid var(--c)}   /* PDF renderers can drop the conic gradient, and the number is what counts */
   .rep-head,.f{box-shadow:none;break-inside:avoid}
   .ok-list[open] summary,.ok-list summary{display:none}
+  .snips{display:none}
 }
 
 .survey-link{margin:22px 0 0;text-align:center;font-weight:600}

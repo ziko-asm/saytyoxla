@@ -38,6 +38,10 @@ class Context:
     cert: dict | None = None                        # {"days_left", "issuer", "error"}
     # {"spf": [...], "dmarc": [...], "dmarc_parent": "example.az" when inherited}; a list is None on error
     txt_records: dict = field(default_factory=dict)
+    cookies: list = field(default_factory=list)     # raw Set-Cookie values of the final response
+    robots: str | None = None                       # robots.txt text; "" if there is none, None if not checked
+    sitemap: bool | None = None                     # does the site publish a sitemap? None if not checked
+    dkim: list | None = None                        # common DKIM selectors that answered; None if not checked
     error: str | None = None
 
 

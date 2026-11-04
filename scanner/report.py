@@ -28,9 +28,9 @@ def score_cap(findings: list[Finding]) -> tuple[int, str]:
         return 59, "Sertifikatın vaxtı bitmək üzrə olduğu üçün bal 59-dan yuxarı ola bilməz."
     missing = sum(status.get(p) == WARN for p in CORE_PROTECTIONS)
     if missing >= 4:
-        return 74, f"{missing} əsas qoruma ayarı çatışmadığı üçün bal 74-dən yuxarı ola bilməz."
+        return 74, f"{missing} əsas qoruma ayarı çatışmadığı və ya zəif olduğu üçün bal 74-dən yuxarı ola bilməz."
     if missing >= 2:
-        return 89, f"{missing} əsas qoruma ayarı çatışmadığı üçün bal 89-dan yuxarı ola bilməz."
+        return 89, f"{missing} əsas qoruma ayarı çatışmadığı və ya zəif olduğu üçün bal 89-dan yuxarı ola bilməz."
     return 100, ""
 
 

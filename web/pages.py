@@ -22,7 +22,7 @@ LINKS = {
     "privacy": {"az": "Məxfilik", "en": "Privacy", "ru": "Конфиденциальность"},
     "terms": {"az": "Şərtlər", "en": "Terms", "ru": "Условия"},
 }
-UPDATED = {"az": "Son yenilənmə: 4 noyabr 2026", "en": "Last updated: 4 November 2026", "ru": "Обновлено: 4 ноября 2026"}
+UPDATED = {"az": "Son yenilənmə: 5 noyabr 2026", "en": "Last updated: 5 November 2026", "ru": "Обновлено: 5 ноября 2026"}
 
 WHATSAPP = '<a href="https://wa.me/994772172358" target="_blank" rel="noopener">WhatsApp</a>'
 LINKEDIN = '<a href="https://www.linkedin.com/in/ziya-azizov-91bba638a" target="_blank" rel="noopener">LinkedIn</a>'
@@ -35,7 +35,7 @@ CONTENT = {
         "az": ("SaytYoxla haqqında", "SaytYoxla kiçik bizneslər üçün saytın təhlükəsizliyini, e-poçt qorumasını və sürətini pulsuz yoxlayan alətdir.", f"""
 <p>SaytYoxla kiçik biznes sahibləri və sayt quranlar üçün pulsuz alətdir. Saytın ünvanını yazırsınız, biz təhlükəsizlik, e-poçt qoruması, sürət və telefona uyğunluq ayarlarını yoxlayıb nəticəni sadə dildə izah edirik.</p>
 <h2>Necə işləyir?</h2>
-<p>Yalnız hər kəsə açıq olan məlumata baxırıq: əsas səhifəni bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Saytı sındırmağa çalışmırıq və heç nəyi dəyişmirik. Bu, tam təhlükəsizlik auditi deyil: kənardan görünməyən problemləri aşkar edə bilmir.</p>
+<p>Yalnız hər kəsə açıq olan məlumata baxırıq: əsas səhifəni, robots.txt və sitemap.xml fayllarını bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Saytı sındırmağa çalışmırıq və heç nəyi dəyişmirik. Bu, tam təhlükəsizlik auditi deyil: kənardan görünməyən problemləri aşkar edə bilmir.</p>
 <h2>Müəllif</h2>
 <p>SaytYoxla-nı Ziya Azizov hazırlayıb.</p>
 <h2>Əlaqə</h2>
@@ -43,7 +43,7 @@ CONTENT = {
         "en": ("About SaytYoxla", "SaytYoxla is a free tool that checks a website's security, e-mail protection and speed for small businesses.", f"""
 <p>SaytYoxla is a free tool for small business owners and the people who build their websites. You enter a site's address, and we check its security, e-mail protection, speed and mobile settings, then explain the result in plain words.</p>
 <h2>How it works</h2>
-<p>We only look at information that is open to everyone: we open the home page once and read the certificate and public DNS records. We do not try to break into the site and we change nothing. This is not a full security audit: it cannot find problems that are not visible from outside.</p>
+<p>We only look at information that is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the certificate and public DNS records. We do not try to break into the site and we change nothing. This is not a full security audit: it cannot find problems that are not visible from outside.</p>
 <h2>Author</h2>
 <p>SaytYoxla was made by Ziya Azizov.</p>
 <h2>Contact</h2>
@@ -51,7 +51,7 @@ CONTENT = {
         "ru": ("О сервисе SaytYoxla", "SaytYoxla — бесплатный инструмент для малого бизнеса: проверка безопасности сайта, защиты почты и скорости.", f"""
 <p>SaytYoxla — бесплатный инструмент для владельцев малого бизнеса и тех, кто делает им сайты. Вы вводите адрес сайта, а мы проверяем безопасность, защиту почты, скорость и адаптацию под телефон и объясняем результат простыми словами.</p>
 <h2>Как это работает</h2>
-<p>Мы смотрим только на открытую информацию: один раз открываем главную страницу, читаем сертификат и открытые DNS-записи. Мы не пытаемся взломать сайт и ничего не меняем. Это не полный аудит безопасности: проблемы, которые не видны снаружи, он найти не может.</p>
+<p>Мы смотрим только на открытую информацию: один раз открываем главную страницу, robots.txt и sitemap.xml, читаем сертификат и открытые DNS-записи. Мы не пытаемся взломать сайт и ничего не меняем. Это не полный аудит безопасности: проблемы, которые не видны снаружи, он найти не может.</p>
 <h2>Автор</h2>
 <p>SaytYoxla создал Ziya Azizov.</p>
 <h2>Контакты</h2>
@@ -69,7 +69,7 @@ CONTENT = {
 <h2>Nə istifadə olunmur?</h2>
 <p>Saytda reklam, izləmə skriptləri və kuki faylları yoxdur. Şriftlər də öz serverimizdən yüklənir.</p>
 <h2>Yoxlanılan sayt nə görür?</h2>
-<p>Yoxlama zamanı saytın əsas səhifəsi serverimizdən bir dəfə açılır. Sayt sizin IP ünvanınızı yox, serverimizin ünvanını görür.</p>
+<p>Yoxlama zamanı saytın əsas səhifəsi, robots.txt və sitemap.xml faylları serverimizdən bir dəfə açılır. Sayt sizin IP ünvanınızı yox, serverimizin ünvanını görür.</p>
 <h2>WhatsApp</h2>
 <p>«WhatsApp-a yazın» düyməsini bassanız, hazır mesaj WhatsApp-da açılır və onu siz özünüz göndərirsiniz. Bundan sonra WhatsApp-ın öz qaydaları tətbiq olunur.</p>
 <h2>Əlaqə</h2>
@@ -85,7 +85,7 @@ CONTENT = {
 <h2>What is not used</h2>
 <p>The site has no ads, no tracking scripts and no cookies. Fonts are loaded from our own server too.</p>
 <h2>What the checked site sees</h2>
-<p>During a check, the site's home page is opened once from our server. The site sees our server's address, not your IP address.</p>
+<p>During a check, the site's home page, robots.txt and sitemap.xml are opened once from our server. The site sees our server's address, not your IP address.</p>
 <h2>WhatsApp</h2>
 <p>If you press "Message on WhatsApp", a prepared message opens in WhatsApp and you send it yourself. WhatsApp's own rules apply from there.</p>
 <h2>Contact</h2>
@@ -101,7 +101,7 @@ CONTENT = {
 <h2>Что не используется</h2>
 <p>На сайте нет рекламы, скриптов отслеживания и cookie. Шрифты тоже загружаются с нашего сервера.</p>
 <h2>Что видит проверяемый сайт</h2>
-<p>При проверке главная страница сайта один раз открывается с нашего сервера. Сайт видит адрес нашего сервера, а не ваш IP-адрес.</p>
+<p>При проверке главная страница сайта, robots.txt и sitemap.xml один раз открываются с нашего сервера. Сайт видит адрес нашего сервера, а не ваш IP-адрес.</p>
 <h2>WhatsApp</h2>
 <p>Если вы нажмёте «Написать в WhatsApp», готовое сообщение откроется в WhatsApp, и отправляете его вы сами. Дальше действуют правила WhatsApp.</p>
 <h2>Контакты</h2>

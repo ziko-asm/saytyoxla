@@ -7,6 +7,16 @@ import { resolve } from 'node:path'
 export default defineConfig({
   plugins: [react()],
   base: '/react/',
+  // Preact runs the same components in a fraction of React's size; the page is one form and a report
+  resolve: {
+    alias: {
+      'react-dom/client': 'preact/compat/client',
+      'react-dom': 'preact/compat',
+      'react/jsx-runtime': 'preact/jsx-runtime',
+      'react/jsx-dev-runtime': 'preact/jsx-runtime',
+      react: 'preact/compat',
+    },
+  },
   build: {
     outDir: '../web/react',
     emptyOutDir: true,

@@ -21,6 +21,7 @@ export type Report = {
   score_note?: string // why the score was held below what the points alone would give
   findings: Finding[]
   counts: { fail?: number; warn?: number; ok?: number }
+  benchmarks?: Record<string, number> // check id -> % of surveyed Azerbaijani sites that pass it
   scanned_at: string
   cached?: boolean // true when the server answered from its 10-minute result cache
 }

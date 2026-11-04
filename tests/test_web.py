@@ -98,9 +98,18 @@ def test_malformed_json_detail_is_one_sentence():
 
 def test_score_note_is_translated():
     from scanner import i18n
-    d = {"summary": "ok", "findings": [], "score_note": "4 əsas qoruma ayarı çatışmadığı üçün bal 74-dən yuxarı ola bilməz."}
+    d = {"summary": "ok", "findings": [],
+         "score_note": "4 əsas qoruma ayarı çatışmadığı və ya zəif olduğu üçün bal 74-dən yuxarı ola bilməz."}
     assert "74" in i18n.report(d, "en")["score_note"] and "basic protection" in i18n.report(d, "en")["score_note"]
     assert i18n.report({"summary": "ok", "findings": []}, "ru")["score_note"] == ""
+
+
+def test_scan_response_carries_survey_benchmarks():
+    from web import survey
+    survey.stats.cache_clear()
+    for cached in (False, True):
+        j = client.post("/api/scan", json={"url": "example.az"}).json()
+        assert j["cached"] is cached and j["benchmarks"]["csp"] == survey.stats()["all"]["pass"]["csp"]
 
 
 def test_scanner_error_is_400(monkeypatch):

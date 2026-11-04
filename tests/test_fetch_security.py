@@ -78,6 +78,81 @@ def test_first_error_is_kept_when_the_http_fallback_fails_too(monkeypatch):
     assert fetch.collect("https://down.example.az/").error == "ConnectTimeout"
 
 
+def _file_server(monkeypatch, files):
+    def get(url, budget=None, verify=True):
+        for path, (status, ctype, body) in files.items():
+            if url.endswith(path):
+                class Response:
+                    status_code, headers = status, {"content-type": ctype}
+                return Response(), url, [], 1.0, body.encode(), "93.184.216.34"
+        raise requests.exceptions.ConnectionError("no such file")
+    monkeypatch.setattr(fetch, "_get", get)
+
+
+def test_robots_txt_html_answer_means_no_file(monkeypatch):
+    _file_server(monkeypatch, {"/robots.txt": (200, "text/html", "<html>page</html>")})
+    assert fetch.robots_txt("https://a.az", True) == ""
+    _file_server(monkeypatch, {"/robots.txt": (200, "text/plain", "User-agent: *")})
+    assert fetch.robots_txt("https://a.az", True) == "User-agent: *"
+    _file_server(monkeypatch, {"/robots.txt": (404, "text/plain", "gone")})
+    assert fetch.robots_txt("https://a.az", True) == ""
+
+
+def test_sitemap_comes_from_robots_or_a_real_xml_file(monkeypatch):
+    _file_server(monkeypatch, {})
+    assert fetch.has_sitemap("https://a.az", "Sitemap: https://a.az/s.xml\n", True) is True
+    assert fetch.has_sitemap("https://a.az", "", True) is False
+    _file_server(monkeypatch, {"/sitemap.xml": (200, "application/xml", "<?xml?><urlset></urlset>")})
+    assert fetch.has_sitemap("https://a.az", "", True) is True
+    _file_server(monkeypatch, {"/sitemap.xml": (200, "text/html", "<urlset>")})
+    assert fetch.has_sitemap("https://a.az", "", True) is False
+    _file_server(monkeypatch, {"/sitemap.xml": (200, "text/xml", "<html>not a sitemap</html>")})
+    assert fetch.has_sitemap("https://a.az", "", True) is False
+
+
+def test_dkim_finds_only_real_keys_and_admits_when_dns_is_down(monkeypatch):
+    table = {"google._domainkey.a.az": ["v=DKIM1; k=rsa; p=ABC"], "mail._domainkey.a.az": ["not a key"]}
+    monkeypatch.setattr(fetch, "txt_records", lambda name: table.get(name, []))
+    assert fetch.dkim_selectors("a.az") == ["google"]
+    monkeypatch.setattr(fetch, "txt_records", lambda name: None)
+    assert fetch.dkim_selectors("a.az") is None
+
+
+def test_slow_extras_stay_unknown_and_do_not_hold_the_scan(monkeypatch):
+    def get(url, budget=None, verify=True):
+        if url.endswith("/robots.txt"):
+            time.sleep(2)
+        return _page(url)
+    _no_network(monkeypatch, get)
+    monkeypatch.setattr(fetch, "EXTRAS_BUDGET", 0.3)
+    started = time.perf_counter()
+    ctx = fetch.collect("https://slow-files.example.az/")
+    assert ctx.error is None and ctx.robots is None and ctx.sitemap is None
+    assert time.perf_counter() - started < 1.5
+
+
+def test_one_failed_extra_does_not_lose_the_others(monkeypatch):
+    def boom(host, ip):
+        raise RuntimeError("unexpected")
+    _no_network(monkeypatch, lambda url, budget=None, verify=True: _page(url))
+    monkeypatch.setattr(fetch, "cert_info", boom)
+    ctx = fetch.collect("https://a.example.az/")
+    assert ctx.cert.get("unknown") is True and ctx.http_to_https is not None and ctx.dkim == []
+
+
+def test_cookies_are_read_one_by_one():
+    class Raw:
+        class headers:
+            @staticmethod
+            def getlist(name):
+                return ["a=1; Secure", "b=2"]
+
+    class Response:
+        raw = Raw
+    assert fetch.set_cookies(Response) == ["a=1; Secure", "b=2"]
+    assert fetch.set_cookies(object()) == []
+
+
 def test_dmarc_walks_up_to_the_parent_but_never_to_the_tld(monkeypatch):
     asked = []
     table = {"_dmarc.example.az": ["v=DMARC1; p=reject"]}

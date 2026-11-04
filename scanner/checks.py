@@ -21,11 +21,29 @@ class _Page(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.title, self._in_title, self._title_seen = "", False, False
         self._svg_depth = 0
+        self._hidden_depth = 0      # inside <script> or <style>
         self.meta = {}
+        self.properties = set()     # <meta property="og:..."> names
         self.insecure = set()
+        self.lang = ""
+        self.h1_count = 0
+        self.canonical = False
+        self.scripts = 0
+        self.text_chars = 0
 
     def handle_starttag(self, tag, attrs):
         a = {k.lower(): (v or "") for k, v in attrs}
+        if tag in ("script", "style"):
+            self._hidden_depth += 1
+            self.scripts += tag == "script"
+        elif tag == "html":
+            self.lang = a.get("lang", "").strip()
+        elif tag == "h1":
+            self.h1_count += 1
+        elif tag == "link" and "canonical" in a.get("rel", "").lower().split() and a.get("href"):
+            self.canonical = True
+        elif tag == "meta" and a.get("property") and a.get("content"):
+            self.properties.add(a["property"].lower())
         if tag == "svg":
             self._svg_depth += 1
         elif tag == "title":
@@ -43,7 +61,9 @@ class _Page(HTMLParser):
             self.insecure.add(url)
 
     def handle_endtag(self, tag):
-        if tag == "svg":
+        if tag in ("script", "style"):
+            self._hidden_depth = max(0, self._hidden_depth - 1)
+        elif tag == "svg":
             self._svg_depth = max(0, self._svg_depth - 1)
         elif tag == "title":
             self._title_seen = self._title_seen or self._in_title
@@ -52,6 +72,8 @@ class _Page(HTMLParser):
     def handle_data(self, data):
         if self._in_title:
             self.title += data
+        elif not self._hidden_depth:
+            self.text_chars += len(data.strip())
 
 
 def parse(html: str) -> _Page:
@@ -106,6 +128,8 @@ def certificate(ctx: Context, page) -> Finding:
     c = ctx.cert
     if not c:
         return Finding("cert", SEC, "SSL sertifikatı", INFO, "Sertifikat yoxlanılmadı (sayt https deyil).")
+    if c.get("unknown"):
+        return Finding("cert", SEC, "SSL sertifikatı", INFO, "Sertifikat vaxtında oxuna bilmədi.")
     if c.get("error"):
         return Finding("cert", SEC, "SSL sertifikatı", FAIL, cert_error_text(c["error"]),
                        "Sertifikatı yeniləyin və domen adına uyğun olduğunu yoxlayın.", 20)
@@ -120,42 +144,127 @@ def certificate(ctx: Context, page) -> Finding:
                    "" if st == OK else "Sertifikatın avtomatik yenilənməsini qurun.", 15)
 
 
-def _header_check(fid, title, header, good_detail, bad_detail, fix, weight):
-    def check(ctx: Context, page) -> Finding:
-        present = header in ctx.headers
-        return Finding(fid, SEC, title, OK if present else WARN,
-                       good_detail if present else bad_detail, "" if present else fix, weight)
-    return check
+HSTS_MIN_DAYS = 180
 
 
-hsts = _header_check("hsts", "Məcburi HTTPS (HSTS)", "strict-transport-security",
-                     "Brauzerlərə sayta yalnız HTTPS ilə girmək əmr olunub.",
-                     "Brauzerlərə yalnız HTTPS istifadə etmək əmri verilməyib.",
-                     "Server cavabına Strict-Transport-Security başlığını əlavə edin.", 6)
-nosniff = _header_check("nosniff", "Fayl tipinin qorunması", "x-content-type-options",
-                        "Brauzerin faylları səhv tipdə açması qadağandır.",
-                        "X-Content-Type-Options başlığı yoxdur.",
-                        "Server cavabına \"X-Content-Type-Options: nosniff\" əlavə edin.", 4)
-referrer = _header_check("referrer", "Keçid məlumatının qorunması", "referrer-policy",
-                         "Keçid zamanı digər saytlara nə qədər məlumat ötürüldüyü məhdudlaşdırılıb.",
-                         "Referrer-Policy başlığı yoxdur.",
-                         "Server cavabına \"Referrer-Policy: strict-origin-when-cross-origin\" əlavə edin.", 2)
+def hsts(ctx: Context, page) -> Finding:
+    title = "Məcburi HTTPS (HSTS)"
+    fix = "Server cavabına Strict-Transport-Security başlığını əlavə edin."
+    value = ctx.headers.get("strict-transport-security")
+    if value is None:
+        return Finding("hsts", SEC, title, WARN, "Brauzerlərə yalnız HTTPS istifadə etmək əmri verilməyib.", fix, 6)
+    m = re.search(r"max-age\s*=\s*\"?(\d+)", value, re.IGNORECASE)
+    days = int(m.group(1)) // 86400 if m else 0
+    if days < HSTS_MIN_DAYS:
+        return Finding("hsts", SEC, title, WARN,
+                       f"HSTS çox qısa müddətə qurulub ({days} gün), brauzerlər bu əmri tez unudur.",
+                       "HSTS müddətini ən azı 180 günə qaldırın (max-age=31536000 tövsiyə olunur).", 6)
+    return Finding("hsts", SEC, title, OK, "Brauzerlərə sayta yalnız HTTPS ilə girmək əmr olunub.", "", 6)
+
+
+def nosniff(ctx: Context, page) -> Finding:
+    ok = ctx.headers.get("x-content-type-options", "").strip().lower() == "nosniff"
+    missing = "x-content-type-options" not in ctx.headers
+    return Finding("nosniff", SEC, "Fayl tipinin qorunması", OK if ok else WARN,
+                   "Brauzerin faylları səhv tipdə açması qadağandır." if ok else
+                   "X-Content-Type-Options başlığı yoxdur." if missing else
+                   "X-Content-Type-Options başlığının dəyəri səhvdir, brauzer onu nəzərə almır.",
+                   "" if ok else "Server cavabına \"X-Content-Type-Options: nosniff\" əlavə edin.", 4)
+
+
+def referrer(ctx: Context, page) -> Finding:
+    value = ctx.headers.get("referrer-policy")
+    # Several values are a fallback list: the last one a browser knows wins
+    last = (value or "").split(",")[-1].strip().lower()
+    weak = last in ("unsafe-url", "no-referrer-when-downgrade", "")
+    fix = "Server cavabına \"Referrer-Policy: strict-origin-when-cross-origin\" əlavə edin."
+    if value is None:
+        return Finding("referrer", SEC, "Keçid məlumatının qorunması", WARN, "Referrer-Policy başlığı yoxdur.", fix, 2)
+    return Finding("referrer", SEC, "Keçid məlumatının qorunması", WARN if weak else OK,
+                   "Referrer-Policy digər saytlara səhifənin tam ünvanını ötürməyə icazə verir." if weak else
+                   "Keçid zamanı digər saytlara nə qədər məlumat ötürüldüyü məhdudlaşdırılıb.",
+                   fix if weak else "", 2)
+
+
+def csp_directives(policy: str) -> dict:
+    out = {}
+    for part in policy.split(";"):
+        words = part.strip().split()
+        if words:
+            out.setdefault(words[0].lower(), [w.lower() for w in words[1:]])
+    return out
 
 
 def framing(ctx: Context, page) -> Finding:
-    ok = "x-frame-options" in ctx.headers or "frame-ancestors" in ctx.headers.get("content-security-policy", "")
+    xfo = ctx.headers.get("x-frame-options", "").strip().lower()
+    ancestors = csp_directives(ctx.headers.get("content-security-policy", "")).get("frame-ancestors")
+    ok = xfo in ("deny", "sameorigin") or (ancestors is not None and "*" not in ancestors)
     return Finding("framing", SEC, "Saxta çərçivəyə qarşı qoruma", OK if ok else WARN,
                    "Sayt başqa saytın içində gizli açıla bilməz." if ok else
                    "Sayt başqa saytın içinə yerləşdirilib istifadəçini aldatmaq üçün istifadə oluna bilər.",
                    "" if ok else "Server cavabına \"X-Frame-Options: SAMEORIGIN\" əlavə edin.", 5)
 
 
+def csp_weakness(policy: str) -> str | None:
+    """What makes a policy fail to limit scripts, or None if it does limit them."""
+    d = csp_directives(policy)
+    scripts = d.get("script-src", d.get("default-src"))
+    if scripts is None:
+        return "skriptlər üçün qayda yoxdur"
+    if "'unsafe-inline'" in scripts and not any(s.startswith(("'nonce-", "'sha256-", "'sha384-", "'sha512-")) for s in scripts):
+        return "unsafe-inline"
+    if "'unsafe-eval'" in scripts:
+        return "unsafe-eval"
+    if any(s in ("*", "https:", "http:", "data:") for s in scripts):
+        return "hər yerdən skriptə icazə"
+    return None
+
+
 def csp(ctx: Context, page) -> Finding:
-    ok = "content-security-policy" in ctx.headers
-    return Finding("csp", SEC, "Kənar skriptlərə nəzarət (CSP)", OK if ok else WARN,
-                   "Saytda hansı skriptlərin işləyə biləcəyi məhdudlaşdırılıb." if ok else
-                   "Saytda kənar skriptlərə nəzarət qaydası (CSP) yoxdur.",
-                   "" if ok else "Content-Security-Policy başlığını əvvəlcə report-only rejimində qurun.", 4)
+    title = "Kənar skriptlərə nəzarət (CSP)"
+    policy = ctx.headers.get("content-security-policy")
+    if policy is None:
+        report_only = "content-security-policy-report-only" in ctx.headers
+        return Finding("csp", SEC, title, WARN,
+                       "CSP yalnız müşahidə rejimindədir (report-only), heç nəyi bloklamır." if report_only else
+                       "Saytda kənar skriptlərə nəzarət qaydası (CSP) yoxdur.",
+                       "Hesabatları yoxladıqdan sonra başlığı Content-Security-Policy adı ilə işə salın." if report_only else
+                       "Content-Security-Policy başlığını əvvəlcə report-only rejimində qurun.", 4)
+    weakness = csp_weakness(policy)
+    if weakness:
+        return Finding("csp", SEC, title, WARN, f"CSP var, amma skriptləri az məhdudlaşdırır: {weakness}.",
+                       "script-src qaydasından unsafe-inline, unsafe-eval və * dəyərlərini çıxarın, nonce və ya hash işlədin.", 4)
+    return Finding("csp", SEC, title, OK, "Saytda hansı skriptlərin işləyə biləcəyi məhdudlaşdırılıb.", "", 4)
+
+
+SESSION_COOKIE = re.compile(r"sess|auth|token|sid$|login|jwt", re.IGNORECASE)
+
+
+def cookies(ctx: Context, page) -> Finding:
+    title = "Cookie təhlükəsizliyi"
+    if not ctx.cookies:
+        return Finding("cookies", SEC, title, OK, "Əsas səhifə cookie yazmır.", "", 5)
+    secure_site = urlsplit(ctx.final_url).scheme == "https"
+    weak = []
+    for raw in ctx.cookies:
+        name, _, rest = raw.partition("=")
+        attrs = {p.split("=")[0].strip().lower() for p in rest.split(";")[1:]}
+        # JavaScript needs to read many ordinary cookies, so HttpOnly is only required of login-like ones
+        if (secure_site and "secure" not in attrs) or "samesite" not in attrs \
+                or (SESSION_COOKIE.search(name) and "httponly" not in attrs):
+            weak.append(name.strip())
+    if not weak:
+        return Finding("cookies", SEC, title, OK, f"Cookie-lər qorunub ({len(ctx.cookies)} ədəd).", "", 5)
+    return Finding("cookies", SEC, title, WARN,
+                   f"{len(weak)} cookie-də qoruma çatışmır: {', '.join(weak[:3])}.",
+                   "Cookie-lərə Secure və SameSite=Lax, giriş cookie-lərinə HttpOnly da əlavə edin.", 5)
+
+
+def tls_version(ctx: Context, page) -> Finding:
+    version = (ctx.cert or {}).get("tls")
+    if not version:
+        return Finding("tls", SEC, "Şifrələmə versiyası (TLS)", INFO, "TLS versiyası oxunmadı.")
+    return Finding("tls", SEC, "Şifrələmə versiyası (TLS)", OK, f"Bağlantı {version.replace('TLSv', 'TLS ')} ilə qurulur.")
 
 
 VERSION_RE = re.compile(r"\d+\.\d+")
@@ -250,6 +359,18 @@ def dmarc(ctx: Context, page) -> Finding:
                    "Saxta məktublar qəbul edən tərəfindən bloklanır.", "", 8)
 
 
+def dkim(ctx: Context, page) -> Finding:
+    title = "E-poçt imzası (DKIM)"
+    if on_platform(ctx):
+        return Finding("dkim", MAIL, title, INFO, PLATFORM_NOTE)
+    if ctx.dkim is None:
+        return Finding("dkim", MAIL, title, INFO, "DNS yoxlanıla bilmədi.")
+    if ctx.dkim:
+        return Finding("dkim", MAIL, title, OK, f"Məktubları imzalayan DKIM açarı tapıldı ({', '.join(ctx.dkim[:3])}).")
+    # DNS cannot list the keys, so a key under an unusual name stays invisible: never a problem, only a note
+    return Finding("dkim", MAIL, title, INFO, "Geniş yayılmış adlarda DKIM açarı tapılmadı. Bu, DKIM-in olmadığını sübut etmir.")
+
+
 # ---------------------------------------------------------------- speed
 def response_time(ctx: Context, page) -> Finding:
     ms = ctx.elapsed_ms or 0
@@ -292,21 +413,104 @@ def description(ctx: Context, page) -> Finding:
                    "" if st == OK else "50–170 simvolluq, xidməti və əlaqəni göstərən meta description yazın.", 4)
 
 
-ALL_CHECKS = [https_used, certificate, http_redirect, hsts, framing, nosniff, csp, referrer,
-              disclosure, mixed_content, spf, dmarc, response_time, html_size, viewport,
-              title_tag, description]
+def heading(ctx: Context, page) -> Finding:
+    n = page.h1_count
+    st = OK if n == 1 else WARN
+    return Finding("h1", SEO, "Əsas başlıq (H1)", st,
+                   "Səhifədə bir əsas başlıq var." if n == 1 else
+                   "Səhifədə əsas başlıq (H1) yoxdur." if n == 0 else f"Səhifədə {n} əsas başlıq (H1) var.",
+                   "" if st == OK else "Səhifənin mövzusunu izah edən bir H1 başlığı saxlayın.", 2)
 
 
-CONTENT_CHECKS = {"viewport", "title", "description", "mixed"}
+def language(ctx: Context, page) -> Finding:
+    ok = bool(page.lang)
+    return Finding("lang", SEO, "Səhifənin dili", OK if ok else WARN,
+                   f"Səhifənin dili göstərilib ({page.lang[:12]})." if ok else "Səhifənin dili göstərilməyib.",
+                   "" if ok else "<html> teqinə dili əlavə edin, məsələn: <html lang=\"az\">.", 2)
+
+
+def canonical(ctx: Context, page) -> Finding:
+    return Finding("canonical", SEO, "Əsas ünvan (canonical)", OK if page.canonical else WARN,
+                   "Google-a səhifənin əsas ünvanı göstərilib." if page.canonical else
+                   "Google-a səhifənin əsas ünvanı göstərilməyib.",
+                   "" if page.canonical else "Səhifəyə <link rel=\"canonical\" href=\"...\"> əlavə edin.", 2)
+
+
+def open_graph(ctx: Context, page) -> Finding:
+    ok = {"og:title", "og:image"} <= page.properties
+    return Finding("og", SEO, "Sosial şəbəkə kartı", OK if ok else WARN,
+                   "Link paylaşılanda başlıq və şəkil görünür." if ok else
+                   "Link WhatsApp və Facebook-da paylaşılanda başlıq və ya şəkil görünməyə bilər.",
+                   "" if ok else "Səhifəyə og:title və og:image meta teqlərini əlavə edin.", 2)
+
+
+def blocks_everyone(robots: str) -> bool:
+    """Does robots.txt tell every crawler to stay away from the whole site?"""
+    agents, in_rules, blocked = [], False, False
+    for line in robots.splitlines():
+        key, _, value = line.split("#")[0].partition(":")
+        key, value = key.strip().lower(), value.strip()
+        if key == "user-agent":
+            if in_rules:
+                agents, in_rules = [], False
+            agents.append(value)
+        elif key in ("allow", "disallow"):
+            in_rules = True
+            if "*" in agents:
+                if key == "disallow" and value == "/":
+                    blocked = True
+                elif key == "allow" and value == "/":
+                    return False
+    return blocked
+
+
+def indexing(ctx: Context, page) -> Finding:
+    title = "Google-da görünmə icazəsi"
+    tags = (page.meta.get("robots", "") + "," + ctx.headers.get("x-robots-tag", "")).lower()
+    if "noindex" in tags or "none" in tags.replace(" ", "").split(","):
+        return Finding("indexing", SEO, title, FAIL, "Səhifə Google-dan gizlədilib (noindex), axtarışda çıxmayacaq.",
+                       "Sayt açıqdırsa, robots meta teqindən və ya X-Robots-Tag başlığından noindex-i çıxarın.", 6)
+    if ctx.robots is None:
+        return Finding("indexing", SEO, title, INFO, "robots.txt vaxtında oxuna bilmədi.")
+    if blocks_everyone(ctx.robots):
+        return Finding("indexing", SEO, title, FAIL, "robots.txt bütün sayta girişi bağlayır, sayt axtarışda çıxmayacaq.",
+                       "Sayt açıqdırsa, robots.txt-dən \"Disallow: /\" sətrini çıxarın.", 6)
+    return Finding("indexing", SEO, title, OK, "Axtarış sistemlərinə sayta baxmaq icazəsi verilib.", "", 6)
+
+
+def sitemap(ctx: Context, page) -> Finding:
+    if ctx.sitemap is None:
+        return Finding("sitemap", SEO, "Sayt xəritəsi (sitemap)", INFO, "Sayt xəritəsi vaxtında oxuna bilmədi.")
+    return Finding("sitemap", SEO, "Sayt xəritəsi (sitemap)", OK if ctx.sitemap else WARN,
+                   "Sayt xəritəsi tapıldı." if ctx.sitemap else "Sayt xəritəsi (sitemap.xml) tapılmadı.",
+                   "" if ctx.sitemap else "sitemap.xml yaradın və ünvanını robots.txt-ə yazın.", 2)
+
+
+ALL_CHECKS = [https_used, certificate, tls_version, http_redirect, hsts, framing, nosniff, csp, referrer, cookies,
+              disclosure, mixed_content, spf, dmarc, dkim, response_time, html_size, viewport,
+              title_tag, description, heading, language, canonical, open_graph, indexing, sitemap]
+
+
+CONTENT_CHECKS = {"viewport", "title", "description", "mixed", "h1", "lang", "canonical", "og"}
 EMPTY_NOTE = ("Səhifənin məzmunu oxunmadı (server boş cavab qaytardı). "
               "Bu yoxlama bala təsir etmir; saytı brauzerdə açıb yenidən yoxlayın.")
+# Pages built by JavaScript fill these in only in a browser, and the scanner does not run scripts
+RENDERED_CHECKS = {"title", "description", "h1", "canonical", "og"}
+RENDERED_TEXT_LIMIT = 200
+RENDERED_NOTE = ("Səhifə JavaScript ilə qurulur, bu məlumat brauzerdə əlavə oluna bilər və burada yoxlanılmadı. "
+                 "Bu yoxlama bala təsir etmir.")
 
 
 def run_checks(ctx: Context) -> list[Finding]:
     page = parse(ctx.html)
     findings = [check(ctx, page) for check in ALL_CHECKS]
-    if not ctx.html.strip():
-        for f in findings:
-            if f.id in CONTENT_CHECKS and f.status in (FAIL, WARN):
-                f.status, f.detail, f.fix = INFO, EMPTY_NOTE, ""
+    empty = not ctx.html.strip()
+    rendered = page.scripts and page.text_chars < RENDERED_TEXT_LIMIT
+    for f in findings:
+        if f.status not in (FAIL, WARN):
+            continue
+        if empty and f.id in CONTENT_CHECKS:
+            f.status, f.detail, f.fix = INFO, EMPTY_NOTE, ""
+        elif rendered and f.id in RENDERED_CHECKS:
+            f.status, f.detail, f.fix = INFO, RENDERED_NOTE, ""
     return findings
