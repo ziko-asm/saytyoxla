@@ -183,7 +183,19 @@ li{margin:0 0 8px}
 .meta{color:var(--muted);font-size:14px}
 .btn{display:inline-block;background:#f59e0b;color:#231500;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:12px;margin-top:8px}
 footer{color:var(--muted);font-size:14px;padding:32px 0 40px}
+footer a{display:inline-block;padding:13px 4px}
+.skip{position:absolute;left:12px;top:-80px;background:#1d4ed8;color:#fff;padding:12px 16px;border-radius:10px;font-weight:700;text-decoration:none}
+.skip:focus{top:8px}
+@media (max-width:640px){.langs a{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:44px;padding:0 4px}}
+@media screen and (prefers-color-scheme:dark){
+:root{color-scheme:dark;--bg:#0b1220;--line:#26324a;--line-2:#3a4a66;--ink:#e8edf6;--ink-2:#b7c2d6;--muted:#98a6bd;--brand:#1c3a63;--brand-2:#8ab4ff}
+.top{background:#131c2e}
+.brand{color:var(--ink)}
+}
 """
+SKIP = {"az": "Məzmuna keç", "en": "Skip to content", "ru": "Перейти к содержимому"}
+ICON_LINKS = ('<link rel="icon" href="/favicon.ico" sizes="32x32">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">\n'
+              '<link rel="manifest" href="/site.webmanifest">\n<meta name="color-scheme" content="light dark">')
 
 
 def footer_links(lang: str) -> str:
@@ -209,16 +221,18 @@ def _shell(lang: str, title: str, desc: str, body: str, paths: dict[str, str], r
 <meta name="description" content="{desc}">
 <meta name="robots" content="{robots}">
 {alt}<link rel="icon" href="{ICON}">
+{ICON_LINKS}
 <link rel="preload" href="/static/fonts/inter-4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts.css">
 <style>{STYLE}</style>
 </head>
 <body>
+<a class="skip" href="#main">{SKIP[lang]}</a>
 <header class="top"><div class="wrap">
   <a class="brand" href="{HOMES[lang]}"><span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6 11-11-1.4-1.4z" fill="#34d399"/></svg></span><span>Sayt<b>Yoxla</b></span></a>
   <nav class="langs" aria-label="{nav}">{langs}</nav>
 </div></header>
-<main class="wrap">
+<main id="main" class="wrap">
 {body}
 </main>
 <footer><div class="wrap">SaytYoxla · {footer_links(lang)}</div></footer>

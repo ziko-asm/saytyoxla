@@ -118,9 +118,9 @@ EXACT: dict[str, tuple[str, str]] = {
     "Server cavabına \"X-Content-Type-Options: nosniff\" əlavə edin.": (
         "Add \"X-Content-Type-Options: nosniff\" to the server response.",
         "Добавьте в ответ сервера «X-Content-Type-Options: nosniff»."),
-    "Ziyarətçinin hansı səhifədən gəldiyi digər saytlara ötürülmür.": (
-        "Other sites are not told which page the visitor came from.",
-        "Другие сайты не узнают, с какой страницы пришёл посетитель."),
+    "Keçid zamanı digər saytlara nə qədər məlumat ötürüldüyü məhdudlaşdırılıb.": (
+        "The site limits how much information other sites receive when a visitor follows a link.",
+        "Сайт ограничивает, сколько данных получают другие сайты при переходе по ссылке."),
     "Referrer-Policy başlığı yoxdur.": ("The Referrer-Policy header is missing.", "Нет заголовка Referrer-Policy."),
     "Server cavabına \"Referrer-Policy: strict-origin-when-cross-origin\" əlavə edin.": (
         "Add \"Referrer-Policy: strict-origin-when-cross-origin\" to the server response.",

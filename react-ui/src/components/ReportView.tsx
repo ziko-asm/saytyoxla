@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from '../Icon'
 import { FindingItem } from './FindingItem'
+import { ReportPreview } from './ReportPreview'
 import { ScoreRing } from './ScoreRing'
 import type { Finding, Report } from '../types'
 import { LANG, LOCALE, t } from '../i18n'
+import { downloadReportPdf, reportPageImages } from '../pdf'
 
 const WA_NUMBER = '994772172358'
 const GRADE_COLOR: Record<string, string> = { A: '#047857', B: '#15803d', C: '#b45309', D: '#c2410c', F: '#b91c1c' }
@@ -17,9 +19,19 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
     box.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [report])
 
+  // Ctrl+P prints the whole report too, not only the button below
+  useEffect(() => {
+    const openAll = () => box.current?.querySelectorAll('details').forEach((d) => (d.open = true))
+    window.addEventListener('beforeprint', openAll)
+    return () => window.removeEventListener('beforeprint', openAll)
+  }, [])
+
   const color = GRADE_COLOR[report.grade] || '#047857'
   const host = (report.display_url || report.final_url).replace(/^https?:\/\//, '').replace(/\/$/, '')
   const [copied, setCopied] = useState(false)
+  const [pdfState, setPdfState] = useState<'idle' | 'saving' | 'opening' | 'failed'>('idle')
+  const [pages, setPages] = useState<string[] | null>(null)
+  const closePreview = useCallback(() => setPages(null), [])
   const c = report.counts || {}
   const clean = !c.fail && !c.warn
 
@@ -30,7 +42,28 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
   }
   const categories = [...new Set(report.findings.map((f) => f.category))].sort((a, b) => rank(a) - rank(b))
 
-  const waText = t.waText(host, report.score, report.grade, clean)
+  const waText = t.waText(host, report.score, report.grade, clean, !!c.fail)
+  const when = new Date(report.scanned_at).toLocaleString(LOCALE[LANG], { timeZoneName: 'short' })
+
+  async function savePdf() {
+    setPdfState('saving')
+    try {
+      await downloadReportPdf(report, host, color, categories, when)
+      setPdfState('idle')
+    } catch {
+      setPdfState('failed')
+    }
+  }
+
+  async function viewReport() {
+    setPdfState('opening')
+    try {
+      setPages(await reportPageImages(report, host, color, categories, when))
+      setPdfState('idle')
+    } catch {
+      setPdfState('failed')
+    }
+  }
 
   async function copyLink() {
     try {
@@ -42,13 +75,12 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
     }
   }
 
-  function print() {
-    box.current?.querySelectorAll('details').forEach((d) => (d.open = true))
-    window.print()
-  }
+  const pdfBusy = pdfState === 'saving' || pdfState === 'opening'
 
   return (
     <section className="report wrap" ref={box}>
+      {pages && <ReportPreview host={host} pages={pages} saving={pdfState === 'saving'} onSave={savePdf} onClose={closePreview} />}
+      <p className="print-head">SaytYoxla <span>{window.location.host}</span></p>
       <div className="rep-head">
         <ScoreRing score={report.score} color={color} />
         <div className="rep-meta">
@@ -62,11 +94,13 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
             <span className="chip ok">{t.chipOk(c.ok || 0)}</span>
           </div>
           <div className="rep-actions">
-            <button className="btn btn-ghost" type="button" onClick={print}><Icon name="i-print" />{t.print}</button>
+            <button className="btn btn-primary" type="button" onClick={savePdf} disabled={pdfBusy}>{pdfState === 'saving' ? t.pdfBusy : t.pdf}</button>
+            <button className="btn btn-ghost" type="button" onClick={viewReport} disabled={pdfBusy}>{pdfState === 'opening' ? t.pdfBusy : t.view}</button>
             <button className="btn btn-ghost" type="button" onClick={copyLink} aria-live="polite">{copied ? t.linkCopied : t.copyLink}</button>
             <button className="btn btn-ghost" type="button" onClick={onRescan} title={t.rescanHint}>{t.rescan}</button>
             <button className="btn btn-ghost" type="button" onClick={onAgain}>{t.again}</button>
           </div>
+          {pdfState === 'failed' && <p className="form-error" role="alert">{t.pdfError}</p>}
         </div>
       </div>
 
@@ -84,7 +118,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
           const rest = items.filter((f) => !isProblem(f))
           return (
             <div className="group" key={cat}>
-              <h3>{cat} <small>{bad.length ? t.issues(bad.length) : t.allGood}</small></h3>
+              <h3>{cat} <small>{bad.length ? t.issues(bad.length) : rest.every((f) => f.status === 'info') ? t.infoOnly : t.allGood}</small></h3>
               {bad.map((f) => <FindingItem key={f.id} f={f} />)}
               {rest.length > 0 && (bad.length ? (
                 <details className="ok-list">
@@ -107,7 +141,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
         </a>
       </div>
       <p className="muted small">
-        {t.scannedAt(new Date(report.scanned_at).toLocaleString(LOCALE[LANG]))}
+        {t.scannedAt(when)}
         {report.cached ? ' ' + t.cachedNote : ''}
       </p>
     </section>

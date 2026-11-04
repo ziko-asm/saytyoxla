@@ -227,6 +227,18 @@ def beta():
     return RedirectResponse("/", status_code=301)
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+def icon(request: Request):
+    """Browsers, crawlers and phones ask for these names at the root (react-ui/make_icons.py draws them)."""
+    return FileResponse(STATIC / request.url.path.lstrip("/"))
+
+
+@app.get("/site.webmanifest", include_in_schema=False)
+def manifest():
+    return FileResponse(STATIC / "site.webmanifest", media_type="application/manifest+json")
+
+
 @app.get("/robots.txt", include_in_schema=False)
 def robots():
     return PlainTextResponse(seo.robots_txt())
