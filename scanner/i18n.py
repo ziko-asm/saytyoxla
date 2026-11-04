@@ -343,6 +343,9 @@ EXACT: dict[str, tuple[str, str]] = {
     "Sayt açılmadı: serverə qoşulmaq mümkün olmadı. Ünvanı yoxlayın və bir az sonra yenidən cəhd edin.": (
         "The site did not open: could not connect to the server. Check the address and try again a little later.",
         "Сайт не открылся: не удалось подключиться к серверу. Проверьте адрес и попробуйте немного позже."),
+    "Bu ünvanda təhlükəsiz bağlantı (HTTPS) açılmadı. Sayt HTTPS işlətmir və ya sertifikat oxuna bilmədi.": (
+        "No secure connection (HTTPS) opened at this address. The site does not use HTTPS, or the certificate could not be read.",
+        "По этому адресу не открылось защищённое соединение (HTTPS). Сайт не использует HTTPS, или сертификат не удалось прочитать."),
     "Ünvan çox uzundur. Yalnız domeni yazın, məsələn: example.az": (
         "The address is too long. Enter just the domain, for example: example.az",
         "Адрес слишком длинный. Введите только домен, например: example.az"),

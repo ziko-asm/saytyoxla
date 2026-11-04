@@ -7,6 +7,8 @@ the rate-limit counters in web/ratelimit.py (up to a day) and the absence of coo
 
 from __future__ import annotations
 
+import re
+
 from web.seo import SITE_URL
 
 LANGS = ("az", "en", "ru")
@@ -17,6 +19,19 @@ PATHS = {
     "terms": {"az": "/sertler/", "en": "/en/terms/", "ru": "/ru/usloviya/"},
 }
 ROUTES = {path: (key, lang) for key, by_lang in PATHS.items() for lang, path in by_lang.items()}
+# The Tools page is the React app again (react-ui/src/ToolsApp.tsx) with its own title and addresses
+TOOLS_PATHS = {"az": "/aletler/", "en": "/en/tools/", "ru": "/ru/instrumenty/"}
+TOOLS_META = {  # short name, <title>, description, heading
+    "az": ("Alətlər", "SSL, DMARC, SPF, DKIM yoxlama alətləri | SaytYoxla",
+           "SSL sertifikatını, DMARC, SPF və DKIM qeydlərini, təhlükəsizlik başlıqlarını və cookie-ləri ayrı-ayrılıqda pulsuz yoxlayın.",
+           "Sayt alətləri"),
+    "en": ("Tools", "SSL, DMARC, SPF and DKIM checkers | SaytYoxla",
+           "Check an SSL certificate, DMARC, SPF and DKIM records, security headers and cookies one at a time, for free.",
+           "Website tools"),
+    "ru": ("Инструменты", "Проверка SSL, DMARC, SPF и DKIM | SaytYoxla",
+           "Бесплатно проверьте по отдельности SSL-сертификат, записи DMARC, SPF и DKIM, заголовки безопасности и cookie.",
+           "Инструменты для сайта"),
+}
 LINKS = {
     "about": {"az": "Haqqımızda", "en": "About", "ru": "О сервисе"},
     "privacy": {"az": "Məxfilik", "en": "Privacy", "ru": "Конфиденциальность"},
@@ -199,7 +214,8 @@ ICON_LINKS = ('<link rel="icon" href="/favicon.ico" sizes="32x32">\n<link rel="a
 
 
 def footer_links(lang: str) -> str:
-    return " · ".join(f'<a href="{PATHS[k][lang]}">{LINKS[k][lang]}</a>' for k in PATHS)
+    tools = f'<a href="{TOOLS_PATHS[lang]}">{TOOLS_META[lang][0]}</a>'
+    return " · ".join([tools] + [f'<a href="{PATHS[k][lang]}">{LINKS[k][lang]}</a>' for k in PATHS])
 
 
 def _shell(lang: str, title: str, desc: str, body: str, paths: dict[str, str], robots: str = "index, follow",
@@ -239,6 +255,22 @@ def _shell(lang: str, title: str, desc: str, body: str, paths: dict[str, str], r
 </body>
 </html>
 """
+
+
+def tools_page(home_html: str, lang: str) -> str:
+    """The built home page with the Tools page's title, description and addresses, for search engines and shared links."""
+    _, title, desc, heading = TOOLS_META[lang]
+    home, path = SITE_URL + HOMES[lang], SITE_URL + TOOLS_PATHS[lang]
+    html = re.sub(r"<title>.*?</title>", f"<title>{title}</title>", home_html, count=1, flags=re.DOTALL)
+    html = re.sub(r'(<meta name="description" content=")[^"]*', lambda m: m.group(1) + desc, html, count=1)
+    html = re.sub(r'(<meta property="og:title" content=")[^"]*', lambda m: m.group(1) + title, html, count=1)
+    html = re.sub(r'(<meta property="og:description" content=")[^"]*', lambda m: m.group(1) + desc, html, count=1)
+    html = html.replace(f'<link rel="canonical" href="{home}">', f'<link rel="canonical" href="{path}">')
+    html = html.replace(f'<meta property="og:url" content="{home}">', f'<meta property="og:url" content="{path}">')
+    for code in LANGS:
+        html = html.replace(f'hreflang="{code}" href="{SITE_URL}{HOMES[code]}"', f'hreflang="{code}" href="{SITE_URL}{TOOLS_PATHS[code]}"')
+    html = html.replace(f'hreflang="x-default" href="{SITE_URL}/"', f'hreflang="x-default" href="{SITE_URL}{TOOLS_PATHS["az"]}"')
+    return re.sub(r"<h1>.*?</h1>", f"<h1>{heading}</h1>", html, count=1, flags=re.DOTALL)
 
 
 def page(key: str, lang: str) -> str:

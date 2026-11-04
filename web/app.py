@@ -8,7 +8,9 @@ GET  /en/, /ru/   the same page in English and Russian
 GET  /hesabat/, /en/report/, /ru/otchet/   survey of Azerbaijani websites (web/survey.py)
 GET  /haqqimizda/, /mexfilik/, /sertler/ and their en/ru versions   about, privacy, terms (web/pages.py)
 GET  /classic     the previous plain-JavaScript page (web/static/index.html)
+GET  /aletler/, /en/tools/, /ru/instrumenty/   the Tools part of the site
 POST /api/scan    {"url": "example.az", "lang": "az|en|ru"} -> report JSON
+POST /api/tool    {"url": "example.az", "tool": "ssl|email", "lang": "az|en|ru"} -> one narrow check
 GET  /health      for the hosting platform
 GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (web/seo.py)
 """
@@ -20,6 +22,7 @@ import threading
 import time
 from collections import OrderedDict
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
@@ -32,6 +35,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import scanner
 from scanner import i18n
+from scanner import tools as scanner_tools
 from scanner.safety import UnsafeTarget, normalize
 from web import pages, ratelimit, seo, survey
 
@@ -183,6 +187,16 @@ def survey_page(request: Request):
     return HTMLResponse(survey.page(lang))
 
 
+@app.get("/aletler/", include_in_schema=False)
+@app.get("/en/tools/", include_in_schema=False)
+@app.get("/ru/instrumenty/", include_in_schema=False)
+def tools_page(request: Request):
+    """The Tools part of the site: the same React build, which picks the page by its address."""
+    lang = next(l for l, p in pages.TOOLS_PATHS.items() if p == request.url.path)
+    home = (REACT / pages.HOMES[lang].strip("/") / "index.html").read_text(encoding="utf-8")
+    return HTMLResponse(pages.tools_page(home, lang))
+
+
 @app.get("/haqqimizda/", include_in_schema=False)
 @app.get("/en/about/", include_in_schema=False)
 @app.get("/ru/o-nas/", include_in_schema=False)
@@ -197,6 +211,9 @@ def info_page(request: Request):
     return HTMLResponse(pages.page(*pages.ROUTES[request.url.path]))
 
 
+@app.get("/aletler", include_in_schema=False)
+@app.get("/en/tools", include_in_schema=False)
+@app.get("/ru/instrumenty", include_in_schema=False)
 @app.get("/haqqimizda", include_in_schema=False)
 @app.get("/en/about", include_in_schema=False)
 @app.get("/ru/o-nas", include_in_schema=False)
@@ -279,6 +296,34 @@ def scan(req: ScanRequest, request: Request):
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     cache_put(key, report)
     return JSONResponse({**i18n.report(report, lang), "cached": False, "benchmarks": survey.benchmarks()})
+
+
+class ToolRequest(BaseModel):
+    url: str = Field(..., max_length=300)
+    tool: Literal["ssl", "email"]
+    lang: str = Field("az", max_length=5)
+    fresh: bool = False
+
+
+@app.post("/api/tool")
+def tool(req: ToolRequest, request: Request):
+    """One narrow check (scanner/tools.py). The other tools on the page read the full scan's result."""
+    lang = i18n.lang_of(req.lang)
+    try:
+        key = f"tool:{req.tool}:{normalize(req.url)}"
+    except UnsafeTarget as e:
+        raise HTTPException(400, i18n.text(str(e), lang)) from None
+    hit = None if req.fresh else cache_get(key)
+    if hit:
+        return JSONResponse({**i18n.report(hit, lang), "cached": True, "benchmarks": survey.benchmarks()})
+    if not limiter.allow(client_ip(request)):
+        raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
+    try:
+        result = scanner_tools.TOOLS[req.tool](req.url)
+    except UnsafeTarget as e:
+        raise HTTPException(400, i18n.text(str(e), lang)) from None
+    cache_put(key, result)
+    return JSONResponse({**i18n.report(result, lang), "cached": False, "benchmarks": survey.benchmarks()})
 
 
 # Keep this last: it matches any single path segment, so earlier routes win.

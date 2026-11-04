@@ -222,7 +222,8 @@ T = [
      "Если хотите, напишите в WhatsApp, мы поможем.")),
 
     # footer
-    ('<a href="/haqqimizda/">Haqqımızda</a>', '<a href="/en/about/">About</a>', '<a href="/ru/o-nas/">О сервисе</a>'),
+    ('<a href="/aletler/">Alətlər</a>', '<a href="/en/tools/">Tools</a>', '<a href="/ru/instrumenty/">Инструменты</a>'),
+    ('<a href="/haqqimizda/">Haqqımızda</a>','<a href="/en/about/">About</a>', '<a href="/ru/o-nas/">О сервисе</a>'),
     ('<a href="/mexfilik/">Məxfilik</a>', '<a href="/en/privacy/">Privacy</a>', '<a href="/ru/konfidencialnost/">Конфиденциальность</a>'),
     ('<a href="/sertler/">Şərtlər</a>', '<a href="/en/terms/">Terms</a>', '<a href="/ru/usloviya/">Условия</a>'),
     ("Yalnız açıq məlumatlar yoxlanılır", "Only public information is checked", "Проверяются только открытые данные"),
