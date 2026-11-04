@@ -40,6 +40,7 @@ export const ScanForm = forwardRef<HTMLInputElement, Props>(function ScanForm(
             autoComplete="url"
             autoCapitalize="off"
             spellCheck={false}
+            maxLength={300}
             placeholder={t.placeholder}
             value={url}
             onChange={(e) => onUrlChange(e.target.value)}

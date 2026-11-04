@@ -1,6 +1,7 @@
 {
  "scanned": 139,
  "analysed": 106,
+ "old_scale": true,
  "skipped": {
   "not_in_dns": 26,
   "unreachable": 15,

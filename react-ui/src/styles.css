@@ -100,6 +100,7 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 .grade{display:inline-block;font-weight:800;font-size:14px;padding:5px 12px;border-radius:999px;color:#fff;background:var(--ok)}
 .rep-meta h2{font-size:22px;font-weight:800;margin:10px 0 4px;word-break:break-all}
 .rep-meta p{margin:0;color:var(--ink-2)}
+.rep-meta .score-note{margin-top:6px;font-size:14px;font-weight:600;color:#92400e}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;padding:6px 12px;border-radius:999px}
 .chip.fail{background:var(--fail-bg);color:#991b1b}.chip.warn{background:var(--warn-bg);color:#92400e}.chip.ok{background:var(--ok-bg);color:#065f46}

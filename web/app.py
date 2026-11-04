@@ -21,6 +21,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -77,6 +78,18 @@ class ScanRequest(BaseModel):
     url: str = Field(..., max_length=300)
     lang: str = Field("az", max_length=5)      # az | en | ru; anything else falls back to az
     fresh: bool = False                        # skip the 10-minute result cache (the rate limit still applies)
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request(request: Request, exc: RequestValidationError):
+    """`detail` is always one sentence for the user: the pages show it as it is, and FastAPI's default
+    (a list of objects) made React throw and blank the whole page."""
+    body = exc.body if isinstance(exc.body, dict) else {}
+    lang = body.get("lang") if isinstance(body.get("lang"), str) else None
+    too_long = any(e["type"] == "string_too_long" and e["loc"][-1] == "url" for e in exc.errors())
+    message = "Ünvan çox uzundur. Yalnız domeni yazın, məsələn: example.az" if too_long \
+        else "Ünvan düzgün görünmür. Nümunə: example.az"
+    return JSONResponse({"detail": i18n.text(message, i18n.lang_of(lang))}, status_code=422)
 
 
 def client_ip(request: Request) -> str:

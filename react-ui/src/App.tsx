@@ -33,7 +33,7 @@ export default function App() {
         body: JSON.stringify({ url: value, lang: LANG, fresh }),
       })
       const data = await res.json()
-      if (!res.ok) setError(data.detail || t.genericError)
+      if (!res.ok) setError(typeof data.detail === 'string' ? data.detail : t.genericError)
       else setReport(data)
     } catch {
       setError(t.networkError)

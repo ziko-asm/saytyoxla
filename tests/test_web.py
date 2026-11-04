@@ -78,6 +78,31 @@ def test_bad_url_is_400_with_message():
     assert r.status_code == 400 and r.json()["detail"]
 
 
+@pytest.mark.parametrize("body,lang_word", [
+    ({"url": "a" * 301}, "uzundur"),
+    ({"url": "a" * 301, "lang": "en"}, "too long"),
+    ({"url": "a" * 301, "lang": "ru"}, "слишком"),
+    ({"url": 123}, "düzgün"),
+    ({"lang": "az"}, "düzgün"),
+    ({"url": "example.az", "lang": 5}, "düzgün"),
+])
+def test_invalid_request_detail_is_one_sentence(body, lang_word):
+    r = client.post("/api/scan", json=body)
+    assert r.status_code == 422 and isinstance(r.json()["detail"], str) and lang_word in r.json()["detail"]
+
+
+def test_malformed_json_detail_is_one_sentence():
+    r = client.post("/api/scan", content=b"{bad", headers={"Content-Type": "application/json"})
+    assert r.status_code == 422 and isinstance(r.json()["detail"], str)
+
+
+def test_score_note_is_translated():
+    from scanner import i18n
+    d = {"summary": "ok", "findings": [], "score_note": "4 əsas qoruma ayarı çatışmadığı üçün bal 74-dən yuxarı ola bilməz."}
+    assert "74" in i18n.report(d, "en")["score_note"] and "basic protection" in i18n.report(d, "en")["score_note"]
+    assert i18n.report({"summary": "ok", "findings": []}, "ru")["score_note"] == ""
+
+
 def test_scanner_error_is_400(monkeypatch):
     def boom(url):
         raise UnsafeTarget("Bu ünvan tapılmadı.")
@@ -195,6 +220,27 @@ def test_survey_pages(monkeypatch, tmp_path):
         assert ".az" not in r.text.replace("ayfar.vercel.app", "")   # no site is named
     assert client.get("/hesabat", follow_redirects=False).headers["location"].endswith("/hesabat/")
     assert "/en/report/</loc>" in client.get("/sitemap.xml").text
+
+
+def test_survey_says_tls_failures_are_left_out_of_the_https_figure(monkeypatch, tmp_path):
+    import json
+    from pathlib import Path
+
+    from web import survey
+    stats = json.loads((Path(__file__).parent / "survey_sample.json").read_text(encoding="utf-8"))
+    data = tmp_path / "stats.json"
+
+    def page_with(**extra):
+        data.write_text(json.dumps({**stats, **extra}), encoding="utf-8")
+        monkeypatch.setattr(survey, "DATA", data)
+        survey.stats.cache_clear()
+        return survey.page("az")
+
+    plain = page_with(skipped={"unreachable": 9, "blocked": 7})
+    assert "bu faizə daxil deyil" not in plain and "köhnə bal şkalası" not in plain
+    noted = page_with(skipped={"unreachable": 9, "blocked": 7, "tls": 5}, old_scale=True)
+    assert "Daha 5 sayt" in noted and "bu faizə daxil deyil" in noted and "köhnə bal şkalası" in noted
+    survey.stats.cache_clear()
 
 
 def test_indexnow_key_file():

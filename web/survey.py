@@ -123,7 +123,17 @@ def page(lang: str) -> str:
     good_en, weak_en = names(good, 1, " and ").capitalize(), names(weak, 1, " and ")
     good_ru, weak_ru = names(good, 2, " и "), names(weak, 2, " и ")
     no_dmarc = a["dmarc_missing"] + a["dmarc_none"]
-    sectors = ", ".join(SECTORS[k][("az", "en", "ru").index(lang)].lower() for k in SECTORS if k in s["sectors"])
+    # Sites that failed on TLS never reached the percentages, so "100% on HTTPS" must say so where it is claimed
+    tls_note = L(lang,
+                 f" Daha {tls} sayt isə TLS/sertifikat xətası ilə ümumiyyətlə açılmadı və bu faizə daxil deyil.",
+                 f" Another {tls} did not open at all because of a TLS/certificate error and are not in this percentage.",
+                 f" Ещё {tls} сайтов вообще не открылись из-за ошибки TLS/сертификата и в этот процент не входят.") if tls else ""
+    # The stored scores come from before the score limits (scanner/report.py); only a new scan can update them
+    scale_note = L(lang,
+                   " Bal və qiymətlər köhnə bal şkalası ilə hesablanıb, indiki yoxlamada bu saytların balı daha aşağı ola bilər.",
+                   " Scores and grades use the previous scale; the same sites may score lower in a check today.",
+                   " Баллы и оценки рассчитаны по прежней шкале; сегодня у этих сайтов балл может быть ниже.") if s.get("old_scale") else ""
+    sectors =", ".join(SECTORS[k][("az", "en", "ru").index(lang)].lower() for k in SECTORS if k in s["sectors"])
 
     title = L(lang, f"Azərbaycan saytlarının təhlükəsizlik vəziyyəti: {a['n']} sayt yoxlandı",
               f"How secure are Azerbaijani websites? {a['n']} sites checked",
@@ -152,17 +162,17 @@ def page(lang: str) -> str:
 
     findings = L(
         lang,
-        [f"<b>Əsaslar yaxşıdır.</b> Yoxlanılan saytların {p['https']}%-i HTTPS ilə açılır, {p['viewport']}%-i telefona uyğundur.",
+        [f"<b>Əsaslar yaxşıdır.</b> Açılan {a['n']} saytın {p['https']}%-i HTTPS ilə işləyir, {p['viewport']}%-i telefona uyğundur.{tls_note}",
          f"<b>Əlavə qoruma qatları zəifdir.</b> Yalnız {p['csp']}% CSP, {p['hsts']}% HSTS, {p['framing']}% saxta çərçivəyə qarşı qoruma istifadə edir. Bunlar pulsuzdur və bir neçə sətirlik server ayarıdır.",
          f"<b>E-poçt qoruması sahədən asılıdır.</b> Saytların {a['dmarc_missing']}%-ində DMARC ümumiyyətlə yoxdur, {a['dmarc_none']}%-ində isə yalnız müşahidə rejimindədir. {good_az} bu sahədə yaxşıdır, {weak_az} isə geri qalır: onların adından saxta məktub göndərmək asandır.",
          f"<b>Sahələr arasında fərq böyükdür.</b> Ən yüksək orta bal: {sname(best).lower()} ({bm['avg']}), ən aşağı: {sname(worst).lower()} ({wm['avg']}). {sname(worst)} arasında DMARC-ı saxta məktubları bloklayan sayt payı cəmi {wm['pass']['dmarc']}%-dir.",
          f"<b>Google üçün təsvir.</b> Saytların yalnız {p['description']}%-ində uyğun uzunluqda meta description var."],
-        [f"<b>The basics are in place.</b> {p['https']}% of the sites open over HTTPS and {p['viewport']}% are mobile-friendly.",
+        [f"<b>The basics are in place.</b> Of the {a['n']} sites that opened, {p['https']}% use HTTPS and {p['viewport']}% are mobile-friendly.{tls_note}",
          f"<b>Extra layers of protection are thin.</b> Only {p['csp']}% use CSP, {p['hsts']}% HSTS and {p['framing']}% clickjacking protection. All of these are free, a few lines of server configuration.",
          f"<b>E-mail protection depends on the sector.</b> {a['dmarc_missing']}% of the sites have no DMARC at all and {a['dmarc_none']}% only monitor. {good_en} do well here, while {weak_en} lag behind: fake e-mails in their name are easy to send.",
          f"<b>Sectors differ a lot.</b> The highest average score is in {sname(best).lower()} ({bm['avg']}), the lowest in {sname(worst).lower()} ({wm['avg']}). Among {sname(worst).lower()}, only {wm['pass']['dmarc']}% have a DMARC policy that blocks fake e-mails.",
          f"<b>Descriptions for Google.</b> Only {p['description']}% have a meta description of a useful length."],
-        [f"<b>Основа в порядке.</b> {p['https']}% сайтов открываются по HTTPS, {p['viewport']}% адаптированы под телефон.",
+        [f"<b>Основа в порядке.</b> Из {a['n']} открывшихся сайтов {p['https']}% работают по HTTPS, {p['viewport']}% адаптированы под телефон.{tls_note}",
          f"<b>Дополнительной защиты мало.</b> CSP используют лишь {p['csp']}%, HSTS — {p['hsts']}%, защиту от кликджекинга — {p['framing']}%. Всё это бесплатно и занимает несколько строк настроек сервера.",
          f"<b>Защита почты зависит от сферы.</b> У {a['dmarc_missing']}% сайтов DMARC нет вовсе, у {a['dmarc_none']}% он только в режиме наблюдения. Здесь хорошо справляются: {good_ru}; отстают: {weak_ru} — от их имени легко отправить поддельное письмо.",
          f"<b>Сферы сильно различаются.</b> Самый высокий средний балл — {sname(best).lower()} ({bm['avg']}), самый низкий — {sname(worst).lower()} ({wm['avg']}). В сфере «{sname(worst)}» DMARC, блокирующий поддельные письма, есть лишь у {wm['pass']['dmarc']}% сайтов.",
@@ -300,7 +310,7 @@ footer{{color:var(--muted);font-size:14px;padding:32px 0 40px}}
   <h2>{L(lang, "Qiymətlərin bölgüsü", "Grade distribution", "Распределение оценок")}</h2>
   <p class="sub">{L(lang, "A — 90 və yuxarı, B — 75+, C — 60+, D — 40+, F — 40-dan aşağı.",
                    "A is 90 and above, B 75+, C 60+, D 40+, F below 40.",
-                   "A — 90 и выше, B — 75+, C — 60+, D — 40+, F — ниже 40.")}</p>
+                   "A — 90 и выше, B — 75+, C — 60+, D — 40+, F — ниже 40.")}{scale_note}</p>
   <ul class="grades">{_grades(a, lang)}</ul>
 
   <h2>{L(lang, "Sahələr üzrə", "By sector", "По сферам")}</h2>

@@ -26,6 +26,16 @@ VARIANTS = [
      "html": "<title>Hi</title><meta name='description' content='short'>"},
     {"html": "", "html_bytes": 0},
     {"final_url": "https://shop.vercel.app/", "input_url": "https://shop.vercel.app/", "host": "shop.vercel.app"},
+    {"cert": {"error": "self-signed certificate"}},
+    {"cert": {"error": "Hostname mismatch, certificate is not valid for 'x'."}},
+    {"cert": {"error": "certificate revoked"}},
+    {"cert": {"error": "unable to get local issuer certificate"}},
+    {"cert": {"error": "SSLError"}},
+    {"cert": {"days_left": 3, "expires": "2026-11-04", "error": None}, "headers": {}},
+    {"headers": {"x-frame-options": "DENY", "strict-transport-security": "max-age=1"}, "http_to_https": False},
+    {"headers": {"x-frame-options": "DENY", "x-content-type-options": "nosniff", "content-security-policy": "x"}},
+    {"txt_records": {"spf": [], "dmarc": ["v=DMARC1; p=reject"], "dmarc_parent": "example.az"}},
+    {"txt_records": {"spf": ["v=spf1 -all"], "dmarc": ["v=DMARC1; p=none"], "dmarc_parent": "example.az"}},
 ]
 
 ERRORS = [
@@ -34,10 +44,10 @@ ERRORS = [
     "Yalnız standart portlar (80, 443) yoxlanılır.", "Bu ünvan tapılmadı. Yazılışı yoxlayın.",
     "Bu ünvan daxili şəbəkəyə aiddir və yoxlanıla bilməz.",
     "Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.",
-    "Sayt açılmadı (ConnectError). Ünvanı yoxlayın və bir az sonra yenidən cəhd edin.",
-    "Sayt açılmadı (Sayt çox sayda yönləndirmə edir.). Ünvanı yoxlayın və bir az sonra yenidən cəhd edin.",
+    "Ünvan çox uzundur. Yalnız domeni yazın, məsələn: example.az",
     "Sayt çox sayda yönləndirmə edir.",
-] + [scanner.status_message(c) for c in (401, 403, 404, 429, 500, 503, 418)]
+] + [scanner.status_message(c) for c in (401, 403, 404, 429, 500, 503, 418)] \
+  + [scanner.error_message(e) for e in ("SSLError", "ConnectTimeout", "ReadTimeout", "ConnectionError", "TooManyRedirects")]
 
 
 def all_texts():
@@ -45,7 +55,7 @@ def all_texts():
     for v in VARIANTS:
         c = ctx(**v)
         r = build(c, checks.run_checks(c))
-        out.add(r.summary)
+        out.update({r.summary, r.score_note})
         for f in r.findings:
             out.update({f.category, f.title, f.detail, f.fix})
     return out - {""}
