@@ -44,6 +44,7 @@ EXTRAS_BUDGET = 12      # seconds for everything after the page itself (they run
 CRAWLER_FILE_BUDGET = 5
 # DNS cannot list a domain's DKIM keys, so only the names mail providers commonly use can be asked for
 DKIM_SELECTORS = ("google", "default", "selector1", "selector2", "k1", "k2", "mail", "dkim", "s1", "s2")
+DKIM_KEY = re.compile(r"(?:^|;)\s*p\s*=\s*[A-Za-z0-9+/]")
 
 urllib3.disable_warnings(InsecureRequestWarning)    # verify=False is deliberate, see _open()
 
@@ -219,7 +220,8 @@ def dkim_selectors(domain: str) -> list | None:
         answers = list(pool.map(lambda s: (s, txt_records(f"{s}._domainkey.{domain}")), DKIM_SELECTORS))
     if all(records is None for _, records in answers):
         return None
-    return [s for s, records in answers if records and any("p=" in r for r in records)]
+    # An empty "p=" is a revoked key: it says the domain signs nothing under this name
+    return [s for s, records in answers if records and any(DKIM_KEY.search(r) for r in records)]
 
 
 def _public_file(url: str, verify: bool) -> tuple[str, str] | None:

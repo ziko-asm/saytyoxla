@@ -111,9 +111,11 @@ def test_sitemap_comes_from_robots_or_a_real_xml_file(monkeypatch):
 
 
 def test_dkim_finds_only_real_keys_and_admits_when_dns_is_down(monkeypatch):
-    table = {"google._domainkey.a.az": ["v=DKIM1; k=rsa; p=ABC"], "mail._domainkey.a.az": ["not a key"]}
+    table = {"google._domainkey.a.az": ["v=DKIM1; k=rsa; p=ABC"], "mail._domainkey.a.az": ["not a key"],
+             "k1._domainkey.a.az": ["k=rsa; p=MIGf"], "s1._domainkey.a.az": ["v=DKIM1; p="],     # s1: a revoked key
+             "s2._domainkey.a.az": ["v=DKIM1; p= ; t=y"], "dkim._domainkey.a.az": ["sp=ABC"]}
     monkeypatch.setattr(fetch, "txt_records", lambda name: table.get(name, []))
-    assert fetch.dkim_selectors("a.az") == ["google"]
+    assert sorted(fetch.dkim_selectors("a.az")) == ["google", "k1"]
     monkeypatch.setattr(fetch, "txt_records", lambda name: None)
     assert fetch.dkim_selectors("a.az") is None
 
