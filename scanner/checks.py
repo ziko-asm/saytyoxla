@@ -137,7 +137,7 @@ nosniff = _header_check("nosniff", "Fayl tipinin qorunması", "x-content-type-op
                         "X-Content-Type-Options başlığı yoxdur.",
                         "Server cavabına \"X-Content-Type-Options: nosniff\" əlavə edin.", 4)
 referrer = _header_check("referrer", "Keçid məlumatının qorunması", "referrer-policy",
-                         "Ziyarətçinin hansı səhifədən gəldiyi digər saytlara ötürülmür.",
+                         "Keçid zamanı digər saytlara nə qədər məlumat ötürüldüyü məhdudlaşdırılıb.",
                          "Referrer-Policy başlığı yoxdur.",
                          "Server cavabına \"Referrer-Policy: strict-origin-when-cross-origin\" əlavə edin.", 2)
 

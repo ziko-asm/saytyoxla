@@ -11,6 +11,7 @@ export const LOCALE: Record<Lang, string> = { az: 'az-AZ', en: 'en-GB', ru: 'ru-
 
 const az = {
   homeLabel: 'SaytYoxla — əsas səhifə',
+  skip: 'Məzmuna keç',
   help: 'Saytı necə işlətməli?',
   langLabel: 'Dil',
   h1a: 'Saytınız nə qədər ', h1b: 'təhlükəsiz', h1c: ' və sağlamdır?',
@@ -22,7 +23,7 @@ const az = {
   guideLink: 'Ətraflı bələdçi →',
   steps: [
     ['Ünvanı yazın', 'Yuxarıdakı xanaya saytınızın adını yazın.'],
-    ['«Yoxla» basın', '10–30 saniyə gözləyin, səhifəni bağlamayın.'],
+    ['«Yoxla» basın', 'Bir neçə saniyə gözləyin, səhifəni bağlamayın.'],
     ['Balınıza baxın', '100-ə yaxın bal — yaxşı. Aşağı bal — diqqət.'],
     ['Qırmızıları düzəldin', 'Hər problemin altında necə düzəldiləcəyi yazılıb.'],
   ],
@@ -32,7 +33,7 @@ const az = {
   networkError: 'Serverə qoşulmaq mümkün olmadı. İnternet bağlantınızı yoxlayın.',
   loadingSteps: ['Sayta qoşuluruq…', 'Sertifikat yoxlanılır…', 'Təhlükəsizlik ayarları yoxlanılır…',
     'E-poçt qorumasına baxılır…', 'Hesabat hazırlanır…'],
-  loadingNote: 'Bu, adətən 10–30 saniyə çəkir. Səhifəni bağlamayın.',
+  loadingNote: 'Bu, adətən bir neçə saniyə çəkir, bəzən 30 saniyəyə qədər. Səhifəni bağlamayın.',
   status: { fail: 'Ciddi problem', warn: 'Tövsiyə', ok: 'Qaydasındadır', info: 'Məlumat' },
   howToFix: 'Necə düzəltmək',
   grade: 'Qiymət',
@@ -49,20 +50,22 @@ const az = {
   legend: 'Rənglərin mənası',
   issues: (n: number) => `${n} məsələ`,
   allGood: 'hər şey qaydasındadır',
+  infoOnly: 'yalnız məlumat',
   showOk: (n: number) => `+ ${n} qaydasında olan yoxlamanı göstər`,
   ctaCleanTitle: 'Saytınız əla vəziyyətdədir!',
   ctaTitle: 'Problemləri özünüz düzəldə bilmirsiniz?',
   ctaClean: 'Yeni sayt, dizayn yeniləməsi və ya saytın mütəmadi izlənməsi lazımdırsa, yazın.',
   cta: 'Hesabatı göndərin, nəyin necə düzəldiləcəyini izah edək və ya özümüz düzəldək.',
   wa: 'WhatsApp-a yazın',
-  waText: (host: string, score: number, grade: string, clean: boolean) =>
+  waText: (host: string, score: number, grade: string, clean: boolean, serious: boolean) =>
     `Salam! SaytYoxla-da ${host} saytını yoxladım: ${score}/100 (${grade}). ` +
-    (clean ? 'Sizinlə əməkdaşlıq barədə danışmaq istəyirəm.' : 'Problemləri düzəltməyə kömək lazımdır.'),
+    (clean ? 'Sizinlə əməkdaşlıq barədə danışmaq istəyirəm.'
+      : serious ? 'Problemləri düzəltməyə kömək lazımdır.' : 'Tövsiyələri tətbiq etməyə kömək lazımdır.'),
   scannedAt: (when: string) => `Yoxlama vaxtı: ${when}. Nəticə yalnız açıq məlumatlara əsaslanır.`,
   close: 'Bağla',
   guide: [
-    ['Saytınızın ünvanını yazın', 'Səhifənin yuxarısındakı ağ xanaya saytınızın adını yazın. Məsələn: meninsaytim.az. «http://» və ya «www» yazmağa ehtiyac yoxdur.'],
-    ['«Yoxla» düyməsinə basın', 'Biz saytınızı yoxlamağa başlayırıq. Bu, 10–30 saniyə çəkir. Bu vaxt səhifəni bağlamayın.'],
+    ['Saytınızın ünvanını yazın', 'Səhifənin yuxarısındakı xanaya saytınızın adını yazın.Məsələn: meninsaytim.az. «http://» və ya «www» yazmağa ehtiyac yoxdur.'],
+    ['«Yoxla» düyməsinə basın', 'Biz saytınızı yoxlamağa başlayırıq. Bu, adətən bir neçə saniyə çəkir. Bu vaxt səhifəni bağlamayın.'],
     ['Balınıza baxın', 'Yuxarıda 0-dan 100-ə qədər bal və hərf (A, B, C, D, F) görəcəksiniz. A — əla, F — təcili diqqət lazımdır.'],
     ['Rənglərə baxın', ''],
     ['«Necə düzəltmək» hissəsini oxuyun', 'Hər problemin altında nə edilməli olduğu sadə dillə yazılıb. Bunu saytınızı quran şəxsə göstərin.'],
@@ -81,6 +84,7 @@ type Strings = typeof az
 
 const en: Strings = {
   homeLabel: 'SaytYoxla — home page',
+  skip: 'Skip to content',
   help: 'How to use it',
   langLabel: 'Language',
   h1a: 'How ', h1b: 'secure', h1c: ' and healthy is your website?',
@@ -92,7 +96,7 @@ const en: Strings = {
   guideLink: 'Full guide →',
   steps: [
     ['Enter the address', 'Type your website name in the box above.'],
-    ['Press “Check”', 'Wait 10–30 seconds and keep the page open.'],
+    ['Press “Check”', 'Wait a few seconds and keep the page open.'],
     ['Look at your score', 'Close to 100 is good. A low score needs attention.'],
     ['Fix the red ones', 'Every problem comes with how to fix it.'],
   ],
@@ -102,7 +106,7 @@ const en: Strings = {
   networkError: 'Could not reach the server. Check your internet connection.',
   loadingSteps: ['Connecting to the site…', 'Checking the certificate…', 'Checking security settings…',
     'Looking at e-mail protection…', 'Preparing the report…'],
-  loadingNote: 'This usually takes 10–30 seconds. Keep the page open.',
+  loadingNote: 'This usually takes a few seconds, sometimes up to 30. Keep the page open.',
   status: { fail: 'Serious problem', warn: 'Recommendation', ok: 'All good', info: 'Info' },
   howToFix: 'How to fix',
   grade: 'Grade',
@@ -119,20 +123,22 @@ const en: Strings = {
   legend: 'What the colours mean',
   issues: (n) => `${n} issue${n === 1 ? '' : 's'}`,
   allGood: 'all good',
+  infoOnly: 'for information',
   showOk: (n) => `+ show ${n} passed check${n === 1 ? '' : 's'}`,
   ctaCleanTitle: 'Your website is in great shape!',
   ctaTitle: 'Can’t fix the problems yourself?',
   ctaClean: 'If you need a new website, a redesign or regular monitoring, get in touch.',
   cta: 'Send us the report: we will explain how to fix each issue, or fix it for you.',
   wa: 'Message on WhatsApp',
-  waText: (host, score, grade, clean) =>
+  waText: (host, score, grade, clean, serious) =>
     `Hello! I checked ${host} on SaytYoxla: ${score}/100 (${grade}). ` +
-    (clean ? 'I would like to talk about working together.' : 'I need help fixing the problems.'),
+    (clean ? 'I would like to talk about working together.'
+      : serious ? 'I need help fixing the problems.' : 'I need help applying the recommendations.'),
   scannedAt: (when) => `Checked at: ${when}. The result is based on public information only.`,
   close: 'Close',
   guide: [
-    ['Enter your website address', 'Type your website name in the white box at the top of the page. For example: mywebsite.com. No need to type “http://” or “www”.'],
-    ['Press the “Check” button', 'We start checking your site. It takes 10–30 seconds. Keep the page open meanwhile.'],
+    ['Enter your website address', 'Type your website name in the box at the top of the page.For example: mywebsite.com. No need to type “http://” or “www”.'],
+    ['Press the “Check” button', 'We start checking your site. It usually takes a few seconds. Keep the page open meanwhile.'],
     ['Look at your score', 'At the top you will see a score from 0 to 100 and a letter (A, B, C, D, F). A means excellent, F means it needs urgent attention.'],
     ['Look at the colours', ''],
     ['Read “How to fix”', 'Under every problem it says in plain words what to do. Show it to whoever built your site.'],
@@ -149,6 +155,7 @@ const en: Strings = {
 
 const ru: Strings = {
   homeLabel: 'SaytYoxla — главная страница',
+  skip: 'Перейти к содержимому',
   help: 'Как пользоваться?',
   langLabel: 'Язык',
   h1a: 'Насколько ваш сайт ', h1b: 'безопасен', h1c: ' и исправен?',
@@ -160,7 +167,7 @@ const ru: Strings = {
   guideLink: 'Подробная инструкция →',
   steps: [
     ['Введите адрес', 'Напишите название сайта в поле выше.'],
-    ['Нажмите «Проверить»', 'Подождите 10–30 секунд, не закрывайте страницу.'],
+    ['Нажмите «Проверить»', 'Подождите несколько секунд, не закрывайте страницу.'],
     ['Посмотрите на балл', 'Близко к 100 — хорошо. Низкий балл — нужно внимание.'],
     ['Исправьте красные', 'Под каждой проблемой написано, как её исправить.'],
   ],
@@ -170,7 +177,7 @@ const ru: Strings = {
   networkError: 'Не удалось подключиться к серверу. Проверьте интернет-соединение.',
   loadingSteps: ['Подключаемся к сайту…', 'Проверяем сертификат…', 'Проверяем настройки безопасности…',
     'Смотрим защиту почты…', 'Готовим отчёт…'],
-  loadingNote: 'Обычно это занимает 10–30 секунд. Не закрывайте страницу.',
+  loadingNote: 'Обычно это занимает несколько секунд, иногда до 30. Не закрывайте страницу.',
   status: { fail: 'Серьёзная проблема', warn: 'Рекомендация', ok: 'В порядке', info: 'Информация' },
   howToFix: 'Как исправить',
   grade: 'Оценка',
@@ -185,22 +192,24 @@ const ru: Strings = {
   rescanHint: 'Заново анализирует сайт, а не показывает прошлый результат',
   cachedNote: 'Этот результат взят из проверки, сделанной за последние 10 минут. Если вы изменили сайт, нажмите «Проверить заново (свежий результат)».',
   legend: 'Что означают цвета',
-  issues: (n) => `вопросов: ${n}`,
+  issues: (n) => `замечаний: ${n}`,
   allGood: 'всё в порядке',
+  infoOnly: 'только информация',
   showOk: (n) => `+ показать пройденные проверки (${n})`,
   ctaCleanTitle: 'Ваш сайт в отличном состоянии!',
   ctaTitle: 'Не получается исправить самим?',
   ctaClean: 'Если нужен новый сайт, обновление дизайна или регулярный мониторинг — напишите.',
   cta: 'Пришлите отчёт: объясним, как исправить каждую проблему, или исправим сами.',
   wa: 'Написать в WhatsApp',
-  waText: (host, score, grade, clean) =>
+  waText: (host, score, grade, clean, serious) =>
     `Здравствуйте! Я проверил сайт ${host} в SaytYoxla: ${score}/100 (${grade}). ` +
-    (clean ? 'Хочу обсудить сотрудничество.' : 'Нужна помощь с исправлением проблем.'),
+    (clean ? 'Хочу обсудить сотрудничество.'
+      : serious ? 'Нужна помощь с исправлением проблем.' : 'Нужна помощь с рекомендациями.'),
   scannedAt: (when) => `Время проверки: ${when}. Результат основан только на открытых данных.`,
   close: 'Закрыть',
   guide: [
-    ['Введите адрес сайта', 'Напишите название сайта в белом поле вверху страницы. Например: moisait.az. Писать «http://» или «www» не нужно.'],
-    ['Нажмите кнопку «Проверить»', 'Мы начинаем проверку сайта. Это занимает 10–30 секунд. Не закрывайте страницу.'],
+    ['Введите адрес сайта', 'Напишите название сайта в поле вверху страницы.Например: moisait.az. Писать «http://» или «www» не нужно.'],
+    ['Нажмите кнопку «Проверить»', 'Мы начинаем проверку сайта. Обычно это занимает несколько секунд. Не закрывайте страницу.'],
     ['Посмотрите на балл', 'Вверху вы увидите балл от 0 до 100 и букву (A, B, C, D, F). A — отлично, F — нужно срочное внимание.'],
     ['Посмотрите на цвета', ''],
     ['Прочитайте «Как исправить»', 'Под каждой проблемой простыми словами написано, что делать. Покажите это тому, кто делал ваш сайт.'],

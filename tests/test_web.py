@@ -302,6 +302,24 @@ def test_missing_api_and_files_stay_short():
     assert client.get("/api/scan").status_code == 405
 
 
+def test_icons_and_manifest_are_served():
+    import json
+    assert client.get("/favicon.ico").content[:4] == b"\x00\x00\x01\x00"
+    assert client.get("/apple-touch-icon.png").content[:4] == b"\x89PNG"
+    r = client.get("/site.webmanifest")
+    assert r.status_code == 200 and "manifest" in r.headers["content-type"]
+    for icon in json.loads(r.text)["icons"]:
+        assert client.get(icon["src"]).content[:4] == b"\x89PNG", icon["src"]
+
+
+def test_every_page_links_the_icons_skip_link_and_dark_mode():
+    paths = ["/", "/en/", "/ru/", "/hesabat/", "/en/report/", "/ru/otchet/", "/mexfilik/", "/en/terms/", "/ru/o-nas/", "/no-such-page"]
+    for path in paths:
+        t = client.get(path).text
+        assert 'href="/favicon.ico"' in t and 'href="/site.webmanifest"' in t, path
+        assert 'href="#main"' in t and 'id="main"' in t and 'name="color-scheme"' in t, path
+
+
 def test_built_front_end_keeps_the_result_in_the_link():
     import re
     js = client.get(re.search(r'src="(/react/assets/[^"]+\.js)"', client.get("/").text).group(1)).text

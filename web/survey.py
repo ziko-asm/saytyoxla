@@ -15,7 +15,7 @@ from html import escape
 from pathlib import Path
 
 from scanner import i18n
-from web.pages import footer_links
+from web.pages import ICON_LINKS, SKIP, footer_links
 
 SITE ="https://saytyoxla.vercel.app"
 DATA = Path(__file__).parent / "survey_stats.json"
@@ -232,6 +232,7 @@ def page(lang: str) -> str:
 <meta name="theme-color" content="#0f2a4a">
 <script type="application/ld+json">{ld}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a4a'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='%2334d399' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+{ICON_LINKS}
 <link rel="preload" href="/static/fonts/inter-4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts.css">
 <style>
@@ -241,7 +242,7 @@ def page(lang: str) -> str:
 body{{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--font);-webkit-font-smoothing:antialiased}}
 a{{color:var(--brand-2)}}
 .wrap{{max-width:880px;margin:0 auto;padding:0 16px}}
-.top{{background:#fff;border-bottom:1px solid var(--line)}}
+.top{{background:var(--surface);border-bottom:1px solid var(--line)}}
 .top .wrap{{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:62px;flex-wrap:wrap}}
 .brand{{display:flex;align-items:center;gap:10px;color:var(--brand);text-decoration:none;font:800 20px/1 var(--font)}}
 .brand b{{color:var(--brand-2)}}
@@ -277,21 +278,31 @@ table{{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:t
 th,td{{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}}
 th:first-child{{text-align:left}}
 thead th{{color:var(--muted);font-weight:600}}
-tr.tot th,tr.tot td{{border-bottom:0;background:#f0f4fa}}
+tr.tot th,tr.tot td{{border-bottom:0;background:var(--bg)}}
 .find{{padding-left:20px;margin:0}} .find li{{margin:0 0 10px}}
 .cta{{background:var(--brand);color:#fff;border-radius:16px;padding:22px;margin:40px 0 0;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}}
 .cta h2{{margin:0 0 4px;font-size:20px}} .cta p{{margin:0;color:#cfdbee}}
 .btn{{display:inline-block;background:#f59e0b;color:#231500;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:12px}}
 .method{{color:var(--ink-2);font-size:15px}}
 footer{{color:var(--muted);font-size:14px;padding:32px 0 40px}}
+footer a{{display:inline-block;padding:13px 4px}}
+.skip{{position:absolute;left:12px;top:-80px;background:#1d4ed8;color:#fff;padding:12px 16px;border-radius:10px;font-weight:700;text-decoration:none}}
+.skip:focus{{top:8px}}
+@media (max-width:640px){{.langs a{{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:44px;padding:0 4px}}}}
+@media screen and (prefers-color-scheme:dark){{
+:root{{color-scheme:dark;--bg:#0b1220;--surface:#131c2e;--line:#26324a;--line-2:#3a4a66;--ink:#e8edf6;--ink-2:#b7c2d6;--muted:#98a6bd;--brand:#1c3a63;--brand-2:#8ab4ff;--track:#26324a}}
+.brand{{color:var(--ink)}}
+.tile b{{color:var(--ink)}}
+}}
 </style>
 </head>
 <body>
+<a class="skip" href="#main">{SKIP[lang]}</a>
 <header class="top"><div class="wrap">
   <a class="brand" href="{cta_home}"><span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6 11-11-1.4-1.4z" fill="#34d399"/></svg></span><span>Sayt<b>Yoxla</b></span></a>
   <nav class="langs" aria-label="{L(lang, 'Dil', 'Language', 'Язык')}">{langs}</nav>
 </div></header>
-<main class="wrap">
+<main id="main" class="wrap">
   <h1>{escape(title)}</h1>
   <p class="lead">{L(lang, "Banklar, universitetlər, dövlət qurumları, xəbər saytları və onlayn mağazalar kənardan nə dərəcədə qorunur?",
                      "How well are banks, universities, government bodies, news sites and online shops protected, as seen from outside?",

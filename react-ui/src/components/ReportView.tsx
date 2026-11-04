@@ -17,6 +17,13 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
     box.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [report])
 
+  // Ctrl+P prints the whole report too, not only the button below
+  useEffect(() => {
+    const openAll = () => box.current?.querySelectorAll('details').forEach((d) => (d.open = true))
+    window.addEventListener('beforeprint', openAll)
+    return () => window.removeEventListener('beforeprint', openAll)
+  }, [])
+
   const color = GRADE_COLOR[report.grade] || '#047857'
   const host = (report.display_url || report.final_url).replace(/^https?:\/\//, '').replace(/\/$/, '')
   const [copied, setCopied] = useState(false)
@@ -30,7 +37,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
   }
   const categories = [...new Set(report.findings.map((f) => f.category))].sort((a, b) => rank(a) - rank(b))
 
-  const waText = t.waText(host, report.score, report.grade, clean)
+  const waText = t.waText(host, report.score, report.grade, clean, !!c.fail)
 
   async function copyLink() {
     try {
@@ -49,6 +56,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
 
   return (
     <section className="report wrap" ref={box}>
+      <p className="print-head">SaytYoxla <span>{window.location.host}</span></p>
       <div className="rep-head">
         <ScoreRing score={report.score} color={color} />
         <div className="rep-meta">
@@ -84,7 +92,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
           const rest = items.filter((f) => !isProblem(f))
           return (
             <div className="group" key={cat}>
-              <h3>{cat} <small>{bad.length ? t.issues(bad.length) : t.allGood}</small></h3>
+              <h3>{cat} <small>{bad.length ? t.issues(bad.length) : rest.every((f) => f.status === 'info') ? t.infoOnly : t.allGood}</small></h3>
               {bad.map((f) => <FindingItem key={f.id} f={f} />)}
               {rest.length > 0 && (bad.length ? (
                 <details className="ok-list">
@@ -107,7 +115,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
         </a>
       </div>
       <p className="muted small">
-        {t.scannedAt(new Date(report.scanned_at).toLocaleString(LOCALE[LANG]))}
+        {t.scannedAt(new Date(report.scanned_at).toLocaleString(LOCALE[LANG], { timeZoneName: 'short' }))}
         {report.cached ? ' ' + t.cachedNote : ''}
       </p>
     </section>

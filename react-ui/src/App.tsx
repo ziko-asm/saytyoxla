@@ -52,6 +52,7 @@ export default function App() {
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('url')
     if (q) {
+      window.history.scrollRestoration = 'manual'    // the browser must not undo the scroll to the report
       setUrl(q)
       scan(q)
     }
