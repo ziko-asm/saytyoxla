@@ -41,7 +41,7 @@ function Tick({ label, on, onChange }: { label: string; on: boolean; onChange: (
   )
 }
 
-function Code({ label, code, file }: { label?: string; code: string; file?: string }) {
+export function Code({ label, code, file }: { label?: string; code: string; file?: string }) {
   const [copied, setCopied] = useState(false)
   async function copy() {
     try {

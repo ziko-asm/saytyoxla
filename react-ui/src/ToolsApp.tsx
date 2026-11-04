@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { DeepScan } from './components/DeepScan'
 import { FindingItem } from './components/FindingItem'
 import { Generator } from './components/Generators'
 import { Guide } from './components/Guide'
 import { Header } from './components/Header'
+import { d } from './deepText'
 import { sslReminder } from './generators'
 import { GENERATOR_IDS, g } from './genText'
 import type { GeneratorId } from './genText'
@@ -51,6 +53,7 @@ export default function ToolsApp() {
   // A generator takes the place of a check; "gen-dmarc" in the address opens it directly
   const [generator, setGenerator] = useState<GeneratorId | null>(
     asked.startsWith('gen-') && GENERATOR_IDS.includes(asked.slice(4) as GeneratorId) ? (asked.slice(4) as GeneratorId) : null)
+  const [deep, setDeep] = useState(asked === 'deep')
   const [url, setUrl] = useState(params.get('url') || '')
   const [checked, setChecked] = useState('')
   const [loading, setLoading] = useState(false)
@@ -103,12 +106,22 @@ export default function ToolsApp() {
 
   useEffect(() => {
     const first = new URLSearchParams(window.location.search).get('url')
-    if (first && !generator) run(start, first)
+    if (first && !generator && !deep) run(start, first)
     // only the address the page was opened with
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  function chooseDeep() {
+    setDeep(true)
+    setGenerator(null)
+    setResult(null)
+    setError('')
+    const value = url.trim()
+    window.history.replaceState(null, '', `${window.location.pathname}?tool=deep${value ? `&url=${encodeURIComponent(value)}` : ''}`)
+  }
+
   function chooseGenerator(next: GeneratorId) {
+    setDeep(false)
     setGenerator(next)
     setResult(null)
     setError('')
@@ -116,6 +129,7 @@ export default function ToolsApp() {
   }
 
   function choose(next: ToolId) {
+    setDeep(false)
     setGenerator(null)
     setTool(next)
     setResult(null)
@@ -141,17 +155,20 @@ export default function ToolsApp() {
 
   return (
     <>
-      <Header onHelp={() => setGuideOpen(true)} checked={generator ? '' : checked} tools={generator ? `gen-${generator}` : tool} />
+      <Header onHelp={() => setGuideOpen(true)} checked={generator ? '' : checked} tools={deep ? 'deep' : generator ? `gen-${generator}` : tool} />
       <main id="main">
         <section className="hero tools-hero">
           <div className="wrap narrow">
             <h1>{t.toolsTitle}</h1>
             <p className="lead">{t.toolsLead}</p>
+            <div className="tool-list">
+              <button type="button" className={deep ? 'tool-tab deep-tab on' : 'tool-tab deep-tab'} aria-pressed={deep} onClick={chooseDeep}>{d.ui.tab}</button>
+            </div>
             <h2 className="tool-group">{g.groupCheck}</h2>
             <div className="tool-list" role="group" aria-label={g.groupCheck}>
               {TOOLS.map((x) => (
-                <button key={x.id} type="button" className={!generator && x.id === tool ? 'tool-tab on' : 'tool-tab'}
-                  aria-pressed={!generator && x.id === tool} onClick={() => choose(x.id)}>
+                <button key={x.id} type="button" className={!generator && !deep && x.id === tool ? 'tool-tab on' : 'tool-tab'}
+                  aria-pressed={!generator && !deep && x.id === tool} onClick={() => choose(x.id)}>
                   {t.tools[x.id][0]}
                 </button>
               ))}
@@ -165,8 +182,8 @@ export default function ToolsApp() {
                 </button>
               ))}
             </div>
-            <p className="tool-about">{generator ? g.gens[generator][1] : t.tools[tool][1]}</p>
-            {!generator && (
+            <p className="tool-about">{deep ? d.ui.about : generator ? g.gens[generator][1] : t.tools[tool][1]}</p>
+            {!generator && !deep && (
               <form className="scan" noValidate onSubmit={(e) => { e.preventDefault(); run(tool, url) }}>
                 <label htmlFor="url" className="sr">{t.urlLabel}</label>
                 <input ref={input} id="url" name="url" type="text" inputMode="url" autoComplete="url" autoCapitalize="off"
@@ -179,9 +196,10 @@ export default function ToolsApp() {
           </div>
         </section>
         <section className="wrap narrow tool-result" aria-live="polite">
+          {deep && <DeepScan initialUrl={params.get('url') || url} onTarget={setChecked} />}
           {generator && <Generator key={generator} id={generator} />}
           {loading && <div className="spinner" role="status" aria-label={t.scanning}></div>}
-          {!generator && result && (
+          {!generator && !deep && result && (
             <>
               <h2>{t.tools[tool][0]}: {host}</h2>
               {facts.length > 0 && (

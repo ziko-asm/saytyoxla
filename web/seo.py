@@ -78,7 +78,7 @@ def llms_txt() -> str:
 
 ## Necə işləyir
 - Nəticə 0–100 bal və A–F qiyməti ilə verilir; hər problemin altında necə düzəldiləcəyi yazılır
-- Yalnız açıq məlumatlara baxılır: əsas səhifə, robots.txt və sitemap.xml bir dəfə açılır, sertifikat və açıq DNS qeydləri oxunur. Gizli yollar yoxlanılmır, heç nə sındırılmağa çalışılmır
+- Yalnız açıq məlumatlara baxılır: əsas səhifə, robots.txt və sitemap.xml bir dəfə açılır, sertifikat və açıq DNS qeydləri oxunur. Sahiblik təsdiqi olmadan gizli yollar yoxlanılmır, heç nə sındırılmağa çalışılmır
 - Hesabatı PDF kimi saxlamaq və WhatsApp ilə göndərmək olar
 
 ## Kim üçündür
@@ -90,6 +90,7 @@ Ziya Azizov — https://www.linkedin.com/in/ziya-azizov-91bba638a
 ## Səhifələr
 - [SaytYoxla]({SITE_URL}/): saytı yoxlama forması, bələdçi və tez-tez verilən suallar
 - [Azərbaycan saytlarının təhlükəsizlik vəziyyəti]({SITE_URL}/hesabat/): yüzdən çox açıq saytın passiv yoxlamasının ümumi nəticələri (sayt adları olmadan)
+- [Dərin analiz]({SITE_URL}/aletler/?tool=deep): subdomenlər və ələ keçirilmə riski, saxta e-poçt testi, bilinən zəifliklər, TLS və DNS, qara siyahılar, hücum ssenariləri; açıq fayl və port yoxlaması yalnız sahiblik təsdiqindən sonra
 - [Alətlər]({SITE_URL}/aletler/): SSL, DMARC, SPF, DKIM, başlıqlar və cookie-ləri ayrıca yoxlamaq; DMARC, SPF, CSP, başlıqlar, robots.txt, meta teqlər, sitemap, security.txt və yönləndirmə generatorları
 - [Haqqımızda]({SITE_URL}/haqqimizda/), [Məxfilik]({SITE_URL}/mexfilik/), [Şərtlər]({SITE_URL}/sertler/)
 - [SaytYoxla in English]({SITE_URL}/en/): the same free website check in English

@@ -283,3 +283,33 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 .survey-link{margin:22px 0 0;text-align:center;font-weight:600}
 .survey-link a{display:inline-block;padding:12px 16px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);text-decoration:none}
 .survey-link a:hover{border-color:var(--brand-2)}
+
+.deep-tab{border-color:var(--brand-2);padding:0 22px}
+.deep-passive{margin:0 auto 10px;text-align:center}
+.deep-results{display:grid;gap:26px;margin-top:22px}
+.deep-part{display:grid;gap:10px;min-width:0}
+.deep-part h3{margin:0;font-size:20px;font-weight:800;overflow-wrap:anywhere}
+.deep-part h4{margin:8px 0 0;font-size:15px}
+.deep-part p{margin:0}
+.deep-part .spinner{margin:8px 0}
+.deep-part .facts{margin:0}
+.deep-own{padding:16px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface)}
+.deep-changes{padding:14px 16px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);overflow-wrap:anywhere}
+.chain{padding:14px 16px;border:1px solid var(--line);border-left:5px solid var(--warn);border-radius:12px;background:var(--surface)}
+.chain.critical{border-left-color:var(--fail)}
+.chain.high{border-left-color:#ea580c}
+.chain h4{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 12px;margin:0 0 8px;font-size:17px;overflow-wrap:anywhere}
+.chain-level{font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
+.chain dl{margin:0;display:grid;gap:8px}
+.chain dt{font-size:13px;font-weight:700;color:var(--muted)}
+.chain dd{margin:0;overflow-wrap:anywhere}
+.deep-hosts{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.deep-hosts summary{min-height:44px;padding:12px 14px;font-weight:700;cursor:pointer}
+.deep-hosts ul{margin:0;padding:0 14px 10px;list-style:none;max-height:360px;overflow-y:auto}
+.deep-hosts li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:7px 0;border-top:1px solid var(--line);overflow-wrap:anywhere;min-width:0}
+.deep-hosts li>span{min-width:0}
+.deep-hosts li.off{color:var(--muted)}
+.deep-hosts small{color:var(--muted)}
+.flag{font-size:13px;font-weight:700;color:var(--warn)}
+.flag.takeover{color:var(--fail)}
+@media print{.deep-link{display:none}}

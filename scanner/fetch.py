@@ -11,6 +11,7 @@ connection (DNS rebinding) cannot point the scanner at an internal address.
 
 from __future__ import annotations
 
+import os
 import re
 import socket
 import ssl
@@ -174,18 +175,38 @@ def cert_info(host: str, ip: str | None = None, port: int = 443) -> dict:
         return {"days_left": None, "issuer": "", "expires": None, "error": type(e).__name__}
 
 
-def txt_records(name: str) -> list | None:
-    """TXT records for a DNS name; [] if none, None if the lookup failed."""
+def _resolver():
+    import dns.resolver
+    servers = [s.strip() for s in os.getenv("SCANNER_DNS_SERVERS", "").split(",") if s.strip()]
+    if not servers:
+        return dns.resolver.get_default_resolver()
+    resolver = dns.resolver.Resolver(configure=False)   # for machines whose own DNS servers cannot be reached
+    resolver.nameservers = servers
+    return resolver
+
+
+def dns_lookup(name: str, rdtype: str, lifetime: float = 4) -> tuple[str, list]:
+    """(state, answers): state is "ok", "none" (the name exists without this record), "nx" (no such name)
+    or "error" (DNS did not answer, so nothing can be said)."""
     try:
         import dns.exception
         import dns.resolver
     except ImportError:
-        return None
+        return "error", []
     try:
-        answers = dns.resolver.resolve(name, "TXT", lifetime=4)
-    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
-        return []
+        return "ok", list(_resolver().resolve(name, rdtype, lifetime=lifetime))
+    except dns.resolver.NXDOMAIN:
+        return "nx", []
+    except dns.resolver.NoAnswer:
+        return "none", []
     except dns.exception.DNSException:
+        return "error", []
+
+
+def txt_records(name: str) -> list | None:
+    """TXT records for a DNS name; [] if none, None if the lookup failed."""
+    state, answers = dns_lookup(name, "TXT")
+    if state == "error":
         return None
     return [b"".join(r.strings).decode("utf-8", "replace") for r in answers]
 
