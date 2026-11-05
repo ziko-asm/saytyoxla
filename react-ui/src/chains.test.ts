@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { actionPlan, compareSnapshots, findChains, snapshotOf } from './chains'
 import type { DeepItem } from './chains'
+import { readyFixes } from './deepPdf'
+import type { DeepParts } from './deepPdf'
 import { ALL_WORDS, fill } from './deepText'
 
 const item = (id: string, status: DeepItem['status'], params: Record<string, unknown> = {}): DeepItem => ({ id, status, params })
@@ -60,8 +62,9 @@ describe('attack scenarios', () => {
   })
 })
 
+const langs = Object.values(ALL_WORDS)
+
 describe('words', () => {
-  const langs = Object.values(ALL_WORDS)
 
   it('every scenario the rules can give has words in all three languages', () => {
     const everything = [
@@ -124,6 +127,37 @@ describe('action plan', () => {
   it('is empty when nothing is wrong, whatever was unknown', () => {
     const items = [item('dns_unavailable', 'info'), item('spoof_blocked', 'ok')]
     expect(actionPlan(findChains({ items }), items)).toEqual([])
+  })
+})
+
+describe('ready-made fixes', () => {
+  const result = (module: string, items: DeepItem[], data: object) => ({ state: 'done', result: { module, host: 'a.az', items, data } })
+  const fixes = (parts: object) => readyFixes(parts as DeepParts)
+
+  it('moves DMARC one step and keeps the report address it already has', () => {
+    const code = (tags: object) => fixes({ mail: result('mail', [item('spoof_open', 'fail')], { dmarc_tags: tags }) })[0].code
+    expect(code({})).toBe('v=DMARC1; p=none; rua=mailto:dmarc@a.az')
+    expect(code({ p: 'none' })).toBe('v=DMARC1; p=none; rua=mailto:dmarc@a.az')
+    expect(code({ p: 'none', rua: 'mailto:me@a.az' })).toBe('v=DMARC1; p=quarantine; rua=mailto:me@a.az')
+  })
+
+  it('adds reports without weakening a policy that already blocks', () => {
+    const got = fixes({ mail: result('mail', [item('spoof_blocked', 'ok'), item('dmarc_no_reports', 'info')], { dmarc_tags: { p: 'reject' } }) })
+    expect(got[0].code).toBe('v=DMARC1; p=reject; rua=mailto:dmarc@a.az')
+  })
+
+  it('offers nothing for a healthy site', () => {
+    expect(fixes({ mail: result('mail', [item('spoof_blocked', 'ok')], { dmarc_tags: { p: 'reject', rua: 'x' } }), tech: result('tech', [], { headers: [{ name: 'x-frame-options', value: 'DENY' }] }) })).toEqual([])
+  })
+
+  it('names a CAA issuer only when it is known', () => {
+    const tls = (issuer: string) => fixes({ tls: result('tls', [item('caa_missing', 'info')], { apex: 'a.az', cert: { issuer } }) })
+    expect(tls("Let's Encrypt")[0].code).toBe('0 issue "letsencrypt.org"')
+    expect(tls('Some Unknown CA')).toEqual([])
+  })
+
+  it('every fix has words in every language', () => {
+    for (const words of langs) for (const id of ['dmarc', 'spf', 'tlsRpt', 'caa', 'strict-transport-security', 'content-security-policy', 'x-frame-options', 'x-content-type-options', 'referrer-policy', 'permissions-policy']) expect(words.pdf.fixes[id], id).toBeTruthy()
   })
 })
 

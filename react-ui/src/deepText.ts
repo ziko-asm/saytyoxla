@@ -33,6 +33,10 @@ export type PdfWords = {
   yes: string; no: string; issuer: string; apex: string; filesChecked: string; portsChecked: string
   method: string; sourcesTitle: string; sources: string[]; limitsTitle: string; limits: string[]
   glossary: string; terms: [string, string][]
+  x: Record<string, string>
+  fixes: Record<string, [string, string]>
+  tags: Record<string, string>
+  headerDesc: Record<string, string>
 }
 
 const AZ: Words = {
@@ -171,7 +175,7 @@ const AZ: Words = {
     limitsTitle: 'Bu hesabat nəyi göstərmir',
     limits: [
       'Bu, tam təhlükəsizlik auditi deyil. Saytın kodu, parollar, giriş formaları və server içi yoxlanılmır.',
-      'Sertifikatı olmayan və ya ümumi (*) sertifikat işlədən subdomenlər siyahıda görünməyə bilər.',
+      'Sertifikatı olmayan və ya ümumi (*) sertifikat işlədən subdomenlər siyahıda görünməyə bilər. Sertifikat tarixçəsi əsasən hazırda keçərli sertifikatları göstərir.',
       'DKIM yalnız geniş yayılmış seçici adlarında axtarılır. Tapılmaması DKIM-in olmadığını sübut etmir.',
       'Kitabxana versiyası yalnız fayl ünvanında yazılıbsa görünür. Bazada olan zəiflik saytınızda işə düşməyə də bilər.',
       'Ssenarilər qaydalarla qurulur və ehtimal bildirir. Onlar baş vermiş hadisə deyil.',
@@ -193,6 +197,41 @@ const AZ: Words = {
       ['CAA', 'Domeniniz üçün hansı təşkilatların sertifikat verə biləcəyini yazan qeyd.'],
       ['Port', 'Serverdə xidmətin bağlantı gözlədiyi nömrəli giriş.'],
     ],
+    x: {
+      summary: '{fail} ciddi problem, {warn} tövsiyə, {ok} qaydasında, {info} məlumat',
+      ready: 'Hazır düzəlişlər', readyLead: 'Bu qeydlər saytın indiki vəziyyətinə görə hazırlanıb. Tətbiq etməzdən əvvəl ünvanların sizin olduğunu yoxlayın. Mətnləri saytdakı dərin analiz səhifəsindən kopyalamaq olar.',
+      dnsTxt: 'DNS, TXT qeydi: {name}', dnsCaa: 'DNS, CAA qeydi: {name}', header: 'Serverin cavabında HTTP başlığı',
+      certLog: 'Sertifikat tarixçəsi', certCount: 'Qeydə düşən sertifikat', certActive: 'Hazırda keçərli', certFirst: 'Ən köhnə qeyd', certLast: 'Ən yeni qeyd', certNext: 'Ən yaxın bitmə tarixi', certIssuers: 'Verənlər',
+      hostsNone: 'Sertifikat qeydlərində əsas ünvandan başqa ad tapılmadı.',
+      spfTree: 'SPF ağacı', spfDomain: 'Domen', spfOwn: 'DNS sorğusu', spfTotal: 'Cəmi: {count} / {limit}',
+      dmarcTable: 'DMARC qeydi hissə-hissə', tag: 'Hissə', value: 'Dəyər', meaning: 'Mənası',
+      dkimTable: 'DKIM açarları', selector: 'Seçici', keySize: 'Açar ölçüsü', unknown: 'Bilinmir',
+      mxTable: 'Poçt serverləri (MX)', priority: 'Sıra', server: 'Server', address: 'IP ünvanı',
+      mailExtras: 'Poçt yolunun qorunması', mtaSts: 'MTA-STS rejimi', tlsRpt: 'TLS-RPT qeydi', absent: 'Yoxdur',
+      pageTable: 'Əsas səhifə', finalUrl: 'Son ünvan', status: 'HTTP kodu', time: 'Cavab vaxtı', size: 'HTML ölçüsü', redirects: 'Yönləndirmə sayı',
+      headersTable: 'Təhlükəsizlik başlıqları', headerName: 'Başlıq', present: 'Var',
+      cookiesTable: 'Kukilər', cookie: 'Ad', cookiesNone: 'Əsas səhifə kuki qoymur.',
+      libsTable: 'JS kitabxanaları', library: 'Kitabxana', version: 'Versiya', weaknesses: 'Zəiflik (ciddi)', fixedIn: 'Düzəldən versiya', notAsked: 'Yoxlanılmadı', libsNone: 'Ünvanında versiya yazılan kitabxana görünmədi. Bu, kitabxana olmadığı demək deyil.',
+      certTable: 'Sertifikat', certSubject: 'Kimə verilib', certBy: 'Kim verib', certNames: 'Əhatə etdiyi adlar', certFrom: 'Başlanğıc', certTo: 'Bitmə', certDays: 'Qalan gün', certCipher: 'Şifrələmə', certNone: 'Sertifikat yoxlamadan keçmədiyi üçün detalları oxunmadı.',
+      protoTable: 'Protokollar', protocol: 'Protokol', accepted: 'Qəbul edir', refused: 'Bağlıdır',
+      dnsTable: 'DNS qeydləri', recordType: 'Qeyd', ptr: 'Tərs DNS (PTR)', network: 'Şəbəkə', country: 'Ölkə',
+      regTable: 'Domen qeydiyyatı', registrar: 'Qeydiyyatçı', created: 'Yaradılıb', updated: 'Yenilənib', expires: 'Bitir', regStatus: 'Status', regNone: 'Bu domen zonası qeydiyyat məlumatını açıq dərc etmir, ona görə bitmə tarixini özünüz yoxlayın.',
+      repTable: 'Siyahılar üzrə nəticə', listName: 'Siyahı', target: 'Yoxlanan', result: 'Nəticə', clean: 'Siyahıda deyil', listed: 'Siyahıdadır', unavailable: 'Cavab yoxdur',
+    },
+    fixes: {
+      dmarc: ['DMARC qeydi', 'Saxta məktubları dayandırmaq üçün növbəti addım. Hesabatları oxuduqdan sonra sərtləşdirin.'],
+      spf: ['SPF qeydi', 'Məktub göndərən bütün xidmətlərinizi bu qeydə daxil edin, yoxsa öz məktubunuz da spam sayıla bilər.'],
+      tlsRpt: ['TLS-RPT qeydi', 'Poçt çatdırılmasında şifrələmə xətası olanda hesabat alırsınız.'],
+      caa: ['CAA qeydi', 'Yalnız indiki sertifikat verəninizə icazə verir. Başqa xidmət də sertifikat verirsə, onu da əlavə edin.'],
+      'strict-transport-security': ['HSTS', 'Brauzer saytı yalnız HTTPS ilə açır.'],
+      'content-security-policy': ['CSP (yalnız müşahidə rejimi)', 'Əvvəl saytı pozmadan nəyin bloklanacağını göstərir. Yoxladıqdan sonra əsl CSP-yə keçin.'],
+      'x-frame-options': ['X-Frame-Options', 'Saytın başqa səhifənin içində açılıb aldatma üçün işlədilməsinin qarşısını alır.'],
+      'x-content-type-options': ['X-Content-Type-Options', 'Brauzerin fayl növünü özü təxmin etməsinin qarşısını alır.'],
+      'referrer-policy': ['Referrer-Policy', 'Keçid edəndə başqa saytlara gedən ünvan məlumatını azaldır.'],
+      'permissions-policy': ['Permissions-Policy', 'Lazım olmayan kamera, mikrofon və yer icazələrini bağlayır.'],
+    },
+    tags: { v: 'Qeydin növü', p: 'Əsas siyasət: none yalnız izləyir, quarantine spama atır, reject rədd edir', sp: 'Subdomenlər üçün siyasət', pct: 'Siyasətin tətbiq olunduğu məktub faizi', rua: 'Ümumi hesabatların gəldiyi ünvan', ruf: 'Ətraflı hesabatların gəldiyi ünvan', adkim: 'DKIM üçün ad uyğunluğu: r sərbəst, s sərt', aspf: 'SPF üçün ad uyğunluğu: r sərbəst, s sərt', fo: 'Ətraflı hesabatın nə vaxt göndərilməsi', ri: 'Hesabat aralığı, saniyə ilə' },
+    headerDesc: { 'strict-transport-security': 'Brauzeri HTTPS-də saxlayır', 'content-security-policy': 'Yad skriptləri məhdudlaşdırır', 'x-frame-options': 'Başqa səhifənin içində açılmanı bağlayır', 'x-content-type-options': 'Fayl növünü təxmin etməni bağlayır', 'referrer-policy': 'Paylaşılan ünvan məlumatını azaldır', 'permissions-policy': 'Kamera və mikrofon icazələrini məhdudlaşdırır' },
   },
 }
 
@@ -332,7 +371,7 @@ const EN: Words = {
     limitsTitle: 'What this report does not show',
     limits: [
       'This is not a full security audit. The site’s code, passwords, login forms and the inside of the server are not checked.',
-      'Subdomains with no certificate of their own, or on a wildcard (*) certificate, may not appear in the list.',
+      'Subdomains with no certificate of their own, or on a wildcard (*) certificate, may not appear in the list. The certificate history shows mainly certificates valid now.',
       'DKIM is looked up only under common selector names. Not finding it does not prove it is missing.',
       'A library version is visible only if the file address states it. A weakness in the database may not apply to your site.',
       'Scenarios come from rules and state possibilities. They are not events that have happened.',
@@ -354,6 +393,41 @@ const EN: Words = {
       ['CAA', 'A record saying which organisations may issue certificates for your domain.'],
       ['Port', 'A numbered entrance where a service on the server waits for connections.'],
     ],
+    x: {
+      summary: '{fail} serious problems, {warn} recommendations, {ok} all good, {info} notes',
+      ready: 'Ready-made fixes', readyLead: 'These records are prepared from the site’s present state. Check that the addresses are yours before applying them. The text can be copied from the deep analysis page on the site.',
+      dnsTxt: 'DNS, TXT record: {name}', dnsCaa: 'DNS, CAA record: {name}', header: 'HTTP header in the server’s response',
+      certLog: 'Certificate history', certCount: 'Certificates on record', certActive: 'Valid now', certFirst: 'Oldest record', certLast: 'Newest record', certNext: 'Next expiry', certIssuers: 'Issuers',
+      hostsNone: 'The certificate logs show no name other than the main address.',
+      spfTree: 'SPF tree', spfDomain: 'Domain', spfOwn: 'DNS lookups', spfTotal: 'Total: {count} / {limit}',
+      dmarcTable: 'The DMARC record, part by part', tag: 'Part', value: 'Value', meaning: 'Meaning',
+      dkimTable: 'DKIM keys', selector: 'Selector', keySize: 'Key size', unknown: 'Unknown',
+      mxTable: 'Mail servers (MX)', priority: 'Order', server: 'Server', address: 'IP address',
+      mailExtras: 'Protection of the mail path', mtaSts: 'MTA-STS mode', tlsRpt: 'TLS-RPT record', absent: 'Missing',
+      pageTable: 'Home page', finalUrl: 'Final address', status: 'HTTP code', time: 'Response time', size: 'HTML size', redirects: 'Redirects',
+      headersTable: 'Security headers', headerName: 'Header', present: 'Present',
+      cookiesTable: 'Cookies', cookie: 'Name', cookiesNone: 'The home page sets no cookies.',
+      libsTable: 'JS libraries', library: 'Library', version: 'Version', weaknesses: 'Weaknesses (serious)', fixedIn: 'Fixed in', notAsked: 'Not checked', libsNone: 'No library with a version in its address is visible. This does not mean there are no libraries.',
+      certTable: 'Certificate', certSubject: 'Issued to', certBy: 'Issued by', certNames: 'Names covered', certFrom: 'Valid from', certTo: 'Valid until', certDays: 'Days left', certCipher: 'Encryption', certNone: 'The certificate failed validation, so its details could not be read.',
+      protoTable: 'Protocols', protocol: 'Protocol', accepted: 'Accepts', refused: 'Closed',
+      dnsTable: 'DNS records', recordType: 'Record', ptr: 'Reverse DNS (PTR)', network: 'Network', country: 'Country',
+      regTable: 'Domain registration', registrar: 'Registrar', created: 'Created', updated: 'Updated', expires: 'Expires', regStatus: 'Status', regNone: 'This domain zone does not publish registration data, so check the expiry date yourself.',
+      repTable: 'Result by list', listName: 'List', target: 'Checked', result: 'Result', clean: 'Not listed', listed: 'Listed', unavailable: 'No answer',
+    },
+    fixes: {
+      dmarc: ['DMARC record', 'The next step towards stopping fake mail. Tighten it after reading the reports.'],
+      spf: ['SPF record', 'Include every service that sends your mail, or your own mail may count as spam.'],
+      tlsRpt: ['TLS-RPT record', 'You get a report when mail delivery has an encryption failure.'],
+      caa: ['CAA record', 'Allows only your present certificate issuer. If another service issues certificates too, add it.'],
+      'strict-transport-security': ['HSTS', 'The browser opens the site only over HTTPS.'],
+      'content-security-policy': ['CSP (observe-only mode)', 'First shows what would be blocked without breaking the site. Move to real CSP after checking.'],
+      'x-frame-options': ['X-Frame-Options', 'Stops the site being opened inside another page to trick people.'],
+      'x-content-type-options': ['X-Content-Type-Options', 'Stops the browser guessing file types.'],
+      'referrer-policy': ['Referrer-Policy', 'Reduces the address data sent to other sites on a click.'],
+      'permissions-policy': ['Permissions-Policy', 'Closes camera, microphone and location permissions that are not needed.'],
+    },
+    tags: { v: 'Record type', p: 'Main policy: none only watches, quarantine sends to spam, reject refuses', sp: 'Policy for subdomains', pct: 'Percent of mail the policy applies to', rua: 'Address for summary reports', ruf: 'Address for detailed reports', adkim: 'Name alignment for DKIM: r relaxed, s strict', aspf: 'Name alignment for SPF: r relaxed, s strict', fo: 'When a detailed report is sent', ri: 'Report interval in seconds' },
+    headerDesc: { 'strict-transport-security': 'Keeps the browser on HTTPS', 'content-security-policy': 'Limits foreign scripts', 'x-frame-options': 'Blocks opening inside another page', 'x-content-type-options': 'Blocks file type guessing', 'referrer-policy': 'Reduces shared address data', 'permissions-policy': 'Limits camera and microphone permissions' },
   },
 }
 
@@ -493,7 +567,7 @@ const RU: Words = {
     limitsTitle: 'Чего этот отчёт не показывает',
     limits: [
       'Это не полный аудит безопасности. Код сайта, пароли, формы входа и внутренность сервера не проверяются.',
-      'Поддомены без своего сертификата или с общим (*) сертификатом могут не попасть в список.',
+      'Поддомены без своего сертификата или с общим (*) сертификатом могут не попасть в список. История сертификатов показывает в основном действующие сейчас сертификаты.',
       'DKIM ищется только под распространёнными именами селекторов. Если он не найден, это не доказывает его отсутствие.',
       'Версия библиотеки видна, только если указана в адресе файла. Уязвимость из базы может не затрагивать ваш сайт.',
       'Сценарии строятся по правилам и говорят о возможностях. Это не произошедшие события.',
@@ -515,6 +589,41 @@ const RU: Words = {
       ['CAA', 'Запись о том, какие организации могут выдавать сертификаты для домена.'],
       ['Порт', 'Нумерованный вход, где сервис на сервере ждёт соединений.'],
     ],
+    x: {
+      summary: 'Серьёзных проблем: {fail}, рекомендаций: {warn}, в порядке: {ok}, заметок: {info}',
+      ready: 'Готовые исправления', readyLead: 'Эти записи подготовлены по текущему состоянию сайта. Перед применением проверьте, что адреса ваши. Текст можно скопировать на странице глубокого анализа на сайте.',
+      dnsTxt: 'DNS, запись TXT: {name}', dnsCaa: 'DNS, запись CAA: {name}', header: 'HTTP-заголовок в ответе сервера',
+      certLog: 'История сертификатов', certCount: 'Сертификатов в журналах', certActive: 'Действуют сейчас', certFirst: 'Самая старая запись', certLast: 'Самая новая запись', certNext: 'Ближайшее окончание', certIssuers: 'Кто выдавал',
+      hostsNone: 'В журналах сертификатов нет имён, кроме основного адреса.',
+      spfTree: 'Дерево SPF', spfDomain: 'Домен', spfOwn: 'DNS-запросы', spfTotal: 'Всего: {count} / {limit}',
+      dmarcTable: 'Запись DMARC по частям', tag: 'Часть', value: 'Значение', meaning: 'Смысл',
+      dkimTable: 'Ключи DKIM', selector: 'Селектор', keySize: 'Размер ключа', unknown: 'Неизвестно',
+      mxTable: 'Почтовые серверы (MX)', priority: 'Порядок', server: 'Сервер', address: 'IP-адрес',
+      mailExtras: 'Защита пути почты', mtaSts: 'Режим MTA-STS', tlsRpt: 'Запись TLS-RPT', absent: 'Нет',
+      pageTable: 'Главная страница', finalUrl: 'Конечный адрес', status: 'HTTP-код', time: 'Время ответа', size: 'Размер HTML', redirects: 'Перенаправлений',
+      headersTable: 'Заголовки безопасности', headerName: 'Заголовок', present: 'Есть',
+      cookiesTable: 'Cookie', cookie: 'Имя', cookiesNone: 'Главная страница не ставит cookie.',
+      libsTable: 'JS-библиотеки', library: 'Библиотека', version: 'Версия', weaknesses: 'Уязвимости (серьёзные)', fixedIn: 'Исправлено в', notAsked: 'Не проверено', libsNone: 'Библиотек с версией в адресе не видно. Это не значит, что библиотек нет.',
+      certTable: 'Сертификат', certSubject: 'Кому выдан', certBy: 'Кем выдан', certNames: 'Какие имена покрывает', certFrom: 'Начало', certTo: 'Окончание', certDays: 'Осталось дней', certCipher: 'Шифрование', certNone: 'Сертификат не прошёл проверку, поэтому его детали не прочитаны.',
+      protoTable: 'Протоколы', protocol: 'Протокол', accepted: 'Принимает', refused: 'Закрыт',
+      dnsTable: 'Записи DNS', recordType: 'Запись', ptr: 'Обратный DNS (PTR)', network: 'Сеть', country: 'Страна',
+      regTable: 'Регистрация домена', registrar: 'Регистратор', created: 'Создан', updated: 'Обновлён', expires: 'Истекает', regStatus: 'Статус', regNone: 'Эта доменная зона не публикует данные регистрации, поэтому проверьте срок сами.',
+      repTable: 'Результат по спискам', listName: 'Список', target: 'Что проверено', result: 'Результат', clean: 'Не в списке', listed: 'В списке', unavailable: 'Нет ответа',
+    },
+    fixes: {
+      dmarc: ['Запись DMARC', 'Следующий шаг к остановке поддельных писем. Ужесточайте после чтения отчётов.'],
+      spf: ['Запись SPF', 'Включите все сервисы, отправляющие вашу почту, иначе ваши письма могут считаться спамом.'],
+      tlsRpt: ['Запись TLS-RPT', 'Вы получаете отчёт при ошибке шифрования в доставке почты.'],
+      caa: ['Запись CAA', 'Разрешает только вашего нынешнего издателя сертификатов. Если сертификаты выдаёт и другой сервис, добавьте его.'],
+      'strict-transport-security': ['HSTS', 'Браузер открывает сайт только по HTTPS.'],
+      'content-security-policy': ['CSP (режим наблюдения)', 'Сначала показывает, что будет заблокировано, не ломая сайт. После проверки перейдите на настоящий CSP.'],
+      'x-frame-options': ['X-Frame-Options', 'Не даёт открыть сайт внутри другой страницы для обмана.'],
+      'x-content-type-options': ['X-Content-Type-Options', 'Не даёт браузеру угадывать тип файла.'],
+      'referrer-policy': ['Referrer-Policy', 'Уменьшает данные об адресе, уходящие на другие сайты при переходе.'],
+      'permissions-policy': ['Permissions-Policy', 'Закрывает ненужные разрешения камеры, микрофона и геолокации.'],
+    },
+    tags: { v: 'Тип записи', p: 'Основная политика: none только наблюдает, quarantine отправляет в спам, reject отклоняет', sp: 'Политика для поддоменов', pct: 'Процент писем, к которым применяется политика', rua: 'Адрес для сводных отчётов', ruf: 'Адрес для подробных отчётов', adkim: 'Совпадение имени для DKIM: r мягкое, s строгое', aspf: 'Совпадение имени для SPF: r мягкое, s строгое', fo: 'Когда отправляется подробный отчёт', ri: 'Интервал отчётов в секундах' },
+    headerDesc: { 'strict-transport-security': 'Держит браузер на HTTPS', 'content-security-policy': 'Ограничивает чужие скрипты', 'x-frame-options': 'Запрещает открытие внутри другой страницы', 'x-content-type-options': 'Запрещает угадывание типа файла', 'referrer-policy': 'Уменьшает передаваемые данные об адресе', 'permissions-policy': 'Ограничивает разрешения камеры и микрофона' },
   },
 }
 

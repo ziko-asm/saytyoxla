@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { compareSnapshots, findChains, snapshotOf } from '../chains'
 import type { Changes, Chain } from '../chains'
-import { PUBLIC, deepPdfName, factRows, itemToFinding, problemTitle, renderDeepReport, sortedItems } from '../deepPdf'
+import { PUBLIC, deepPdfName, factRows, itemToFinding, problemTitle, readyFixes, renderDeepReport, sortedItems } from '../deepPdf'
 import type { DeepHost, DeepPart, DeepParts, DeepResult, ModuleId } from '../deepPdf'
 import { d, fill } from '../deepText'
 import { LANG, LOCALE, t } from '../i18n'
@@ -268,6 +268,13 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
             {publicDone && chains.length === 0 && <p>{d.ui.chainsNone}</p>}
             {chains.map((chain, i) => <ChainCard key={`${chain.id}${i}`} chain={chain} />)}
           </section>
+          {publicDone && readyFixes(parts).length > 0 && (
+            <section className="deep-part">
+              <h3>{d.pdf.x.ready}</h3>
+              <p className="g-tip">{d.pdf.x.readyLead}</p>
+              {readyFixes(parts).map((fix) => <Code key={fix.id} label={`${d.pdf.fixes[fix.id]?.[0] || fix.id}. ${fix.where}`} code={fix.code} />)}
+            </section>
+          )}
           {changes && (
             <section className="deep-part deep-changes">
               <h3>{d.ui.since(changes.since)}</h3>

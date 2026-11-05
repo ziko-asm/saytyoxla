@@ -38,23 +38,49 @@ def test_every_item_has_words_in_three_languages():
         assert not missing, f"{lang} has no words for {missing}"
 
 
-def test_certificate_names_keep_only_real_subdomains(monkeypatch):
-    monkeypatch.setattr(deep, "_cert_spotter", lambda d: {"*.a.az", "www.a.az", "A.az", "evil-a.az", "x.a.az.", "bad_name.a.az", "b.other.az"})
-    assert deep.certificate_names("a.az") == {"a.az", "www.a.az", "x.a.az"}
+def test_certificate_names_keep_only_real_subdomains():
+    entries = [{"names": ["*.a.az", "www.a.az", "A.az", "evil-a.az", "x.a.az.", "bad_name.a.az", "b.other.az"]}]
+    assert deep.certificate_names(entries, "a.az") == {"a.az", "www.a.az", "x.a.az"}
 
 
-def test_certificate_names_fall_back_and_admit_failure(monkeypatch):
+def test_certificate_log_falls_back_and_admits_failure(monkeypatch):
     def down(_):
         raise deep.requests.ConnectionError()
     monkeypatch.setattr(deep, "_cert_spotter", down)
-    monkeypatch.setattr(deep, "_crt_sh", lambda d: {"m.a.az"})
-    assert deep.certificate_names("a.az") == {"m.a.az"}
+    monkeypatch.setattr(deep, "_crt_sh", lambda d: [{"names": ["m.a.az"]}])
+    assert deep._certificate_log("a.az") == [{"names": ["m.a.az"]}]
     monkeypatch.setattr(deep, "_crt_sh", down)
-    assert deep.certificate_names("a.az") is None
+    assert deep._certificate_log("a.az") is None
+
+
+def test_certificate_stats_tell_history_and_what_is_valid_now():
+    stats = deep.certificate_stats([{"from": "2020-01-01", "to": "2020-04-01", "issuer": "B"}, {"from": "2999-01-01", "to": "2999-04-01", "issuer": "A"}, {"from": "2998-01-01", "to": "2999-02-01", "issuer": "A"}])
+    assert stats == {"count": 3, "active": 2, "first": "2020-01-01", "last": "2999-01-01", "next_expiry": "2999-02-01", "issuers": ["A", "B"]}
+
+
+def test_spf_steps_show_the_tree(monkeypatch):
+    monkeypatch.setattr(fetch, "txt_records", txt({"a.az": ["v=spf1 mx include:b.net -all"], "b.net": ["v=spf1 a -all"]}))
+    steps = []
+    deep.spf_tree("a.az", steps=steps)
+    assert steps == [{"domain": "a.az", "depth": 0, "lookups": 2}, {"domain": "b.net", "depth": 1, "lookups": 1}]
+
+
+def test_osv_names_the_version_that_fixes_all(monkeypatch):
+    answer = {"vulns": [{"id": "A", "affected": [{"ranges": [{"events": [{"introduced": "0"}, {"fixed": "3.5.0"}]}]}]},
+                        {"id": "B", "database_specific": {"severity": "HIGH"}, "affected": [{"ranges": [{"events": [{"fixed": "3.10.1"}]}]}]}]}
+    monkeypatch.setattr(deep.requests, "post", lambda *a, **k: SimpleNamespace(status_code=200, json=lambda: answer))
+    assert deep.osv_vulns("jquery", "3.3.1") == {"count": 2, "high": 1, "ids": ["A", "B"], "fixed": "3.10.1"}
+
+
+def test_report_lists_every_blocklist_including_unavailable(monkeypatch):
+    table = {("test.surbl.org.multi.surbl.org", "A"): ("ok", a_record("127.0.0.254")), ("a.az", "A"): ("ok", a_record("8.8.8.8"))}
+    monkeypatch.setattr(fetch, "dns_lookup", fake_dns(table))
+    rows = {r["list"]: r["state"] for r in deep.reputation("a.az")["data"]["table"]}
+    assert rows == {"Spamhaus DBL": "unavailable", "SURBL": "clean", "Spamhaus SBL/XBL": "unavailable", "SpamCop": "unavailable"}
 
 
 def test_surface_says_so_when_the_logs_do_not_answer(monkeypatch):
-    monkeypatch.setattr(deep, "certificate_names", lambda d: None)
+    monkeypatch.setattr(deep, "_certificate_log", lambda d: None)
     assert list(ids(deep.surface("a.az"))) == ["surface_unavailable"]
 
 
@@ -204,7 +230,7 @@ def test_wordpress_style_version_parameter():
 
 def page(monkeypatch, body=b"<html></html>", headers=None, status=200, vulns=None):
     response = SimpleNamespace(status_code=status, headers=headers or {})
-    monkeypatch.setattr(fetch, "_get", lambda *a, **k: (response, "https://a.az/", 0, [], body, None))
+    monkeypatch.setattr(fetch, "_get", lambda *a, **k: (response, "https://a.az/", [], 0, body, None))
     monkeypatch.setattr(deep, "osv_vulns", lambda n, v: vulns)
 
 
