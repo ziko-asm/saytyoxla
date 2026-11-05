@@ -143,6 +143,17 @@ export default function ToolsApp() {
     if (url.trim()) run(next, url)
   }
 
+  function clearResults() {
+    answers.current.clear()
+    setResult(null)
+    setChecked('')
+    setUrl('')
+    setError('')
+    window.history.replaceState(null, '', `${window.location.pathname}?tool=${tool}`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    input.current?.focus()
+  }
+
   const closeGuide = useCallback(() => setGuideOpen(false), [])
   const current = TOOLS.find((x) => x.id === tool)!
   const findings = (result?.findings || [])
@@ -206,7 +217,7 @@ export default function ToolsApp() {
           </div>
         </section>
         <section className="wrap tool-result" aria-live="polite">
-          {deep && <DeepScan initialUrl={params.get('url') || url} onTarget={setChecked} />}
+          {deep && <DeepScan initialUrl={params.get('url') || url} onTarget={(value) => { setChecked(value); if (!value) setUrl('') }} />}
           {generator && <Generator key={generator} id={generator} />}
           {loading && <div className="spinner" role="status" aria-label={t.scanning}></div>}
           {!generator && !deep && result && (
@@ -225,6 +236,7 @@ export default function ToolsApp() {
               )}
               {findings.map((f) => <FindingItem key={f.id} f={f} benchmark={result.benchmarks?.[f.id]} />)}
               <p className="tool-more"><a href={`${window.location.pathname.replace(/[^/]+\/$/, '')}?url=${encodeURIComponent(checked)}`}>{t.toolsFull}</a></p>
+              <p className="clear-row"><button className="btn btn-ghost" type="button" onClick={clearResults}>{t.clearResults}</button></p>
             </>
           )}
         </section>
