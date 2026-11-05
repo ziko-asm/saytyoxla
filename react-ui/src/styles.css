@@ -243,8 +243,10 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 /* tools */
 .tools-hero{padding-bottom:24px}
 .tools-hero .lead{margin-bottom:18px}
-.tool-group{margin:14px 0 8px;text-align:center;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-.tool-list{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 0 14px}
+.tool-picker{max-width:1280px}
+.tool-group{margin:14px 0 8px;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tool-list{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.tool-list .tool-tab{flex:1 1 auto;padding:0 12px;white-space:nowrap}
 .scan input:-webkit-autofill,.scan input:-webkit-autofill:hover,.scan input:-webkit-autofill:focus{-webkit-text-fill-color:var(--ink);box-shadow:0 0 0 100px var(--surface) inset;caret-color:var(--ink)}
 .generator{display:grid;gap:12px}
 .g-field{display:grid;gap:6px;font-weight:600;font-size:15px}

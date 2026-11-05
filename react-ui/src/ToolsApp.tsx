@@ -161,6 +161,8 @@ export default function ToolsApp() {
           <div className="wrap narrow">
             <h1>{t.toolsTitle}</h1>
             <p className="lead">{t.toolsLead}</p>
+          </div>
+          <div className="wrap tool-picker">
             <div className="tool-list">
               <button type="button" className={deep ? 'tool-tab deep-tab on' : 'tool-tab deep-tab'} aria-pressed={deep} onClick={chooseDeep}>{d.ui.tab}</button>
             </div>
@@ -182,6 +184,8 @@ export default function ToolsApp() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="wrap narrow">
             <p className="tool-about">{deep ? d.ui.about : generator ? g.gens[generator][1] : t.tools[tool][1]}</p>
             {!generator && !deep && (
               <form className="scan" noValidate onSubmit={(e) => { e.preventDefault(); run(tool, url) }}>
