@@ -94,10 +94,50 @@ function Section({ id, part, onRetry }: { id: ModuleId; part?: Part; onRetry: ()
   )
 }
 
-function Ownership({ target, part, onCheck }: { target: string; part?: Part; onCheck: () => void }) {
+function Monitor({ target }: { target: string }) {
+  const [enabled, setEnabled] = useState(false)
+  const [email, setEmail] = useState('')
+  const [state, setState] = useState<'idle' | 'busy' | 'sent'>('idle')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/monitor/status').then((r) => r.json()).then((data) => setEnabled(!!data.enabled)).catch(() => setEnabled(false))
+  }, [])
+  if (!enabled) return null
+
+  async function start() {
+    setError('')
+    setState('busy')
+    try {
+      await ask('/api/monitor', { url: target, email })
+      setState('sent')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.genericError)
+      setState('idle')
+    }
+  }
+
+  return (
+    <div className="deep-monitor">
+      <h4>{d.pdf.x.monitorTitle}</h4>
+      <p className="g-tip">{d.pdf.x.monitorLead}</p>
+      {state === 'sent' ? <p role="status">{d.pdf.x.monitorSent}</p> : (
+        <form className="scan" noValidate onSubmit={(e) => { e.preventDefault(); start() }}>
+          <label htmlFor="monitor-email" className="sr">{d.pdf.x.emailLabel}</label>
+          <input id="monitor-email" type="email" autoComplete="email" maxLength={254} placeholder={d.pdf.x.emailLabel} value={email} onInput={(e) => setEmail(e.currentTarget.value)} />
+          <button className="btn btn-primary" type="submit" disabled={state === 'busy'}>{d.pdf.x.monitorStart}</button>
+        </form>
+      )}
+      {error && <p className="form-error" role="alert">{error}</p>}
+    </div>
+  )
+}
+
+function Ownership({ target, part, pages, onCheck }: { target: string; part?: Part; pages?: Part; onCheck: () => void }) {
   const [proof, setProof] = useState<Proof | null>(null)
   const [error, setError] = useState('')
   const [waiting, setWaiting] = useState(false)
+  const busy = part?.state === 'loading' || pages?.state === 'loading'
 
   async function start() {
     setError('')
@@ -128,19 +168,22 @@ function Ownership({ target, part, onCheck }: { target: string; part?: Part; onC
           <Code label="URL" code={proof.file_url} />
           <Code label={d.ui.ownCode} code={proof.token} file="saytyoxla.txt" />
           <p>
-            <button className="btn btn-primary" type="button" disabled={part?.state === 'loading'} onClick={onCheck}>
-              {part?.state === 'loading' ? d.ui.ownChecking : d.ui.ownCheck}
+            <button className="btn btn-primary" type="button" disabled={busy} onClick={onCheck}>
+              {busy ? d.ui.ownChecking : d.ui.ownCheck}
             </button>
           </p>
           {part?.state === 'error' && <p className="g-tip">{d.ui.ownNotYet}</p>}
         </>
       )}
       {part?.state === 'error' && <p className="form-error" role="alert">{part.error}</p>}
-      {part?.result && (
+      {part?.result && sortedItems(part.result.items).map((item, i) => <FindingItem key={`${item.id}${i}`} f={itemToFinding(item)} />)}
+      {pages?.result && (
         <>
-          {sortedItems(part.result.items).map((item, i) => <FindingItem key={`${item.id}${i}`} f={itemToFinding(item)} />)}
+          <h4>{d.ui.modules.crawl}</h4>
+          {sortedItems(pages.result.items).map((item, i) => <FindingItem key={`${item.id}${i}`} f={itemToFinding(item)} />)}
         </>
       )}
+      {part?.result && <Monitor target={target} />}
     </section>
   )
 }
@@ -232,7 +275,7 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
   }, [finished, target])
 
   // A deep check still running would be missing from the report
-  const pdfReady = publicDone && parts.active?.state !== 'loading'
+  const pdfReady = publicDone && parts.active?.state !== 'loading' && parts.crawl?.state !== 'loading'
   const reportHost = (PUBLIC.map((id) => parts[id]?.result?.host).find(Boolean)) || target
   const report = () => ({ host: reportHost, when, parts, chains, changes })
 
@@ -304,7 +347,7 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
             </section>
           )}
           {PUBLIC.map((id) => <Section key={id} id={id} part={parts[id]} onRetry={() => runModule(id, target, true)} />)}
-          <Ownership key={target} target={target} part={parts.active} onCheck={() => runModule('active', target)} />
+          <Ownership key={target} target={target} part={parts.active} pages={parts.crawl} onCheck={() => { runModule('active', target); runModule('crawl', target) }} />
           <p className="g-tip">{d.ui.limits}</p>
           {pdfReady && <p className="clear-row"><button className="btn btn-ghost" type="button" onClick={clearResults}>{t.clearResults}</button></p>}
         </div>

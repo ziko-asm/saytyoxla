@@ -5,7 +5,7 @@ export type Level = 'critical' | 'high' | 'medium'
 export type Chain = { id: string; level: Level; params: Record<string, unknown>; covers: DeepItem[] }
 export type Evidence = { items: DeepItem[]; csp?: boolean | null; hsts?: boolean | null }
 
-const SECRET_KINDS = ['env', 'git', 'svn', 'config', 'database', 'passwords', 'key', 'phpinfo']
+const SECRET_KINDS = ['env', 'git', 'svn', 'config', 'database', 'passwords', 'key', 'phpinfo', 'backup', 'log', 'debug']
 const LEVEL_ORDER: Record<Level, number> = { critical: 0, high: 1, medium: 2 }
 
 export function findChains({ items, csp, hsts }: Evidence): Chain[] {
@@ -21,19 +21,29 @@ export function findChains({ items, csp, hsts }: Evidence): Chain[] {
     takeovers.forEach((x) => add('subdomain_takeover', 'high', x.params, [x]))
     if (mailOpen.length) add('fake_mail', 'high', {}, mailOpen)
   }
+  all('safe_browsing_listed').forEach((x) => add('browser_warning', 'critical', x.params, [x]))
+  all('js_secret').forEach((x) => add('leaked_key', 'critical', x.params, [x]))
+  const plainPasswords = all('password_plain').concat(all('password_plain_pages'))
+  if (plainPasswords.length) add('password_exposed', 'critical', {}, plainPasswords)
   all('exposed_file').filter((x) => SECRET_KINDS.includes(String(x.params.kind))).forEach((x) => add('exposed_secret', 'critical', x.params, [x]))
   all('open_port').filter((x) => x.status === 'fail').forEach((x) => add('open_database', 'critical', x.params, [x]))
   if (csp === false) {
     const vulnerable = all('vuln_library').sort((a, b) => Number(b.status === 'fail') - Number(a.status === 'fail'))[0]
     if (vulnerable) add('script_injection', vulnerable.status === 'fail' ? 'high' : 'medium', vulnerable.params, [vulnerable])
   }
+  all('plugin_vuln').concat(all('plugin_closed')).forEach((x) => add('plugin_risk', 'high', x.params, [x]))
+  all('cors_reflect').forEach((x) => add('data_read', 'high', {}, [x]))
+  all('dir_listing').forEach((x) => add('open_folder', 'high', x.params, [x]))
   const expiry = first('domain_expiry')
   if (expiry && expiry.status !== 'ok') add('domain_loss', expiry.status === 'fail' ? 'high' : 'medium', expiry.params, [expiry])
   all('rep_listed').slice(0, 1).forEach((x) => add('bad_reputation', 'high', x.params, [x]))
+  all('axfr_open').forEach((x) => add('zone_open', 'medium', x.params, [x]))
+  if (first('sri_missing') && csp === false) add('outside_code', 'medium', first('sri_missing').params, [first('sri_missing')])
+  all('cve_server').forEach((x) => add('server_cves', 'medium', x.params, [x]))
   all('eol_runtime').forEach((x) => add('old_runtime', 'medium', x.params, [x]))
   if (first('sensitive_hosts')) add('forgotten_service', 'medium', first('sensitive_hosts').params, [first('sensitive_hosts')])
   all('dangling_cname').slice(0, 3).forEach((x) => add('dangling_record', 'medium', x.params, [x]))
-  const weakTls = all('tls_old').concat(all('tls_weak_cipher'))
+  const weakTls = all('tls_old').concat(all('tls_weak_cipher'), all('http_no_redirect'))
   if (weakTls.length && hsts === false) add('weak_transport', 'medium', {}, weakTls)
 
   return chains.sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level])

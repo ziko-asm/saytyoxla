@@ -6,14 +6,25 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
 
-from scanner import deep, fetch
+from scanner import cve, deep, fetch, monitor, page_audit, tlsprobe
 from scanner.safety import UnsafeTarget
 from web import app as app_module
 
 TEXT = (Path(__file__).parent.parent / "react-ui" / "src" / "deepText.ts").read_text(encoding="utf-8")
 SOURCE = (Path(__file__).parent.parent / "scanner" / "deep.py").read_text(encoding="utf-8")
+
+
+@pytest.fixture(autouse=True)
+def no_internet(monkeypatch):
+    def refuse(*a, **k):
+        raise requests.ConnectionError()
+    monkeypatch.setattr(requests, "get", refuse)
+    monkeypatch.setattr(deep, "_cors_reflects", lambda base, ip: False)
+    monkeypatch.setattr(deep, "_axfr_open", lambda domain: "")
+    cve._memory.clear()
 
 
 def ids(result):
@@ -105,7 +116,7 @@ def test_provider_message_counts_only_with_its_own_cname(monkeypatch):
              ("me.github.io", "A"): ("ok", a_record("185.199.108.153"))}
     monkeypatch.setattr(fetch, "dns_lookup", fake_dns(table))
     page = {"body": b"<h1>There isn't a GitHub Pages site here.</h1>"}
-    monkeypatch.setattr(fetch, "_get", lambda *a, **k: (None, "", 0, [], page["body"], None))
+    monkeypatch.setattr(fetch, "_get", lambda *a, **k: (None, "", [], 0, page["body"], None))
     assert deep.inspect_host("p.a.az")["flag"] == "takeover"
     page["body"] = b"<h1>My project</h1>"
     assert deep.inspect_host("p.a.az")["flag"] == ""
@@ -379,3 +390,313 @@ def test_ownership_endpoint_tells_what_to_publish():
     data = TestClient(app_module.app).post("/api/ownership", json={"url": "https://www.a.az/x"}).json()
     assert data["dns_name"] == "_saytyoxla-verify.www.a.az"
     assert data["token"] == deep.ownership_token("www.a.az")
+
+
+# ---- answers of real providers, as read on 5 November 2026
+@pytest.mark.parametrize(("target", "page", "flag"), [
+    ("x.github.io", "There isn't a GitHub Pages site here.", "takeover"),
+    ("x.pantheonsite.io", "<title>404 - Unknown site</title>", "takeover"),
+    ("x.readthedocs.io", "404 Project not found", "takeover"),
+    ("x.ghost.io", "Domain error Failed to resolve DNS path for this host", "takeover"),
+    ("x.herokuapp.com", "no such app", "takeover"),             # the case differs between pages
+    ("x.netlify.app", "Not Found - Request ID: 01M6", "dead"),  # gone, but the provider keeps the name tied to its owner
+    ("x.vercel.app", "DEPLOYMENT_NOT_FOUND", "dead"),
+    ("x.myshopify.com", "Store unavailable", "dead"),
+    ("x.github.io", "My real project", ""),
+    ("x.netlify.app", "My real project", ""),
+])
+def test_provider_answers(monkeypatch, target, page, flag):
+    table = {("h.a.az", "CNAME"): ("ok", [SimpleNamespace(target=target + ".")]), (target, "A"): ("ok", a_record("8.8.8.8")), ("h.a.az", "A"): ("ok", a_record("8.8.8.8"))}
+    monkeypatch.setattr(fetch, "dns_lookup", fake_dns(table))
+    monkeypatch.setattr(fetch, "_get", lambda *a, **k: (None, "", [], 0, page.encode(), None))
+    assert deep.inspect_host("h.a.az")["flag"] == flag
+
+
+def test_client_hello_is_well_formed():
+    hello = tlsprobe.client_hello("a.az", tlsprobe.TLS10, (0x000A,))
+    assert hello[:3] == b"\x16\x03\x01" and hello[5] == 1
+    assert int.from_bytes(hello[3:5], "big") == len(hello) - 5
+    assert hello[9:11] == bytes(tlsprobe.TLS10)
+    assert b"a.az" in hello
+
+
+def server_hello(version, cipher, session=b""):
+    body = bytes(version) + b"\x00" * 32 + bytes([len(session)]) + session + cipher.to_bytes(2, "big") + b"\x00"
+    handshake = b"\x02" + len(body).to_bytes(3, "big") + body
+    return b"\x16\x03\x03" + len(handshake).to_bytes(2, "big") + handshake
+
+
+def test_server_answers_are_read_exactly():
+    assert tlsprobe.read_answer(server_hello((3, 1), 0x000A)) == ((3, 1), 0x000A)
+    assert tlsprobe.read_answer(server_hello((3, 3), 0xC02F, b"x" * 32)) == ((3, 3), 0xC02F)
+    assert tlsprobe.read_answer(b"\x15\x03\x03\x00\x02\x02\x28") is None      # an alert is a refusal
+    assert tlsprobe.read_answer(b"") is None
+
+
+@pytest.mark.parametrize(("answer", "expected"), [(((3, 3), 0x000A), "3DES"), (((3, 3), 0x0005), "RC4"), (((3, 3), 0x0001), "NULL"), (((3, 3), 0xC02F), False), (False, False), (None, None)])
+def test_weak_cipher_names_the_family(monkeypatch, answer, expected):
+    monkeypatch.setattr(tlsprobe, "_ask", lambda *a, **k: answer)
+    assert tlsprobe.weak_cipher("a.az", "8.8.8.8") == expected
+
+
+def test_a_server_answering_another_version_does_not_speak_this_one(monkeypatch):
+    monkeypatch.setattr(tlsprobe, "_ask", lambda *a, **k: ((3, 3), 0xC02F))
+    assert tlsprobe.accepts_version("a.az", "8.8.8.8", tlsprobe.TLS10) is False
+
+
+def nvd_answer(*scores):
+    vulns = [{"cve": {"id": f"CVE-{i}", "metrics": {"cvssMetricV31": [{"cvssData": {"baseScore": score}}]}}} for i, score in enumerate(scores)]
+    return SimpleNamespace(status_code=200, json=lambda: {"vulnerabilities": vulns})
+
+
+def test_server_cves_put_the_worst_first(monkeypatch):
+    monkeypatch.setattr(requests, "get", lambda *a, **k: nvd_answer(5.0, 9.8, 7.0))
+    assert cve.server_cves("nginx", "1.10.3") == {"count": 3, "high": 2, "ids": ["CVE-1", "CVE-2", "CVE-0"]}
+
+
+def test_a_vague_or_unknown_version_matches_nothing(monkeypatch):
+    monkeypatch.setattr(requests, "get", lambda *a, **k: pytest.fail("asked NVD about nothing"))
+    assert cve.server_cves("nginx", "1") is None
+    assert cve.server_cves("unknown-server", "1.2.3") is None
+
+
+def test_plugins_are_read_from_the_page():
+    html = '<script src="/wp-content/plugins/contact-form-7/a.js?ver=5.1"></script><link href="/wp-content/plugins/woo/x.css"><img src="/wp-content/themes/astra/i.png">'
+    assert cve.detect_plugins(html) == {"contact-form-7": "5.1", "woo": ""}
+    assert cve.detect_theme(html) == "astra"
+
+
+def test_wpscan_counts_only_what_still_applies(monkeypatch):
+    monkeypatch.setenv("WPSCAN_API_KEY", "k")
+    answer = {"p": {"vulnerabilities": [{"id": "a", "fixed_in": "2.0", "references": {"cve": ["2020-1"]}}, {"id": "b", "fixed_in": "1.0"}, {"id": "c", "fixed_in": None}]}}
+    monkeypatch.setattr(requests, "get", lambda *a, **k: SimpleNamespace(status_code=200, json=lambda: answer))
+    assert cve.plugin_vulns("p", "1.5")["count"] == 2
+
+
+def test_secrets_are_named_but_their_values_stay_out():
+    assert page_audit.find_secrets(b"var k='AKIAIOSFODNN7EXAMPLE'") == ["AWS"]
+    assert page_audit.find_secrets(b"-----BEGIN RSA PRIVATE KEY-----") == ["private key"]
+    assert page_audit.find_secrets(b"var maps='AIzaSyPublicBrowserKey'; sk_test_abc") == []
+
+
+def test_script_banner_finds_a_version_the_address_hides():
+    assert page_audit.banner_versions(b"/*! jQuery v1.12.4 | (c) jQuery */")["jquery"] == "1.12.4"
+    assert page_audit.banner_versions(b"//! version : 2.18.1")["moment"] == "2.18.1"
+    assert page_audit.banner_versions(b"function a(){}") == {}
+
+
+def test_password_form_over_plain_http_is_caught():
+    page = page_audit.parse('<form action="http://a.az/in" method="post"><input type="password"></form>')
+    assert page_audit.audit_forms(page, "https://a.az/")["password_plain"] == 1
+    safe = page_audit.parse('<form action="/in" method="post"><input type="password"></form>')
+    assert page_audit.audit_forms(safe, "https://a.az/")["password_plain"] == 0
+    assert page_audit.audit_forms(safe, "http://a.az/")["password_plain"] == 1
+
+
+def test_form_posting_to_a_stranger_is_named():
+    page = page_audit.parse('<form action="https://evil.net/x" method="post"></form><form action="https://pay.a.az/x" method="post"></form>')
+    assert page_audit.audit_forms(page, "https://www.a.az/")["outside"] == ["evil.net"]
+
+
+def test_only_outside_scripts_need_a_signature():
+    page = page_audit.parse('<script src="/own.js"></script><script src="https://cdn.a.az/x.js"></script>'
+                            '<script src="https://cdn.net/a.js"></script><script src="https://safe.net/b.js" integrity="sha384-x"></script>')
+    got = page_audit.outside_resources(page, "https://a.az/")
+    assert got["hosts"] == ["cdn.net", "safe.net"] and got["unsigned"] == ["cdn.net"]
+
+
+def test_header_quality():
+    got = page_audit.audit_headers({"content-security-policy": "script-src 'self' 'unsafe-inline'", "strict-transport-security": "max-age=300"})
+    assert got["csp_unsafe"] == ["'unsafe-inline'"] and got["hsts_short"] and "x-frame-options" in got["missing"]
+    assert page_audit.audit_headers({"strict-transport-security": "max-age=31536000"})["hsts_short"] is False
+
+
+def test_only_session_cookies_are_judged():
+    cookies = [{"name": "PHPSESSID", "secure": False, "httponly": True}, {"name": "theme", "secure": False, "httponly": False}, {"name": "auth_token", "secure": True, "httponly": True}]
+    assert page_audit.audit_cookies(cookies, True) == ["PHPSESSID"]
+
+
+def test_robots_paths_that_look_private():
+    assert page_audit.robots_paths("User-agent: *\nDisallow: /admin/\nDisallow: /search\nDisallow: /backup.sql") == ["/admin/", "/backup.sql"]
+
+
+def test_page_with_no_https_is_still_read(monkeypatch):
+    response = SimpleNamespace(status_code=200, headers={"Server": "nginx/1.19.0"})
+    def answer(url, **k):
+        if url.startswith("https://"):
+            raise requests.ConnectionError()
+        return (response, url, [], 0, b"<html></html>", None)
+    monkeypatch.setattr(fetch, "_get", answer)
+    assert ids(deep.tech("a.az"))["version_shown"]["params"]["name"] == "nginx"
+
+
+def test_spamhaus_key_changes_only_the_zone(monkeypatch):
+    monkeypatch.delenv("SPAMHAUS_DQS_KEY", raising=False)
+    assert deep._zone("dbl.spamhaus.org") == "dbl.spamhaus.org"
+    monkeypatch.setenv("SPAMHAUS_DQS_KEY", "abc")
+    assert deep._zone("zen.spamhaus.org") == "abc.zen.dq.spamhaus.net"
+    assert deep._zone("multi.surbl.org") == "multi.surbl.org"
+
+
+def test_safe_browsing_listed_and_clean(monkeypatch):
+    monkeypatch.setattr(fetch, "dns_lookup", fake_dns({}))
+    monkeypatch.setattr(deep, "_safe_browsing", lambda d: {"threats": ["MALWARE"]})
+    got = deep.reputation("a.az")
+    assert ids(got)["safe_browsing_listed"]["params"]["threats"] == "MALWARE"
+    monkeypatch.setattr(deep, "_safe_browsing", lambda d: {"threats": []})
+    assert ids(deep.reputation("a.az"))["rep_clean"]["params"]["lists"] == "Google Safe Browsing"
+
+
+def test_safe_browsing_says_nothing_without_a_key(monkeypatch):
+    monkeypatch.delenv("GOOGLE_SAFE_BROWSING_KEY", raising=False)
+    assert deep._safe_browsing("a.az") is None
+
+
+def test_crawl_refuses_without_proof(monkeypatch):
+    monkeypatch.setattr(deep, "is_owner", lambda h: False)
+    monkeypatch.setattr(deep, "_read_page", lambda u: pytest.fail("a page was read without proof"))
+    with pytest.raises(UnsafeTarget):
+        deep.crawl("a.az")
+
+
+def test_crawl_stays_on_the_site_and_reports_paths_only(monkeypatch):
+    monkeypatch.setattr(deep, "is_owner", lambda h: True)
+    site = {
+        "https://a.az/": b'<a href="/about">a</a><a href="https://other.az/x">o</a><a href="/file.pdf">f</a><a href="/logout">l</a>',
+        "https://a.az/about": b'<script>var k="AKIAIOSFODNN7EXAMPLE"</script><a href="/">h</a>Fatal error</b>',
+    }
+    read = []
+    def page(url):
+        read.append(url)
+        return (SimpleNamespace(status_code=200, headers={"content-type": "text/html"}), url, [], 5, site[url], None)
+    monkeypatch.setattr(deep, "_read_page", page)
+    result = deep.crawl("a.az")
+    assert sorted(read) == ["https://a.az/", "https://a.az/about"]
+    got = ids(result)
+    assert got["js_secret"]["params"] == {"kind": "AWS", "path": "/about"}
+    assert got["error_shown"]["params"]["paths"] == "/about"
+    assert "AKIA" not in str(result)
+
+
+def test_active_finds_open_directories_without_soft_404s(monkeypatch):
+    monkeypatch.setattr(deep, "is_owner", lambda h: True)
+    monkeypatch.setattr(deep, "resolve_public", lambda h: "8.8.8.8")
+    monkeypatch.setattr(deep, "_port_open", lambda ip, port: port == 443)
+    ok = SimpleNamespace(status_code=200)
+    monkeypatch.setattr(fetch, "_get", lambda url, **k: (ok, url, [], 0, b"<title>Index of /uploads</title>" if url == "https://a.az/uploads/" else b"<html>home</html>", None))
+    got = deep.active("a.az")
+    assert [i["params"]["path"] for i in got["items"] if i["id"] == "dir_listing"] == ["/uploads/"]
+    assert "exposed_file" not in ids(got)
+
+
+# ---- watching
+@pytest.fixture
+def watching(monkeypatch):
+    for name, value in {"MONITOR_SECRET": "s" * 32, "BREVO_API_KEY": "b", "MONITOR_FROM": "me@a.az", "CRON_SECRET": "c", "KV_REST_API_URL": "https://r", "KV_REST_API_TOKEN": "t"}.items():
+        monkeypatch.setenv(name, value)
+    store = {"sets": {}, "keys": {}}
+    def redis(*commands):
+        out = []
+        for cmd in commands:
+            if cmd[0] == "SET":
+                store["keys"][cmd[1]] = cmd[2]; out.append("OK")
+            elif cmd[0] == "GET":
+                out.append(store["keys"].get(cmd[1]))
+            elif cmd[0] == "DEL":
+                store["keys"].pop(cmd[1], None); out.append(1)
+            elif cmd[0] == "SADD":
+                store["sets"].setdefault(cmd[1], set()).add(cmd[2]); out.append(1)
+            elif cmd[0] == "SREM":
+                store["sets"].get(cmd[1], set()).discard(cmd[2]); out.append(1)
+            elif cmd[0] == "SMEMBERS":
+                out.append(sorted(store["sets"].get(cmd[1], set())))
+        return out
+    monkeypatch.setattr(monitor, "_redis", redis)
+    mails = []
+    monkeypatch.setattr(monitor, "send_mail", lambda to, subject, text: mails.append((to, subject, text)) or True)
+    return store, mails
+
+
+def test_watching_is_off_without_accounts(monkeypatch):
+    for name in ("MONITOR_SECRET", "BREVO_API_KEY", "MONITOR_FROM", "CRON_SECRET", "UPSTASH_REDIS_REST_URL", "KV_REST_API_URL"):
+        monkeypatch.delenv(name, raising=False)
+    assert not monitor.enabled()
+    client = TestClient(app_module.app)
+    assert client.get("/api/monitor/status").json() == {"enabled": False}
+    assert client.post("/api/monitor", json={"url": "a.az", "email": "a@a.az"}).status_code == 503
+
+
+def test_tokens_cannot_be_forged_reused_for_another_action_or_outlive(watching):
+    token = monitor.sign("confirm", "a.az", "x@a.az", "az")
+    assert monitor.read_token(token, "confirm") == ("a.az", "x@a.az", "az")
+    assert monitor.read_token(token, "stop") is None
+    assert monitor.read_token(token[:-2] + "AA", "confirm") is None
+    assert monitor.read_token(monitor.sign("confirm", "a.az", "x@a.az", "az", life=-5), "confirm") is None
+
+
+def test_only_the_owner_can_subscribe(watching, monkeypatch):
+    _, mails = watching
+    monkeypatch.setattr(deep, "is_owner", lambda h: False)
+    assert monitor.subscribe("a.az", "x@a.az", "az", "https://s") == "Əvvəlcə saytın sizə aid olduğunu təsdiqləyin."
+    assert monitor.subscribe("a.az", "not an address", "az", "https://s") == "E-poçt ünvanı düzgün deyil."
+    assert mails == []
+
+
+def test_subscribing_needs_the_mailbox_to_confirm(watching, monkeypatch):
+    store, mails = watching
+    monkeypatch.setattr(deep, "is_owner", lambda h: True)
+    assert monitor.subscribe("a.az", "x@a.az", "en", "https://s") == ""
+    assert not store["keys"]            # nothing kept before the address itself says yes
+    token = re.search(r"t=(\S+)", mails[0][2]).group(1)
+    assert monitor.confirm(token) == "en"
+    assert len(store["keys"]) == 1
+
+
+def test_stop_deletes_the_address(watching):
+    store, _ = watching
+    monitor.confirm(monitor.sign("confirm", "a.az", "x@a.az", "az"))
+    assert monitor.stop(monitor.sign("stop", "a.az", "x@a.az", "az")) == "az"
+    assert not store["keys"] and not store["sets"]["saytyoxla:mon:all"]
+
+
+def test_first_look_is_silent_then_changes_are_named():
+    now = {"hosts": ["a.x.az"], "problems": ["p1"], "days": 80}
+    assert monitor.changes(None, now) == {"hosts": [], "new": 0, "solved": 0, "cert": None}
+    later = {"hosts": ["a.x.az", "new.x.az"], "problems": ["p2"], "days": 79}
+    assert monitor.changes(now, later) == {"hosts": ["new.x.az"], "new": 1, "solved": 1, "cert": None}
+
+
+def test_certificate_warning_comes_once():
+    assert monitor.changes({"hosts": [], "problems": [], "days": 15}, {"hosts": [], "problems": [], "days": 14})["cert"] == 14
+    assert monitor.changes({"hosts": [], "problems": [], "days": 14}, {"hosts": [], "problems": [], "days": 13})["cert"] is None
+
+
+def test_a_part_that_failed_does_not_read_as_solved(monkeypatch):
+    monkeypatch.setitem(deep.MODULES, "surface", lambda h: {"items": [{"id": "surface_unavailable", "status": "info", "params": {}}], "data": {"hosts": []}})
+    assert monitor.snapshot("a.az") is None
+
+
+def test_run_mails_only_on_change_and_checks_a_few(watching, monkeypatch):
+    _, mails = watching
+    for i in range(4):
+        monitor.confirm(monitor.sign("confirm", f"s{i}.az", "x@a.az", "az"))
+    monkeypatch.setattr(monitor, "snapshot", lambda h: {"hosts": [], "problems": [], "days": 80})
+    assert monitor.run("https://s", now=1000000) == {"checked": 2, "sent": 0}
+    assert monitor.run("https://s", now=1000001) == {"checked": 2, "sent": 0}
+    assert monitor.run("https://s", now=1000002) == {"checked": 0, "sent": 0}     # all seen today
+    monkeypatch.setattr(monitor, "snapshot", lambda h: {"hosts": ["new.az"], "problems": [], "days": 80})
+    assert monitor.run("https://s", now=1000000 + monitor.CHECK_EVERY + 5)["sent"] == 2
+    assert "new.az" in mails[0][2] and "/monitor/stop?t=" in mails[0][2]
+
+
+def test_timer_needs_its_secret(watching, monkeypatch):
+    client = TestClient(app_module.app)
+    assert client.post("/api/cron/monitor").status_code == 401
+    assert client.post("/api/cron/monitor", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    assert client.post("/api/cron/monitor", headers={"Authorization": "Bearer c"}).status_code == 200
+
+
+def test_bad_links_say_so():
+    client = TestClient(app_module.app)
+    assert client.get("/monitor/confirm?t=nonsense").status_code == 400
+    assert client.get("/monitor/stop").status_code == 400

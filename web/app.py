@@ -11,7 +11,7 @@ GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 GET  /aletler/, /en/tools/, /ru/instrumenty/   the Tools part of the site
 POST /api/scan    {"url": "example.az", "lang": "az|en|ru"} -> report JSON
 POST /api/tool    {"url": "example.az", "tool": "ssl|email", "lang": "az|en|ru"} -> one narrow check
-POST /api/deep    {"url": "example.az", "module": "surface|mail|tech|tls|reputation|active"} -> one part of the deep analysis
+POST /api/deep    {"url": "example.az", "module": "surface|mail|tech|tls|reputation|active|crawl"} -> one part of the deep analysis
 POST /api/ownership  {"url": "example.az"} -> what to publish to prove the site is yours
 GET  /health      for the hosting platform
 GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (web/seo.py)
@@ -19,6 +19,7 @@ GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (
 
 from __future__ import annotations
 
+import hmac
 import logging
 import os
 import threading
@@ -39,6 +40,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import scanner
 from scanner import deep as scanner_deep
 from scanner import i18n
+from scanner import monitor as scanner_monitor
 from scanner import tools as scanner_tools
 from scanner.safety import UnsafeTarget, normalize
 from web import pages, ratelimit, seo, survey
@@ -333,7 +335,7 @@ def tool(req: ToolRequest, request: Request):
 
 class DeepRequest(BaseModel):
     url: str = Field(..., max_length=300)
-    module: Literal["surface", "mail", "tech", "tls", "reputation", "active"]
+    module: Literal["surface", "mail", "tech", "tls", "reputation", "active", "crawl"]
     lang: str = Field("az", max_length=5)
     fresh: bool = False
 
@@ -347,7 +349,7 @@ def deep_scan(req: DeepRequest, request: Request):
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     # Whether a site may be probed is decided anew each time: ownership can end
-    hit = None if req.fresh or req.module == "active" else cache_get(key)
+    hit = None if req.fresh or req.module in ("active", "crawl") else cache_get(key)
     if hit:
         return JSONResponse({**hit, "cached": True})
     if not limiter.allow(client_ip(request), rules=ratelimit.DEEP_RULES):
@@ -359,7 +361,7 @@ def deep_scan(req: DeepRequest, request: Request):
     except Exception:       # one part failing must leave the others standing
         log.exception("Deep module %s failed", req.module)
         raise HTTPException(502, i18n.text("Bu hissə indi yoxlanıla bilmədi. Bir az sonra yenidən cəhd edin.", lang)) from None
-    if req.module != "active":
+    if req.module not in ("active", "crawl"):
         cache_put(key, result)
     return JSONResponse({**result, "cached": False})
 
@@ -376,6 +378,59 @@ def ownership(req: OwnershipRequest):
         return scanner_deep.ownership(req.url)
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), i18n.lang_of(req.lang))) from None
+
+
+class MonitorRequest(BaseModel):
+    url: str = Field(..., max_length=300)
+    email: str = Field(..., max_length=254)
+    lang: str = Field("az", max_length=5)
+
+
+@app.get("/api/monitor/status")
+def monitor_status():
+    return {"enabled": scanner_monitor.enabled()}
+
+
+@app.post("/api/monitor")
+def monitor_subscribe(req: MonitorRequest, request: Request):
+    lang = i18n.lang_of(req.lang)
+    if not scanner_monitor.enabled():
+        raise HTTPException(503, i18n.text("İzləmə hələ aktiv deyil.", lang))
+    if not limiter.allow(client_ip(request), rules=ratelimit.DEEP_RULES):
+        raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
+    try:
+        problem = scanner_monitor.subscribe(req.url, req.email.strip(), lang, seo.SITE_URL)
+    except UnsafeTarget as e:
+        raise HTTPException(400, i18n.text(str(e), lang)) from None
+    if problem:
+        raise HTTPException(400, i18n.text(problem, lang))
+    return {"sent": True}
+
+
+def _monitor_answer(lang: str | None, word: str) -> PlainTextResponse:
+    words = scanner_monitor.words(lang or "az")
+    return PlainTextResponse(words[word] if lang else words["bad_link"], status_code=200 if lang else 400)
+
+
+@app.get("/monitor/confirm", include_in_schema=False)
+def monitor_confirm(t: str = ""):
+    return _monitor_answer(scanner_monitor.confirm(t), "confirmed")
+
+
+@app.get("/monitor/stop", include_in_schema=False)
+def monitor_stop(t: str = ""):
+    return _monitor_answer(scanner_monitor.stop(t), "stopped")
+
+
+@app.post("/api/cron/monitor", include_in_schema=False)
+def monitor_tick(request: Request):
+    """The timer in .github/workflows/monitor.yml."""
+    secret = os.getenv("CRON_SECRET", "")
+    if not secret or not hmac.compare_digest(request.headers.get("authorization", ""), f"Bearer {secret}"):
+        raise HTTPException(401, "unauthorized")
+    if not scanner_monitor.enabled():
+        return {"checked": 0, "sent": 0}
+    return scanner_monitor.run(seo.SITE_URL)
 
 
 @app.get("/.well-known/saytyoxla.txt", include_in_schema=False)

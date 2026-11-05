@@ -74,7 +74,7 @@ CONTENT = {
     },
     "privacy": {
         "az": ("Məxfilik", "SaytYoxla hansı məlumatı nə qədər saxlayır: ünvan və nəticə 10 dəqiqə, IP sayğacı ən çox 1 gün. Kuki və izləmə yoxdur.", f"""
-<p>SaytYoxla qeydiyyat tələb etmir, adınızı, telefonunuzu və ya e-poçtunuzu soruşmur.</p>
+<p>SaytYoxla qeydiyyat tələb etmir, adınızı və telefonunuzu soruşmur. E-poçt yalnız daimi izləməni özünüz seçsəniz lazımdır.</p>
 <h2>Nə saxlanılır?</h2>
 <ul>
 <li><b>Yoxlanılan ünvan və nəticə:</b> təkrar yoxlamanı sürətləndirmək üçün serverin yaddaşında 10 dəqiqəyə qədər qalır. Nəticə sizin adınızla bağlanmır.</li>
@@ -86,14 +86,14 @@ CONTENT = {
 <h2>Yoxlanılan sayt nə görür?</h2>
 <p>Yoxlama zamanı saytın əsas səhifəsi, robots.txt və sitemap.xml faylları serverimizdən bir dəfə açılır. Sayt sizin IP ünvanınızı yox, serverimizin ünvanını görür.</p>
 <h2>Dərin analiz</h2>
-<p>Dərin analiz domen adını sertifikat qeydlərinə (Cert Spotter, crt.sh), qeydiyyat bazasına (rdap.org, IP ünvanı ilə birlikdə) və DNS qara siyahılarına, saytda görünən kitabxananın adı və versiyasını isə zəiflik bazasına (OSV) göndərir. Sayt tərəfdən yalnız əsas səhifə bir dəfə açılır və TLS bağlantısı sınanır. Əvvəlki yoxlama ilə müqayisə yalnız sizin brauzerinizdə (localStorage) saxlanılır, serverə getmir.</p>
-<p>Dərin yoxlama (açıq fayllar və portlar) yalnız saytın sizin olduğunu DNS qeydi və ya fayl ilə sübut etdikdən sonra işləyir. Fayl tapılsa, yalnız yolu göstərilir, məzmunu nə göstərilir, nə də saxlanılır.</p>
+<p>Dərin analiz domen adını sertifikat qeydlərinə (Cert Spotter, crt.sh), qeydiyyat bazasına (rdap.org, IP ünvanı ilə birlikdə) və DNS qara siyahılarına, saytda görünən kitabxananın adı və versiyasını isə zəiflik bazasına (OSV) göndərir. Server proqramının versiyası NVD-yə (nvd.nist.gov), plaginlərin adı wordpress.org-a gedir, açarlar qoşulubsa WPScan, Spamhaus və Google Safe Browsing də sorğulanır. Sayt tərəfdən əsas səhifə, onun öz skriptləri (ən çox 6), robots.txt və security.txt oxunur və TLS bağlantısı sınanır. Əvvəlki yoxlama ilə müqayisə yalnız sizin brauzerinizdə (localStorage) saxlanılır, serverə getmir.</p>
+<p>Dərin yoxlama (açıq fayllar, qovluqlar, portlar, DNS zonası və saytın 30 səhifəyə qədər oxunması) yalnız saytın sizin olduğunu DNS qeydi və ya fayl ilə sübut etdikdən sonra işləyir. Fayl və ya açar tapılsa, yalnız yolu və növü göstərilir, məzmunu nə göstərilir, nə də saxlanılır.</p>\n<h2>İzləmə</h2>\n<p>Daimi izləməni özünüz başlatsanız, e-poçt ünvanınız, saytın adı və son yoxlamanın nəticəsi Upstash Redis-də saxlanılır, məktublar Brevo ilə göndərilir. Ünvan yalnız linkə basıb təsdiqlədikdən sonra saxlanılır və hər məktubdakı linklə silinir.</p>
 <h2>WhatsApp</h2>
 <p>«WhatsApp-a yazın» düyməsini bassanız, hazır mesaj WhatsApp-da açılır və onu siz özünüz göndərirsiniz. Bundan sonra WhatsApp-ın öz qaydaları tətbiq olunur.</p>
 <h2>Əlaqə</h2>
 <p>Suallarınız üçün: {CONTACT}</p>"""),
         "en": ("Privacy", "What SaytYoxla keeps and for how long: address and result for 10 minutes, IP counter for up to 1 day. No cookies or tracking.", f"""
-<p>SaytYoxla needs no sign-up and does not ask for your name, phone or e-mail.</p>
+<p>SaytYoxla needs no sign-up and does not ask for your name or phone. An e-mail address is needed only if you choose ongoing watching yourself.</p>
 <h2>What is kept</h2>
 <ul>
 <li><b>The checked address and its result:</b> stay in the server's memory for up to 10 minutes to speed up a repeat check. The result is not tied to your name.</li>
@@ -105,14 +105,14 @@ CONTENT = {
 <h2>What the checked site sees</h2>
 <p>During a check, the site's home page, robots.txt and sitemap.xml are opened once from our server. The site sees our server's address, not your IP address.</p>
 <h2>Deep analysis</h2>
-<p>The deep analysis sends the domain name to certificate logs (Cert Spotter, crt.sh), a registration database (rdap.org, along with the IP address) and DNS blocklists, and the name and version of a library visible on the site to a vulnerability database (OSV). On the site itself only the home page is opened once and TLS connections are tried. The comparison with an earlier check is kept only in your browser (localStorage) and does not reach the server.</p>
-<p>The deep check (exposed files and ports) runs only after you prove the site is yours with a DNS record or a file. If a file is found, only its path is shown; its content is neither shown nor stored.</p>
+<p>The deep analysis sends the domain name to certificate logs (Cert Spotter, crt.sh), a registration database (rdap.org, along with the IP address) and DNS blocklists, and the name and version of a library visible on the site to a vulnerability database (OSV). A server program's version goes to NVD (nvd.nist.gov) and plugin names to wordpress.org, and when keys are set WPScan, Spamhaus and Google Safe Browsing are asked too. On the site itself the home page, its own scripts (6 at most), robots.txt and security.txt are read, and TLS connections are tried. The comparison with an earlier check is kept only in your browser (localStorage) and does not reach the server.</p>
+<p>The deep check (exposed files, folders, ports, the DNS zone and reading up to 30 pages of the site) runs only after you prove the site is yours with a DNS record or a file. If a file or key is found, only its path and kind are shown; its content is neither shown nor stored.</p>\n<h2>Watching</h2>\n<p>If you start ongoing watching yourself, your e-mail address, the site's name and the last check's result are kept in Upstash Redis, and messages are sent through Brevo. The address is kept only after you confirm by its link, and the link in each message deletes it.</p>
 <h2>WhatsApp</h2>
 <p>If you press "Message on WhatsApp", a prepared message opens in WhatsApp and you send it yourself. WhatsApp's own rules apply from there.</p>
 <h2>Contact</h2>
 <p>For questions: {CONTACT}</p>"""),
         "ru": ("Конфиденциальность", "Что и как долго хранит SaytYoxla: адрес и результат 10 минут, счётчик IP до 1 дня. Без cookie и отслеживания.", f"""
-<p>SaytYoxla не требует регистрации и не спрашивает имя, телефон или e-mail.</p>
+<p>SaytYoxla не требует регистрации и не спрашивает имя и телефон. E-mail нужен, только если вы сами выберете постоянное наблюдение.</p>
 <h2>Что хранится</h2>
 <ul>
 <li><b>Проверенный адрес и результат:</b> до 10 минут в памяти сервера, чтобы ускорить повторную проверку. Результат не связан с вашим именем.</li>
@@ -124,8 +124,8 @@ CONTENT = {
 <h2>Что видит проверяемый сайт</h2>
 <p>При проверке главная страница сайта, robots.txt и sitemap.xml один раз открываются с нашего сервера. Сайт видит адрес нашего сервера, а не ваш IP-адрес.</p>
 <h2>Глубокий анализ</h2>
-<p>Глубокий анализ отправляет имя домена в журналы сертификатов (Cert Spotter, crt.sh), базу регистрации (rdap.org, вместе с IP-адресом) и чёрные списки DNS, а название и версию библиотеки, видимой на сайте, в базу уязвимостей (OSV). На самом сайте только один раз открывается главная страница и проверяются соединения TLS. Сравнение с прошлой проверкой хранится только в вашем браузере (localStorage) и на сервер не передаётся.</p>
-<p>Глубокая проверка (открытые файлы и порты) работает только после того, как вы докажете записью DNS или файлом, что сайт ваш. Если файл найден, показывается только путь, а содержимое не показывается и не хранится.</p>
+<p>Глубокий анализ отправляет имя домена в журналы сертификатов (Cert Spotter, crt.sh), базу регистрации (rdap.org, вместе с IP-адресом) и чёрные списки DNS, а название и версию библиотеки, видимой на сайте, в базу уязвимостей (OSV). Версия серверной программы уходит в NVD (nvd.nist.gov), названия плагинов на wordpress.org, а при наличии ключей запрашиваются также WPScan, Spamhaus и Google Safe Browsing. На самом сайте читаются главная страница, её собственные скрипты (не более 6), robots.txt и security.txt и проверяются соединения TLS. Сравнение с прошлой проверкой хранится только в вашем браузере (localStorage) и на сервер не передаётся.</p>
+<p>Глубокая проверка (открытые файлы, папки, порты, зона DNS и чтение до 30 страниц сайта) работает только после того, как вы докажете записью DNS или файлом, что сайт ваш. Если найден файл или ключ, показываются только путь и вид, а содержимое не показывается и не хранится.</p>\n<h2>Наблюдение</h2>\n<p>Если вы сами запустите постоянное наблюдение, ваш e-mail, имя сайта и результат последней проверки хранятся в Upstash Redis, а письма отправляются через Brevo. Адрес сохраняется только после подтверждения по ссылке и удаляется ссылкой из любого письма.</p>
 <h2>WhatsApp</h2>
 <p>Если вы нажмёте «Написать в WhatsApp», готовое сообщение откроется в WhatsApp, и отправляете его вы сами. Дальше действуют правила WhatsApp.</p>
 <h2>Контакты</h2>

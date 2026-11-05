@@ -1,0 +1,18 @@
+name: Site watching
+# Wakes the watching job on the site. Does nothing until CRON_SECRET exists as a repository secret.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check the sites longest unchecked
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "No secret set: watching is off."; exit 0; fi
+          curl --fail --silent --show-error --max-time 60 -X POST -H "Authorization: Bearer $CRON_SECRET" https://saytyoxla.vercel.app/api/cron/monitor
