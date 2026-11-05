@@ -42,7 +42,7 @@ export type DeepReport = { host: string; when: string; parts: DeepParts; chains:
 const ORDER: Record<string, number> = { fail: 0, warn: 1, ok: 2, info: 3 }
 const LEVEL_COLOR: Record<Level | 'none', string> = { critical: COLOR.fail, high: '#ea580c', medium: COLOR.warn, none: COLOR.ok }
 // A part that answered, but with one of these inside, was not fully checked
-const UNKNOWN = ['surface_unavailable', 'surface_partial', 'dns_unavailable', 'page_unavailable', 'page_blocked', 'osv_unavailable', 'https_unavailable', 'rep_unknown', 'mail_platform']
+const UNKNOWN = ['active_partial', 'surface_unavailable', 'surface_partial', 'dns_unavailable', 'page_unavailable', 'page_blocked', 'osv_unavailable', 'https_unavailable', 'rep_unknown', 'mail_platform']
 
 export const sortedItems = (items: DeepItem[]) => [...items].sort((a, b) => ORDER[a.status] - ORDER[b.status])
 
