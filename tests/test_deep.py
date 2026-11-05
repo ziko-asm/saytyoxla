@@ -700,3 +700,27 @@ def test_bad_links_say_so():
     client = TestClient(app_module.app)
     assert client.get("/monitor/confirm?t=nonsense").status_code == 400
     assert client.get("/monitor/stop").status_code == 400
+
+
+def test_a_blocked_probe_is_not_called_clean(monkeypatch):
+    monkeypatch.setattr(deep, "is_owner", lambda h: True)
+    monkeypatch.setattr(deep, "resolve_public", lambda h: "8.8.8.8")
+    monkeypatch.setattr(deep, "_port_open", lambda ip, port: port == 443)
+    blocked = SimpleNamespace(status_code=429)
+    monkeypatch.setattr(fetch, "_get", lambda url, **k: (blocked, url, [], 0, b"", None))
+    got = ids(deep.active("a.az"))
+    assert "active_clean" not in got
+    assert got["active_partial"]["params"]["unanswered"] == got["active_partial"]["params"]["total"]
+
+
+@pytest.mark.parametrize(("status", "expected"), [(403, None), (429, None), (503, None), (404, False), (200, True)])
+def test_probe_answers(monkeypatch, status, expected):
+    monkeypatch.setattr(fetch, "_get", lambda url, **k: (SimpleNamespace(status_code=status), url, [], 0, b"DB_PASSWORD=x", None))
+    assert deep._probe_path("https://a.az", "a.az", "/.env", deep.EXPOSED["/.env"][1]) is expected
+
+
+def test_probe_that_fails_says_nothing(monkeypatch):
+    def down(*a, **k):
+        raise requests.ConnectionError()
+    monkeypatch.setattr(fetch, "_get", down)
+    assert deep._probe_path("https://a.az", "a.az", "/.env", deep.EXPOSED["/.env"][1]) is None

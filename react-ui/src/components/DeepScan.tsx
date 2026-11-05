@@ -347,7 +347,7 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
             </section>
           )}
           {PUBLIC.map((id) => <Section key={id} id={id} part={parts[id]} onRetry={() => runModule(id, target, true)} />)}
-          <Ownership key={target} target={target} part={parts.active} pages={parts.crawl} onCheck={() => { runModule('active', target); runModule('crawl', target) }} />
+          <Ownership key={target} target={target} part={parts.active} pages={parts.crawl} onCheck={() => { runModule('crawl', target).then(() => runModule('active', target)) }} />
           <p className="g-tip">{d.ui.limits}</p>
           {pdfReady && <p className="clear-row"><button className="btn btn-ghost" type="button" onClick={clearResults}>{t.clearResults}</button></p>}
         </div>

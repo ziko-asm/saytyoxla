@@ -37,6 +37,7 @@ FILE_BUDGET = 4
 PORT_TIMEOUT = 2.5
 SPF_LIMIT = 10
 SPF_BUDGET = 15
+ACTIVE_BUDGET = 30
 OWNERSHIP_DNS = "_saytyoxla-verify"
 OWNERSHIP_FILE = "/.well-known/saytyoxla.txt"
 HEADERS = {"User-Agent": fetch.USER_AGENT}
@@ -959,11 +960,15 @@ PORTS = {21: ("FTP", WARN), 22: ("SSH", INFO), 23: ("Telnet", FAIL), 445: ("SMB"
          9200: ("Elasticsearch", FAIL), 11211: ("Memcached", FAIL), 27017: ("MongoDB", FAIL)}
 
 
-def _probe_path(base: str, host: str, path: str, sign: bytes) -> bool:
+def _probe_path(base: str, host: str, path: str, sign: bytes) -> bool | None:
+    """True if the file is really there, False if it is not. None if the site would not say: a refused or failed
+    request is no evidence that the file is absent."""
     try:
         r, final, _, _, body, _ = fetch._get(base + path, budget=FILE_BUDGET, verify=False)
     except (requests.RequestException, UnsafeTarget):
-        return False
+        return None
+    if r.status_code in (401, 403, 429) or r.status_code >= 500:
+        return None
     if r.status_code != 200 or final.split("/")[2] != host:
         return False
     return bool(re.search(sign, body[:200000]))
@@ -1017,17 +1022,21 @@ def active(raw: str) -> dict:
         raise UnsafeTarget("Əvvəlcə saytın sizə aid olduğunu təsdiqləyin.")
     ip = resolve_public(host)
     base = f"https://{host}" if _port_open(ip, 443) else f"http://{host}"
-    pool = ThreadPoolExecutor(max_workers=16)
+    # Few at a time: firewalls block a burst, and a real owner's site should not feel this
+    pool = ThreadPoolExecutor(max_workers=5)
     files = {p: pool.submit(_probe_path, base, host, p, s) for p, (_, s) in EXPOSED.items()}
     panels = {p: pool.submit(_probe_path, base, host, p, s) for p, s in PANELS.items()}
-    ports = {p: pool.submit(_port_open, ip, p) for p in PORTS}
     dirs = {p: pool.submit(_probe_path, base, host, p, LISTING) for p in LISTED_DIRS}
     xmlrpc_job = pool.submit(_probe_path, base, host, "/xmlrpc.php", rb"XML-RPC server accepts POST")
     users_job = pool.submit(_probe_path, base, host, "/wp-json/wp/v2/users", rb'"slug"')
     cors_job = pool.submit(_cors_reflects, base, ip)
     axfr_job = pool.submit(_axfr_open, fetch.mail_domain(host))
-    wait_for([*files.values(), *panels.values(), *ports.values(), *dirs.values(), xmlrpc_job, users_job, cors_job, axfr_job], timeout=SURFACE_BUDGET)
+    port_pool = ThreadPoolExecutor(max_workers=14)
+    ports = {p: port_pool.submit(_port_open, ip, p) for p in PORTS}
+    asked = [*files.values(), *panels.values(), *dirs.values(), xmlrpc_job, users_job]
+    wait_for([*asked, *ports.values(), cors_job, axfr_job], timeout=ACTIVE_BUDGET)
     pool.shutdown(wait=False, cancel_futures=True)
+    port_pool.shutdown(wait=False, cancel_futures=True)
     done = lambda job: job.done() and not job.cancelled() and not job.exception() and job.result()
 
     items = [_item("exposed_file", WARN if EXPOSED[p][0] == "listing" else FAIL, path=p, kind=EXPOSED[p][0]) for p, j in files.items() if done(j)]
@@ -1042,6 +1051,10 @@ def active(raw: str) -> dict:
         items.append(_item("cors_reflect", FAIL))
     if done(axfr_job):
         items.append(_item("axfr_open", FAIL, server=axfr_job.result()))
+    # A file that could not be asked about is not a file that is absent
+    unanswered = sum(not job.done() or job.cancelled() or job.exception() is not None or job.result() is None for job in asked)
+    if unanswered:
+        items.append(_item("active_partial", INFO, unanswered=unanswered, total=len(asked)))
     if not items:
         items.append(_item("active_clean", OK, files=len(EXPOSED) + len(LISTED_DIRS), ports=len(PORTS)))
     return _result("active", host, items, checked_files=len(EXPOSED) + len(PANELS) + len(LISTED_DIRS) + 2, checked_ports=len(PORTS))
