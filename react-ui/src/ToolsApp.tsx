@@ -163,7 +163,7 @@ export default function ToolsApp() {
             <p className="lead">{t.toolsLead}</p>
           </div>
           <div className="wrap tool-picker">
-            <div className="tool-list">
+            <div className="tool-list deep-row">
               <button type="button" className={deep ? 'tool-tab deep-tab on' : 'tool-tab deep-tab'} aria-pressed={deep} onClick={chooseDeep}>{d.ui.tab}</button>
             </div>
             <h2 className="tool-group">{g.groupCheck}</h2>
