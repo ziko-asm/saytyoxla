@@ -11,7 +11,7 @@ GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 GET  /aletler/, /en/tools/, /ru/instrumenty/   the Tools part of the site
 POST /api/scan    {"url": "example.az", "lang": "az|en|ru"} -> report JSON
 POST /api/tool    {"url": "example.az", "tool": "ssl|email", "lang": "az|en|ru"} -> one narrow check
-POST /api/deep    {"url": "example.az", "module": "surface|mail|tech|tls|reputation|active|crawl"} -> one part of the deep analysis
+POST /api/deep    {"url": "example.az", "module": "surface|mail|tech|tls|reputation|active|crawl|probe"} -> one part of the deep analysis
 POST /api/ownership  {"url": "example.az"} -> what to publish to prove the site is yours
 GET  /health      for the hosting platform
 GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (web/seo.py)
@@ -335,7 +335,7 @@ def tool(req: ToolRequest, request: Request):
 
 class DeepRequest(BaseModel):
     url: str = Field(..., max_length=300)
-    module: Literal["surface", "mail", "tech", "tls", "reputation", "active", "crawl"]
+    module: Literal["surface", "mail", "tech", "tls", "reputation", "active", "crawl", "probe"]
     lang: str = Field("az", max_length=5)
     fresh: bool = False
 
@@ -349,7 +349,7 @@ def deep_scan(req: DeepRequest, request: Request):
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     # Whether a site may be probed is decided anew each time: ownership can end
-    hit = None if req.fresh or req.module in ("active", "crawl") else cache_get(key)
+    hit = None if req.fresh or req.module in ("active", "crawl", "probe") else cache_get(key)
     if hit:
         return JSONResponse({**hit, "cached": True})
     if not limiter.allow(client_ip(request), rules=ratelimit.DEEP_RULES):
@@ -361,7 +361,7 @@ def deep_scan(req: DeepRequest, request: Request):
     except Exception:       # one part failing must leave the others standing
         log.exception("Deep module %s failed", req.module)
         raise HTTPException(502, i18n.text("Bu hissə indi yoxlanıla bilmədi. Bir az sonra yenidən cəhd edin.", lang)) from None
-    if req.module not in ("active", "crawl"):
+    if req.module not in ("active", "crawl", "probe"):
         cache_put(key, result)
     return JSONResponse({**result, "cached": False})
 

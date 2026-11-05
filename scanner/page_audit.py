@@ -29,6 +29,7 @@ BANNERS = {
 }
 SECURITY_HEADERS = ("strict-transport-security", "content-security-policy", "x-frame-options", "x-content-type-options", "referrer-policy", "permissions-policy")
 SESSION_NAME = re.compile(r"sess|auth|token|login|jwt|sid\b", re.IGNORECASE)
+TOKEN_NAME = re.compile(r"csrf|xsrf|_token|authenticity|nonce|__requestverification", re.IGNORECASE)
 ERROR_SIGNS = rb"Fatal error</b>|Stack trace:|SQLSTATE\[|You have an error in your SQL syntax|Traceback \(most recent call last\)|Warning</b>:  ?[a-z_]+\(\)"
 
 
@@ -50,10 +51,16 @@ class Page(HTMLParser):
         elif tag == "link" and "stylesheet" in a.get("rel", "").lower() and a.get("href"):
             self.styles.append(a)
         elif tag == "form":
-            self.form = {"action": a.get("action", ""), "method": a.get("method", "get").lower(), "password": False}
+            self.form = {"action": a.get("action", ""), "method": a.get("method", "get").lower(), "password": False, "fields": [], "has_token": False}
             self.forms.append(self.form)
-        elif tag == "input" and self.form is not None and a.get("type", "").lower() == "password":
-            self.form["password"] = True
+        elif tag in ("input", "select", "textarea") and self.form is not None:
+            name, kind = a.get("name", ""), a.get("type", "").lower()
+            if kind == "password":
+                self.form["password"] = True
+            if name:
+                self.form["fields"].append(name)
+                if TOKEN_NAME.search(name) or (kind == "hidden" and TOKEN_NAME.search(a.get("value", "")[:0] + name)):
+                    self.form["has_token"] = True
         elif tag == "a" and a.get("href"):
             self.links.append(a["href"])
         elif tag == "iframe" and a.get("src"):
@@ -124,6 +131,24 @@ def audit_forms(page: Page, base: str) -> dict:
         if parts.hostname and form["method"] == "post" and registered_part(parts.hostname) != own:
             outside.add(parts.hostname)
     return {"password_plain": plain, "outside": sorted(outside), "total": len(page.forms), "passwords": sum(f["password"] for f in page.forms)}
+
+
+def get_form_targets(page: Page, base: str, host: str) -> list:
+    """(url, [field names]) for GET forms on the same host. GET only, so testing one is a read, not a submission."""
+    out = []
+    for form in page.forms:
+        if form["method"] != "get":
+            continue
+        action = urljoin(base, form["action"] or base)
+        if urlsplit(action).hostname == host and form["fields"]:
+            out.append((action, [f for f in dict.fromkeys(form["fields"]) if f][:6]))
+    return out
+
+
+def csrf_missing(page: Page) -> int:
+    """POST forms that log in or change a password yet carry no visible anti-CSRF field. A rough, passive signal:
+    the token may instead ride in a cookie or header, so it is reported as something to check, not a certain fault."""
+    return sum(1 for f in page.forms if f["method"] == "post" and f["password"] and not f["has_token"])
 
 
 def outside_resources(page: Page, base: str) -> dict:

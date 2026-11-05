@@ -26,7 +26,7 @@ from urllib.parse import urljoin, urlsplit
 
 import requests
 
-from scanner import checks, cve, fetch, page_audit, tlsprobe
+from scanner import checks, cve, fetch, injection, page_audit, tlsprobe
 from scanner.models import Context
 from scanner.safety import HOST_RE, UnsafeTarget, is_public_ip, normalize, resolve_public
 
@@ -1139,4 +1139,82 @@ def crawl(raw: str) -> dict:
     return _result("crawl", host, items, pages=pages[:CRAWL_PAGES], cut_short=bool(queue))
 
 
-MODULES = {"surface": surface, "mail": mail, "tech": tech, "tls": tls_dns, "reputation": reputation, "active": active, "crawl": crawl}
+PROBE_PAGES = 16
+PROBE_BUDGET = 28
+
+
+def _collect_probe_targets(start: str, host: str) -> list:
+    """A light read of the owner's pages to list query parameters and GET-form fields worth testing."""
+    seen, queue, links, forms = {start}, [start], [], []
+    deadline = time.monotonic() + 8
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        while queue and len(seen) < PROBE_PAGES * 3 and time.monotonic() < deadline and len(links) < 60:
+            batch, queue = queue[:6], queue[6:]
+            for answer in pool.map(_read_page, batch):
+                if not answer:
+                    continue
+                r, final, _, _, body, _ = answer
+                if urlsplit(final).hostname != host or "html" not in r.headers.get("content-type", "html").lower():
+                    continue
+                parsed = page_audit.parse(body.decode("utf-8", "replace"))
+                forms.extend(page_audit.get_form_targets(parsed, final, host))
+                if urlsplit(final).query:
+                    links.append(final)
+                for link in _same_site_links(parsed, final, host):
+                    if link not in seen and len(seen) < PROBE_PAGES * 3:
+                        seen.add(link)
+                        queue.append(link)
+                        if urlsplit(link).query:
+                            links.append(link)
+    return injection.collect_targets(links, forms)
+
+
+def _probe_send(url: str, deadline: float):
+    if time.monotonic() > deadline:
+        return None
+    try:
+        r, _, _, _, body, _ = fetch._get(url, budget=5, verify=False)
+    except (requests.RequestException, UnsafeTarget):
+        return None
+    return r.status_code, body
+
+
+def probe(raw: str) -> dict:
+    """Safe injection and reflected-XSS checks on the owner's own site. Every request is a GET (nothing is
+    submitted or changed), and the payloads only read: see scanner/injection.py. Owner proof is required."""
+    host = _host(raw)
+    if not is_owner(host):
+        raise UnsafeTarget("Əvvəlcə saytın sizə aid olduğunu təsdiqləyin.")
+    start = normalize(raw)
+    targets = _collect_probe_targets(start, host)
+    # CSRF is read from the home page without sending anything
+    csrf = 0
+    home = _read_page(start)
+    if home:
+        csrf = page_audit.csrf_missing(page_audit.parse(home[4].decode("utf-8", "replace")))
+
+    deadline = time.monotonic() + PROBE_BUDGET
+    sqli, xss = [], []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = pool.map(lambda t: (t, injection.probe_param(t[0], t[1], lambda u: _probe_send(u, deadline))), targets)
+        for (url, param), found in results:
+            path = (urlsplit(url).path or "/")[:80]
+            if found["sqli"]:
+                sqli.append((path, param, found["sqli"]))
+            if found["xss"]:
+                xss.append((path, param))
+
+    items = [_item("probe_summary", INFO, params=len(targets))]
+    items += [_item("sqli_found", FAIL, path=path, param=param, method=method) for path, param, method in sqli[:6]]
+    items += [_item("xss_found", FAIL, path=path, param=param) for path, param in xss[:6]]
+    if csrf:
+        items.append(_item("csrf_missing", WARN, count=csrf))
+    if len(items) == 1 and targets:
+        items.append(_item("probe_clean", OK, params=len(targets)))
+    elif not targets:
+        items.append(_item("probe_no_params", INFO))
+    return _result("probe", host, items, tested=len(targets))
+
+
+MODULES = {"surface": surface, "mail": mail, "tech": tech, "tls": tls_dns, "reputation": reputation,
+           "active": active, "crawl": crawl, "probe": probe}

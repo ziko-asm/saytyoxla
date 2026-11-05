@@ -9,7 +9,7 @@ type Words = {
   chains: Record<string, ChainWords>
   ui: {
     tab: string; about: string; start: string; running: string; passive: string
-    modules: Record<'surface' | 'mail' | 'tech' | 'tls' | 'reputation' | 'active' | 'crawl', string>
+    modules: Record<'surface' | 'mail' | 'tech' | 'tls' | 'reputation' | 'active' | 'crawl' | 'probe', string>
     retry: string; failed: string; chainsTitle: string; chainsLead: string; chainsNone: string; chainsWait: string
     levels: Record<'critical' | 'high' | 'medium', string>
     fact: string; could: string; fix: string
@@ -28,7 +28,7 @@ export type PdfWords = {
   verdictTitle: string; verdicts: Record<'critical' | 'high' | 'medium' | 'none', string>; incomplete: string
   scope: string; states: Record<'done' | 'partial' | 'failed' | 'notRun', string>
   contents: string; plan: string; planLead: string; planEmpty: string; scenarios: string; scenariosLead: string
-  intro: Record<'surface' | 'mail' | 'tech' | 'tls' | 'reputation' | 'active' | 'crawl', string>
+  intro: Record<'surface' | 'mail' | 'tech' | 'tls' | 'reputation' | 'active' | 'crawl' | 'probe', string>
   activeNotRun: string; partFailed: string; hostName: string; pointsTo: string; state: string; working: string
   yes: string; no: string; issuer: string; apex: string; filesChecked: string; portsChecked: string
   method: string; sourcesTitle: string; sources: string[]; limitsTitle: string; limits: string[]
@@ -132,6 +132,12 @@ const AZ: Words = {
     server_errors: ['{count} səhifə server xətası verir', 'Səhifələr: {paths}.', 'Server jurnalında səbəbə baxın.'],
     forms_outside_pages: ['Formalar başqa sayta göndərir', 'Səhifələr: {paths}. Bu sizin xidmətinizdirsə, problem yoxdur.'],
     crawl_clean: ['Səhifələrdə problem görünmədi', 'Oxunan səhifələrdə gizli açar, şifrəsiz parol və xəta mətni tapılmadı.'],
+    probe_summary: ['{params} parametr sınandı', 'Saytın səhifələrindəki ünvan parametrləri və GET formaları yalnız oxuyan sorğularla yoxlanıldı. Heç bir forma göndərilmədi, heç nə dəyişdirilmədi.'],
+    sqli_found: ['SQL injection ola bilər: {path} ({param})', 'Bu parametrə göndərilən girişin baza sorğusuna qarışdığına dair əlamət var ({method} üsulu ilə tapıldı). Təsdiq olunsa, hücum edən baza məlumatını oxuya və ya dəyişə bilər. Yoxlama təhlükəsiz idi, bazanı pozmadı.', 'Parametrli sorğulara (prepared statement) keçin, girişi birbaşa SQL-ə qoşmayın. Bunu təcili yoxlayın.'],
+    xss_found: ['Reflected XSS ola bilər: {path} ({param})', 'Bu parametrə yazılan < > kimi simvollar səhifədə təmizlənmədən geri qayıdır. Hücum edən ziyarətçiyə yad skript işlədən keçid göndərə bilər. Yoxlama zərərsiz nişanla edildi, işləyən skript göndərilmədi.', 'Çıxışda istifadəçi girişini HTML üçün təmizləyin (escape), CSP başlığı əlavə edin.'],
+    csrf_missing: ['Girişlərdə CSRF qoruması görünmür', 'Parollu {count} forma CSRF nişanı olmadan göndərilir. Nişan kukidə də ola bilər, ona görə yoxlamaq lazımdır. Qoruma yoxdursa, hücum edən istifadəçini bilmədən əməliyyat etməyə məcbur edə bilər.', 'Hər dəyişiklik formasına gizli CSRF nişanı əlavə edin.'],
+    probe_clean: ['Sınaqda zəiflik tapılmadı', '{params} parametr yoxlandı, SQL injection və ya reflected XSS əlaməti görünmədi. Bu, saytın tam təhlükəsiz olduğunu sübut etmir.'],
+    probe_no_params: ['Sınanacaq parametr tapılmadı', 'Saytın səhifələrində ünvan parametri və ya GET forması görünmədi, ona görə bu test aparılmadı.'],
   },
   chains: {
     brand_phish: { title: 'Sizin adınızdan inandırıcı fırıldaq', fact: '{host} ələ keçirilə bilər və adınızdan məktub göndərmək dayandırılmır.', could: 'Hücum edən həmin subdomendə saxta giriş səhifəsi açıb müştərilərinizə sizin ünvanınızdan məktubla göndərə bilər. Ünvan da, məktub da həqiqi görünər.', fix: 'Əvvəl CNAME qeydini silin (bir neçə dəqiqəlik işdir), sonra DMARC-ı addım-addım p=reject edin.' },
@@ -154,6 +160,9 @@ const AZ: Words = {
     data_read: { title: 'Başqa sayt ziyarətçinin məlumatını oxuya bilər', fact: 'Sayt istənilən ünvana girişli sorğuya icazə verir.', could: 'Sizə daxil olmuş ziyarətçi zərərli sayta girsə, həmin sayt onun məlumatını oxuya bilər.', fix: 'CORS qaydasında yalnız etibarlı ünvanları saxlayın.' },
     zone_open: { title: 'Bütün DNS xəritəniz açıqdır', fact: '{server} DNS zonasını istəyənə verir.', could: 'Hücum edən daxili xidmətlərin hamısının adını bir sorğu ilə öyrənə bilər.', fix: 'Zona ötürülməsini bağlayın.' },
     outside_code: { title: 'Kənar kod sizin saytda işləyir', fact: 'Bu ünvanlardan imzasız skript yüklənir: {hosts}, CSP də yoxdur.', could: 'O xidmətlərdən biri sındırılsa, ziyarətçilərinizin məlumatını oğurlayan kod saytınızda işləyə bilər.', fix: 'Lazımsız skriptləri çıxarın, qalanlarına integrity və CSP əlavə edin.' },
+    sql_injection: { title: 'Baza sorğusuna müdaxilə', fact: '{path} ({param}) parametri baza sorğusuna qarışa bilər.', could: 'Təsdiq olunsa, hücum edən müştəri məlumatlarını və parolları oxuya və ya silə bilər. Bu, saytın ola biləcək ən ciddi riskidir.', fix: 'Parametrli sorğulara (prepared statement) keçin. Bunu təcili yoxlayın.' },
+    xss: { title: 'Ziyarətçinin brauzerində yad skript', fact: '{path} ({param}) girişi səhifəyə təmizlənmədən qayıdır.', could: 'Hücum edən ziyarətçiyə keçid göndərib onun brauzerində skript işlədə və sessiyasını oğurlaya bilər.', fix: 'Çıxışı escape edin və CSP əlavə edin.' },
+    csrf: { title: 'Formalar saxta sorğuya açıq ola bilər', fact: 'Parollu formalarda CSRF nişanı görünmür.', could: 'Hücum edən istifadəçini onun xəbəri olmadan əməliyyat etməyə məcbur edə bilər.', fix: 'Hər formaya CSRF nişanı əlavə edin.' },
     server_cves: { title: 'Server proqramı üçün bilinən zəifliklər', fact: '{name} {version} üçün {count} CVE qeydi var.', could: 'Versiya hamıya göründüyü üçün hücum edən uyğun zəifliyi asan tapır. Hostinq düzəliş veribsə, risk yoxdur.', fix: 'Hostinqdən soruşun, versiyanı gizlədin və yeniləyin.' },
   },
   ui: {
@@ -161,7 +170,7 @@ const AZ: Words = {
     about: 'Hücum edənin kənardan görə biləcəyi hər şeyi bir yerə yığır: subdomenlər, saxta e-poçt, köhnə proqram, TLS və DNS, qara siyahılar. Sonra bunları real ssenarilərə çevirir.',
     start: 'Analizi başlat', running: 'Yoxlanılır…',
     passive: 'Bu hissədə yalnız ictimai məlumata baxılır: sertifikat qeydləri, DNS, əsas səhifə və onun öz skriptləri, robots.txt, açıq bazalar. Sayta hücum edilmir, gizli fayl və port axtarılmır.',
-    modules: { surface: 'Hücum səthi', mail: 'Saxta e-poçt testi', tech: 'Proqram təminatı və zəifliklər', tls: 'TLS və DNS', reputation: 'Reputasiya', active: 'Dərin yoxlama', crawl: 'Saytın səhifələri' },
+    modules: { surface: 'Hücum səthi', mail: 'Saxta e-poçt testi', tech: 'Proqram təminatı və zəifliklər', tls: 'TLS və DNS', reputation: 'Reputasiya', active: 'Dərin yoxlama', crawl: 'Saytın səhifələri', probe: 'Zəiflik sınağı' },
     retry: 'Yenidən yoxla', failed: 'Bu hissə yoxlanıla bilmədi.',
     chainsTitle: 'Hücum ssenariləri', chainsLead: 'Tapılan faktlar birləşdirilib. Bunlar ehtimaldır: kiminsə bunu etdiyini və ya edəcəyini göstərmir.',
     chainsNone: 'Tapılan faktlardan təhlükəli ssenari çıxmadı. Bu, saytın sındırıla bilməyəcəyi demək deyil, yalnız kənardan görünənlərə aiddir.',
@@ -204,6 +213,7 @@ const AZ: Words = {
       reputation: 'Domeniniz və IP ünvanınız spam və zərərli fəaliyyət siyahılarında axtarılır. Siyahıda olmaq məktublarınızın çatmamasına səbəb ola bilər.',
       active: 'Sahiblik sübutundan sonra sayta birbaşa sorğu göndərilir: internetdən açılmamalı olan fayllar, açıq qovluqlar, idarəetmə səhifələri və açıq portlar.',
       crawl: 'Saytın öz linkləri izlənilir, hər səhifədə gizli açar, şifrəsiz parol və xəta mətni axtarılır. Yalnız oxunur, heç nə göndərilmir və dəyişdirilmir.',
+      probe: 'Sahiblik təsdiqindən sonra saytın öz ünvan parametrləri və GET formaları SQL injection və reflected XSS üçün yoxlanılır. Bütün sorğular yalnız oxuyandır: heç bir forma göndərilmir, DROP/DELETE kimi dağıdıcı yük istifadə olunmur, parol sınanmır.',
     },
     activeNotRun: 'Bu yoxlama işlədilmədi, çünki saytın sahibliyi təsdiqlənməyib. Ona görə açıq fayllar və portlar haqqında bu hesabat heç nə demir.',
     partFailed: 'Bu hissə yoxlanıla bilmədi, ona görə onun haqqında heç nə demək olmur.',
@@ -378,6 +388,12 @@ const EN: Words = {
     server_errors: ['{count} pages give server errors', 'Pages: {paths}.', 'See the reason in the server log.'],
     forms_outside_pages: ['Forms send to another site', 'Pages: {paths}. If this is your service, there is no problem.'],
     crawl_clean: ['No problem visible on the pages', 'No secret key, unencrypted password or error text was found on the pages read.'],
+    probe_summary: ['{params} parameters tested', 'The address parameters and GET forms on the site’s pages were checked with read-only requests. No form was submitted and nothing was changed.'],
+    sqli_found: ['Possible SQL injection: {path} ({param})', 'There is a sign that input sent to this parameter reaches the database query (found by the {method} method). If confirmed, an attacker could read or change database data. The check was safe and did not alter the database.', 'Use parameterised queries (prepared statements) and never put input straight into SQL. Check this urgently.'],
+    xss_found: ['Possible reflected XSS: {path} ({param})', 'Characters such as < > sent to this parameter come back in the page without being cleaned. An attacker could send a visitor a link that runs foreign script. The check used a harmless marker, not a working script.', 'Escape user input for HTML on output and add a CSP header.'],
+    csrf_missing: ['No CSRF protection visible on logins', '{count} forms with a password are submitted without a CSRF token. The token may be in a cookie, so check. Without protection, an attacker could make a user perform an action unknowingly.', 'Add a hidden CSRF token to every state-changing form.'],
+    probe_clean: ['No weakness found in the probe', '{params} parameters were checked and no sign of SQL injection or reflected XSS appeared. This does not prove the site is fully safe.'],
+    probe_no_params: ['No parameters to test', 'No address parameter or GET form was visible on the site’s pages, so this test was not run.'],
   },
   chains: {
     brand_phish: { title: 'Convincing fraud in your name', fact: '{host} could be taken over, and mail in your name is not stopped.', could: 'An attacker could open a fake login page on that subdomain and send it to your customers by mail from your address. Both the address and the mail would look genuine.', fix: 'Delete the CNAME first (a few minutes of work), then move DMARC step by step to p=reject.' },
@@ -400,6 +416,9 @@ const EN: Words = {
     data_read: { title: 'Another site could read a visitor’s data', fact: 'The site allows logged-in requests from any address.', could: 'If a visitor logged in to you opens a harmful site, that site could read their data.', fix: 'Keep only trusted addresses in the CORS rule.' },
     zone_open: { title: 'Your whole DNS map is open', fact: '{server} gives the DNS zone to anyone who asks.', could: 'An attacker could learn the names of all internal services with one request.', fix: 'Close zone transfer.' },
     outside_code: { title: 'Outside code runs on your site', fact: 'Unsigned scripts load from these addresses: {hosts}, and there is no CSP.', could: 'If one of those services is hacked, code stealing your visitors’ data could run on your site.', fix: 'Remove unneeded scripts and add integrity and CSP to the rest.' },
+    sql_injection: { title: 'Tampering with the database query', fact: 'The {path} ({param}) parameter may reach the database query.', could: 'If confirmed, an attacker could read or delete customer data and passwords. It is about the most serious risk a site can have.', fix: 'Move to parameterised queries (prepared statements). Check this urgently.' },
+    xss: { title: 'Foreign script in a visitor’s browser', fact: 'Input to {path} ({param}) returns to the page without cleaning.', could: 'An attacker could send a visitor a link that runs script in their browser and steals their session.', fix: 'Escape output and add CSP.' },
+    csrf: { title: 'Forms may be open to forged requests', fact: 'Password forms show no CSRF token.', could: 'An attacker could make a user perform an action without their knowledge.', fix: 'Add a CSRF token to every form.' },
     server_cves: { title: 'Known weaknesses for the server software', fact: '{name} {version} has {count} CVE entries.', could: 'Since the version is visible to all, an attacker easily finds a matching weakness. If your host has patched it, there is no risk.', fix: 'Ask your host, hide the version and update.' },
   },
   ui: {
@@ -407,7 +426,7 @@ const EN: Words = {
     about: 'Gathers what an attacker could see from outside: subdomains, fake e-mail, old software, TLS and DNS, blocklists. Then turns it into real scenarios.',
     start: 'Start analysis', running: 'Checking…',
     passive: 'This part reads only public information: certificate logs, DNS, the home page and its own scripts, robots.txt and open databases. The site is not attacked, and no hidden file or port is tried.',
-    modules: { surface: 'Attack surface', mail: 'Fake e-mail test', tech: 'Software and weaknesses', tls: 'TLS and DNS', reputation: 'Reputation', active: 'Deep check', crawl: 'Site pages' },
+    modules: { surface: 'Attack surface', mail: 'Fake e-mail test', tech: 'Software and weaknesses', tls: 'TLS and DNS', reputation: 'Reputation', active: 'Deep check', crawl: 'Site pages', probe: 'Vulnerability probe' },
     retry: 'Check again', failed: 'This part could not be checked.',
     chainsTitle: 'Attack scenarios', chainsLead: 'The facts found, combined. These are possibilities: they do not show that anyone has done this or will.',
     chainsNone: 'The facts found did not add up to a dangerous scenario. This does not mean the site cannot be hacked; it covers only what is visible from outside.',
@@ -450,6 +469,7 @@ const EN: Words = {
       reputation: 'Your domain and IP address are looked up on spam and harmful-activity lists. Being listed can stop your mail from arriving.',
       active: 'After proof of ownership, requests go straight to the site: files that should not open from the internet, open folders, admin pages and open ports.',
       crawl: 'The site’s own links are followed, and each page is searched for secret keys, unencrypted passwords and error text. Pages are only read; nothing is sent or changed.',
+      probe: 'After proof of ownership, the site’s own address parameters and GET forms are checked for SQL injection and reflected XSS. Every request is read-only: no form is submitted, no destructive payload such as DROP or DELETE is used, and no password is tried.',
     },
     activeNotRun: 'This check was not run because ownership of the site was not confirmed. So this report says nothing about exposed files and ports.',
     partFailed: 'This part could not be checked, so nothing can be said about it.',
@@ -624,6 +644,12 @@ const RU: Words = {
     server_errors: ['Страниц с ошибкой сервера: {count}', 'Страницы: {paths}.', 'Найдите причину в журнале сервера.'],
     forms_outside_pages: ['Формы отправляют на другой сайт', 'Страницы: {paths}. Если это ваш сервис, проблемы нет.'],
     crawl_clean: ['На страницах проблем не видно', 'На прочитанных страницах нет секретных ключей, незашифрованных паролей и текста ошибок.'],
+    probe_summary: ['Проверено параметров: {params}', 'Параметры адреса и GET-формы на страницах сайта проверены только читающими запросами. Ни одна форма не отправлена, ничего не изменено.'],
+    sqli_found: ['Возможна SQL-инъекция: {path} ({param})', 'Есть признак, что ввод, отправленный в этот параметр, попадает в запрос к базе (найдено методом {method}). При подтверждении атакующий мог бы читать или менять данные базы. Проверка была безопасной и базу не меняла.', 'Используйте параметризованные запросы (prepared statements) и не вставляйте ввод прямо в SQL. Проверьте срочно.'],
+    xss_found: ['Возможна отражённая XSS: {path} ({param})', 'Символы вроде < > , отправленные в этот параметр, возвращаются на страницу без очистки. Атакующий может прислать посетителю ссылку, запускающую чужой скрипт. Проверка использовала безвредную метку, не рабочий скрипт.', 'Экранируйте пользовательский ввод для HTML при выводе и добавьте заголовок CSP.'],
+    csrf_missing: ['Не видно защиты CSRF на входе', 'Форм с паролем, отправляемых без токена CSRF: {count}. Токен может быть в cookie, поэтому проверьте. Без защиты атакующий может заставить пользователя совершить действие незаметно.', 'Добавьте скрытый токен CSRF в каждую форму, меняющую состояние.'],
+    probe_clean: ['В проверке уязвимостей не найдено', 'Проверено параметров: {params}; признаков SQL-инъекции или отражённой XSS не появилось. Это не доказывает полную безопасность сайта.'],
+    probe_no_params: ['Параметров для проверки нет', 'На страницах сайта не видно параметров адреса или GET-форм, поэтому этот тест не проводился.'],
   },
   chains: {
     brand_phish: { title: 'Убедительное мошенничество от вашего имени', fact: '{host} может быть захвачен, а письма от вашего имени не останавливаются.', could: 'Атакующий может открыть на этом поддомене поддельную страницу входа и разослать её клиентам письмом с вашего адреса. И адрес, и письмо будут выглядеть настоящими.', fix: 'Сначала удалите CNAME (несколько минут), затем постепенно переведите DMARC на p=reject.' },
@@ -646,6 +672,9 @@ const RU: Words = {
     data_read: { title: 'Другой сайт может прочитать данные посетителя', fact: 'Сайт разрешает запросы с входом с любого адреса.', could: 'Если вошедший к вам посетитель откроет вредоносный сайт, тот может прочитать его данные.', fix: 'Оставьте в правиле CORS только доверенные адреса.' },
     zone_open: { title: 'Вся ваша карта DNS открыта', fact: '{server} отдаёт зону DNS любому запросившему.', could: 'Атакующий одним запросом узнает имена всех внутренних сервисов.', fix: 'Закройте передачу зоны.' },
     outside_code: { title: 'На вашем сайте работает чужой код', fact: 'С этих адресов загружаются скрипты без подписи: {hosts}, и нет CSP.', could: 'Если один из этих сервисов будет скомпрометирован, на вашем сайте может работать код, крадущий данные посетителей.', fix: 'Уберите ненужные скрипты, а остальным добавьте integrity и CSP.' },
+    sql_injection: { title: 'Вмешательство в запрос к базе', fact: 'Параметр {path} ({param}) может попадать в запрос к базе.', could: 'При подтверждении атакующий мог бы читать или удалять данные клиентов и пароли. Это примерно самый серьёзный риск сайта.', fix: 'Перейдите на параметризованные запросы (prepared statements). Проверьте срочно.' },
+    xss: { title: 'Чужой скрипт в браузере посетителя', fact: 'Ввод в {path} ({param}) возвращается на страницу без очистки.', could: 'Атакующий может прислать посетителю ссылку, запускающую скрипт в его браузере и крадущую сессию.', fix: 'Экранируйте вывод и добавьте CSP.' },
+    csrf: { title: 'Формы могут быть открыты для подделки запросов', fact: 'У форм с паролем не видно токена CSRF.', could: 'Атакующий может заставить пользователя выполнить действие без его ведома.', fix: 'Добавьте токен CSRF в каждую форму.' },
     server_cves: { title: 'Известные уязвимости серверной программы', fact: 'У {name} {version} записей CVE: {count}.', could: 'Версия видна всем, поэтому атакующий легко находит подходящую уязвимость. Если хостинг её исправил, риска нет.', fix: 'Спросите у хостинга, скройте версию и обновите.' },
   },
   ui: {
@@ -653,7 +682,7 @@ const RU: Words = {
     about: 'Собирает то, что атакующий видит снаружи: поддомены, поддельную почту, старые программы, TLS и DNS, чёрные списки. Затем превращает это в реальные сценарии.',
     start: 'Начать анализ', running: 'Проверяем…',
     passive: 'Здесь читается только публичная информация: журналы сертификатов, DNS, главная страница и её собственные скрипты, robots.txt и открытые базы. Сайт не атакуется, скрытые файлы и порты не ищутся.',
-    modules: { surface: 'Поверхность атаки', mail: 'Тест поддельной почты', tech: 'Программы и уязвимости', tls: 'TLS и DNS', reputation: 'Репутация', active: 'Глубокая проверка', crawl: 'Страницы сайта' },
+    modules: { surface: 'Поверхность атаки', mail: 'Тест поддельной почты', tech: 'Программы и уязвимости', tls: 'TLS и DNS', reputation: 'Репутация', active: 'Глубокая проверка', crawl: 'Страницы сайта', probe: 'Проба уязвимостей' },
     retry: 'Проверить снова', failed: 'Эту часть проверить не удалось.',
     chainsTitle: 'Сценарии атаки', chainsLead: 'Найденные факты, собранные вместе. Это возможности: они не показывают, что кто-то это сделал или сделает.',
     chainsNone: 'Из найденных фактов опасный сценарий не складывается. Это не значит, что сайт нельзя взломать: речь только о том, что видно снаружи.',
@@ -696,6 +725,7 @@ const RU: Words = {
       reputation: 'Домен и IP-адрес ищутся в списках спама и вредоносной активности. Попадание в список может помешать доставке ваших писем.',
       active: 'После подтверждения владения запросы идут прямо на сайт: файлы, которые не должны открываться из интернета, открытые папки, служебные страницы и открытые порты.',
       crawl: 'Проходятся ссылки самого сайта, на каждой странице ищутся секретные ключи, незашифрованные пароли и текст ошибок. Страницы только читаются, ничего не отправляется и не меняется.',
+      probe: 'После подтверждения владения параметры адреса и GET-формы сайта проверяются на SQL-инъекции и отражённую XSS. Все запросы только читают: формы не отправляются, разрушающие нагрузки вроде DROP или DELETE не используются, пароли не подбираются.',
     },
     activeNotRun: 'Эта проверка не запускалась, так как владение сайтом не подтверждено. Поэтому об открытых файлах и портах отчёт ничего не говорит.',
     partFailed: 'Эту часть проверить не удалось, поэтому о ней сказать нечего.',

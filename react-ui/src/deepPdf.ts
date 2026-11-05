@@ -11,7 +11,7 @@ import type { Ctx } from './pdf'
 import type { Finding } from './types'
 
 export const PUBLIC = ['surface', 'mail', 'tech', 'tls', 'reputation'] as const
-export type ModuleId = typeof PUBLIC[number] | 'active' | 'crawl'
+export type ModuleId = typeof PUBLIC[number] | 'active' | 'crawl' | 'probe'
 export type DeepHost = { host: string; live: boolean; cname: string; ips?: string[]; flag: '' | 'takeover' | 'dangling' | 'dead' | 'sensitive' | 'private' }
 export type DeepData = {
   hosts?: DeepHost[]; total?: number; software?: { name: string; version: string }[]; csp?: boolean | null; hsts?: boolean | null
@@ -410,7 +410,7 @@ function drawCover(p: Pages, report: DeepReport, counts: Record<string, number>)
   setFont(c, 800, 24)
   c.fillText(d.pdf.scope, M, p.y)
   p.y += 40
-  for (const id of [...PUBLIC, 'active', 'crawl'] as ModuleId[]) {
+  for (const id of [...PUBLIC, 'active', 'crawl', 'probe'] as ModuleId[]) {
     const state = partState(report.parts[id])
     setFont(c, 400, 23, INK2)
     c.fillText(d.ui.modules[id], M, p.y)
@@ -508,9 +508,9 @@ export function drawDeepReport(report: DeepReport): HTMLCanvasElement[] {
     if (solved.length) paragraph(p, `${d.ui.solved}: ${solved.map(problemTitle).join('; ')}`)
   }
 
-  for (const id of [...PUBLIC, 'active', 'crawl'] as ModuleId[]) {
+  for (const id of [...PUBLIC, 'active', 'crawl', 'probe'] as ModuleId[]) {
     const part = parts[id]
-    if (id === 'crawl' && !part) continue
+    if ((id === 'crawl' || id === 'probe') && !part) continue
     section(d.ui.modules[id])
     paragraph(p, d.pdf.intro[id], 400, 24, MUTED)
     if (id === 'active' && !part) { paragraph(p, d.pdf.activeNotRun, 600); continue }
