@@ -71,6 +71,7 @@ describe('words', () => {
       item('takeover_risk', 'fail', { host: 'h', target: 't' }), item('spoof_open', 'fail'), item('exposed_file', 'fail', { path: 'p', kind: 'env' }),
       item('open_port', 'fail', { port: 1, service: 's' }), item('vuln_library', 'fail', { name: 'n', version: 'v' }), item('domain_expiry', 'fail', { date: 'd', days: 1 }),
       item('rep_listed', 'fail', { list: 'l', target: 't' }), item('eol_runtime', 'fail', { name: 'n', version: 'v', date: 'd' }),
+      item('sqli_found', 'fail', { path: 'p', param: 'q', method: 'error' }), item('xss_found', 'fail', { path: 'p', param: 'q' }), item('csrf_missing', 'warn', { count: 1 }),
       item('safe_browsing_listed', 'fail', { threats: 't' }), item('js_secret', 'fail', { kind: 'k', path: 'p' }), item('password_plain', 'fail', { count: 1 }),
       item('plugin_vuln', 'fail', { slug: 's', version: 'v', count: 1, ids: 'i' }), item('cors_reflect', 'fail'), item('dir_listing', 'fail', { path: 'p' }),
       item('axfr_open', 'fail', { server: 's' }), item('sri_missing', 'warn', { count: 1, hosts: 'h' }), item('cve_server', 'warn', { name: 'n', version: 'v', count: 1, high: 0, ids: 'i' }),

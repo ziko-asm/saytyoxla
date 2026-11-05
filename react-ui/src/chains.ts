@@ -25,6 +25,8 @@ export function findChains({ items, csp, hsts }: Evidence): Chain[] {
   all('js_secret').forEach((x) => add('leaked_key', 'critical', x.params, [x]))
   const plainPasswords = all('password_plain').concat(all('password_plain_pages'))
   if (plainPasswords.length) add('password_exposed', 'critical', {}, plainPasswords)
+  all('sqli_found').forEach((x) => add('sql_injection', 'critical', x.params, [x]))
+  all('xss_found').forEach((x) => add('xss', 'critical', x.params, [x]))
   all('exposed_file').filter((x) => SECRET_KINDS.includes(String(x.params.kind))).forEach((x) => add('exposed_secret', 'critical', x.params, [x]))
   all('open_port').filter((x) => x.status === 'fail').forEach((x) => add('open_database', 'critical', x.params, [x]))
   if (csp === false) {
@@ -43,6 +45,7 @@ export function findChains({ items, csp, hsts }: Evidence): Chain[] {
   all('eol_runtime').forEach((x) => add('old_runtime', 'medium', x.params, [x]))
   if (first('sensitive_hosts')) add('forgotten_service', 'medium', first('sensitive_hosts').params, [first('sensitive_hosts')])
   all('dangling_cname').slice(0, 3).forEach((x) => add('dangling_record', 'medium', x.params, [x]))
+  if (first('csrf_missing')) add('csrf', 'medium', first('csrf_missing').params, [first('csrf_missing')])
   const weakTls = all('tls_old').concat(all('tls_weak_cipher'), all('http_no_redirect'))
   if (weakTls.length && hsts === false) add('weak_transport', 'medium', {}, weakTls)
 

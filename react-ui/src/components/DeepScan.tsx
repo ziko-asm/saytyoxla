@@ -133,11 +133,11 @@ function Monitor({ target }: { target: string }) {
   )
 }
 
-function Ownership({ target, part, pages, onCheck }: { target: string; part?: Part; pages?: Part; onCheck: () => void }) {
+function Ownership({ target, part, pages, probe, onCheck }: { target: string; part?: Part; pages?: Part; probe?: Part; onCheck: () => void }) {
   const [proof, setProof] = useState<Proof | null>(null)
   const [error, setError] = useState('')
   const [waiting, setWaiting] = useState(false)
-  const busy = part?.state === 'loading' || pages?.state === 'loading'
+  const busy = part?.state === 'loading' || pages?.state === 'loading' || probe?.state === 'loading'
 
   async function start() {
     setError('')
@@ -181,6 +181,12 @@ function Ownership({ target, part, pages, onCheck }: { target: string; part?: Pa
         <>
           <h4>{d.ui.modules.crawl}</h4>
           {sortedItems(pages.result.items).map((item, i) => <FindingItem key={`${item.id}${i}`} f={itemToFinding(item)} />)}
+        </>
+      )}
+      {probe?.result && (
+        <>
+          <h4>{d.ui.modules.probe}</h4>
+          {sortedItems(probe.result.items).map((item, i) => <FindingItem key={`${item.id}${i}`} f={itemToFinding(item)} />)}
         </>
       )}
       {part?.result && <Monitor target={target} />}
@@ -275,7 +281,7 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
   }, [finished, target])
 
   // A deep check still running would be missing from the report
-  const pdfReady = publicDone && parts.active?.state !== 'loading' && parts.crawl?.state !== 'loading'
+  const pdfReady = publicDone && parts.active?.state !== 'loading' && parts.crawl?.state !== 'loading' && parts.probe?.state !== 'loading'
   const reportHost = (PUBLIC.map((id) => parts[id]?.result?.host).find(Boolean)) || target
   const report = () => ({ host: reportHost, when, parts, chains, changes })
 
@@ -347,7 +353,7 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
             </section>
           )}
           {PUBLIC.map((id) => <Section key={id} id={id} part={parts[id]} onRetry={() => runModule(id, target, true)} />)}
-          <Ownership key={target} target={target} part={parts.active} pages={parts.crawl} onCheck={() => { runModule('crawl', target).then(() => runModule('active', target)) }} />
+          <Ownership key={target} target={target} part={parts.active} pages={parts.crawl} onCheck={() => { runModule('crawl', target).then(() => runModule('active', target)).then(() => runModule('probe', target)) }} />
           <p className="g-tip">{d.ui.limits}</p>
           {pdfReady && <p className="clear-row"><button className="btn btn-ghost" type="button" onClick={clearResults}>{t.clearResults}</button></p>}
         </div>
