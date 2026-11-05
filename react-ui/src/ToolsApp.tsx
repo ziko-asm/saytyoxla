@@ -54,6 +54,9 @@ export default function ToolsApp() {
   const [generator, setGenerator] = useState<GeneratorId | null>(
     asked.startsWith('gen-') && GENERATOR_IDS.includes(asked.slice(4) as GeneratorId) ? (asked.slice(4) as GeneratorId) : null)
   const [deep, setDeep] = useState(asked === 'deep')
+  // Nothing is chosen on a plain visit: the choices open from "Check" and "Create"
+  const [picked, setPicked] = useState(TOOLS.some((x) => x.id === asked) || (!generator && asked !== 'deep' && !!params.get('url')))
+  const [menu, setMenu] = useState<'check' | 'create' | null>(generator ? 'create' : picked ? 'check' : null)
   const [url, setUrl] = useState(params.get('url') || '')
   const [checked, setChecked] = useState('')
   const [loading, setLoading] = useState(false)
@@ -113,6 +116,7 @@ export default function ToolsApp() {
 
   function chooseDeep() {
     setDeep(true)
+    setMenu(null)
     setGenerator(null)
     setResult(null)
     setError('')
@@ -130,6 +134,7 @@ export default function ToolsApp() {
 
   function choose(next: ToolId) {
     setDeep(false)
+    setPicked(true)
     setGenerator(null)
     setTool(next)
     setResult(null)
@@ -155,39 +160,40 @@ export default function ToolsApp() {
 
   return (
     <>
-      <Header onHelp={() => setGuideOpen(true)} checked={generator ? '' : checked} tools={deep ? 'deep' : generator ? `gen-${generator}` : tool} />
+      <Header onHelp={() => setGuideOpen(true)} checked={generator ? '' : checked} tools={deep ? 'deep' : generator ? `gen-${generator}` : picked ? tool : 'none'} />
       <main id="main">
         <section className="hero tools-hero">
-          <div className="wrap narrow">
+          <div className="wrap">
             <h1>{t.toolsTitle}</h1>
             <p className="lead">{t.toolsLead}</p>
-          </div>
-          <div className="wrap tool-picker">
-            <div className="tool-list deep-row">
-              <button type="button" className={deep ? 'tool-tab deep-tab on' : 'tool-tab deep-tab'} aria-pressed={deep} onClick={chooseDeep}>{d.ui.tab}</button>
+            <div className="tool-tabs">
+              <button type="button" className={deep && !menu ? 'tool-tab on' : 'tool-tab'} aria-pressed={deep} onClick={chooseDeep}>{d.ui.tab}</button>
+              <button type="button" className={menu === 'check' || (!menu && picked && !deep && !generator) ? 'tool-tab on' : 'tool-tab'} aria-expanded={menu === 'check'}
+                onClick={() => setMenu(menu === 'check' ? null : 'check')}>
+                {g.groupCheck}<span className={menu === 'check' ? 'tool-arrow up' : 'tool-arrow'} aria-hidden="true">▾</span>
+              </button>
+              <button type="button" className={menu === 'create' || (!menu && !!generator) ? 'tool-tab on' : 'tool-tab'} aria-expanded={menu === 'create'}
+                onClick={() => setMenu(menu === 'create' ? null : 'create')}>
+                {g.groupCreate}<span className={menu === 'create' ? 'tool-arrow up' : 'tool-arrow'} aria-hidden="true">▾</span>
+              </button>
             </div>
-            <h2 className="tool-group">{g.groupCheck}</h2>
-            <div className="tool-list" role="group" aria-label={g.groupCheck}>
-              {TOOLS.map((x) => (
-                <button key={x.id} type="button" className={!generator && !deep && x.id === tool ? 'tool-tab on' : 'tool-tab'}
-                  aria-pressed={!generator && !deep && x.id === tool} onClick={() => choose(x.id)}>
-                  {t.tools[x.id][0]}
-                </button>
-              ))}
-            </div>
-            <h2 className="tool-group">{g.groupCreate}</h2>
-            <div className="tool-list" role="group" aria-label={g.groupCreate}>
-              {GENERATOR_IDS.map((id) => (
-                <button key={id} type="button" className={generator === id ? 'tool-tab on' : 'tool-tab'}
-                  aria-pressed={generator === id} onClick={() => chooseGenerator(id)}>
-                  {g.gens[id][0]}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="wrap narrow">
-            <p className="tool-about">{deep ? d.ui.about : generator ? g.gens[generator][1] : t.tools[tool][1]}</p>
-            {!generator && !deep && (
+            {menu === 'check' && (
+              <div className="tool-options" role="group" aria-label={g.groupCheck}>
+                {TOOLS.map((x) => {
+                  const on = picked && !generator && !deep && x.id === tool
+                  return <button key={x.id} type="button" className={on ? 'tool-option on' : 'tool-option'} aria-pressed={on} onClick={() => choose(x.id)}>{t.tools[x.id][0]}</button>
+                })}
+              </div>
+            )}
+            {menu === 'create' && (
+              <div className="tool-options" role="group" aria-label={g.groupCreate}>
+                {GENERATOR_IDS.map((id) => (
+                  <button key={id} type="button" className={generator === id ? 'tool-option on' : 'tool-option'} aria-pressed={generator === id} onClick={() => chooseGenerator(id)}>{g.gens[id][0]}</button>
+                ))}
+              </div>
+            )}
+            {(deep || generator || picked) && <p className="tool-about">{deep ? d.ui.about : generator ? g.gens[generator][1] : t.tools[tool][1]}</p>}
+            {picked && !generator && !deep && (
               <form className="scan" noValidate onSubmit={(e) => { e.preventDefault(); run(tool, url) }}>
                 <label htmlFor="url" className="sr">{t.urlLabel}</label>
                 <input ref={input} id="url" name="url" type="text" inputMode="url" autoComplete="url" autoCapitalize="off"
@@ -199,7 +205,7 @@ export default function ToolsApp() {
             {error && <p className="form-error" role="alert">{error}</p>}
           </div>
         </section>
-        <section className="wrap narrow tool-result" aria-live="polite">
+        <section className="wrap tool-result" aria-live="polite">
           {deep && <DeepScan initialUrl={params.get('url') || url} onTarget={setChecked} />}
           {generator && <Generator key={generator} id={generator} />}
           {loading && <div className="spinner" role="status" aria-label={t.scanning}></div>}
