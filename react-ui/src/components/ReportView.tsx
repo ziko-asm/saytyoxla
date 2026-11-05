@@ -148,6 +148,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
         {t.scannedAt(when)}
         {report.cached ? ' ' + t.cachedNote : ''}
       </p>
+      <p className="clear-row"><button className="btn btn-ghost" type="button" onClick={onAgain}>{t.clearResults}</button></p>
     </section>
   )
 }

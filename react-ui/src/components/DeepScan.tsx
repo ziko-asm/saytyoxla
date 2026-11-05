@@ -189,6 +189,25 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
     PUBLIC.forEach((id) => runModule(id, clean))
   }
 
+  // Takes the answers off the screen and what this browser remembered for comparing later checks
+  function clearResults() {
+    run.current += 1
+    setTarget('')
+    setParts({})
+    setChanges(null)
+    setPages(null)
+    setPdfState('idle')
+    setUrl('')
+    setError('')
+    onTarget('')
+    try {
+      Object.keys(localStorage).filter((key) => key.startsWith('saytyoxla-deep:')).forEach((key) => localStorage.removeItem(key))
+    } catch { /* blocked storage holds nothing to clear */ }
+    window.history.replaceState(null, '', `${window.location.pathname}?tool=deep`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    input.current?.focus()
+  }
+
   useEffect(() => {
     if (initialUrl) start(initialUrl)
     // only the address the page was opened with
@@ -287,6 +306,7 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
           {PUBLIC.map((id) => <Section key={id} id={id} part={parts[id]} onRetry={() => runModule(id, target, true)} />)}
           <Ownership key={target} target={target} part={parts.active} onCheck={() => runModule('active', target)} />
           <p className="g-tip">{d.ui.limits}</p>
+          {pdfReady && <p className="clear-row"><button className="btn btn-ghost" type="button" onClick={clearResults}>{t.clearResults}</button></p>}
         </div>
       )}
     </>
