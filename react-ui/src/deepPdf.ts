@@ -11,8 +11,8 @@ import type { Ctx } from './pdf'
 import type { Finding } from './types'
 
 export const PUBLIC = ['surface', 'mail', 'tech', 'tls', 'reputation'] as const
-export type ModuleId = typeof PUBLIC[number] | 'active'
-export type DeepHost = { host: string; live: boolean; cname: string; ips?: string[]; flag: '' | 'takeover' | 'dangling' | 'sensitive' | 'private' }
+export type ModuleId = typeof PUBLIC[number] | 'active' | 'crawl'
+export type DeepHost = { host: string; live: boolean; cname: string; ips?: string[]; flag: '' | 'takeover' | 'dangling' | 'dead' | 'sensitive' | 'private' }
 export type DeepData = {
   hosts?: DeepHost[]; total?: number; software?: { name: string; version: string }[]; csp?: boolean | null; hsts?: boolean | null
   nameservers?: string[]; apex?: string; issuer?: string; checked?: string[]; safe_browsing?: string
@@ -29,6 +29,10 @@ export type DeepData = {
   domain_record?: { registrar: string; created: string; updated: string; expires: string; status: string[] }
   ip_record?: { ip: string; network: string; country: string; ptr: string }
   table?: { list: string; target: string; state: 'clean' | 'listed' | 'unavailable' }[]
+  cves?: { name: string; version: string; count: number; high: number; ids: string[] }[]
+  plugins?: { slug: string; version: string; latest: string; updated: string; closed: boolean; vulns: number | null }[]
+  theme?: string; wp_latest?: string; outside?: string[]; unsigned?: string[]; forms?: { total: number; passwords: number }; security_txt?: boolean
+  pages?: { path: string; status: number; ms: number }[]; cut_short?: boolean
 }
 export type DeepResult = { module: ModuleId; host: string; items: DeepItem[]; data: DeepData }
 export type DeepPart = { state: 'loading' | 'done' | 'error'; result?: DeepResult; error?: string }
@@ -261,6 +265,13 @@ function moduleDetails(p: Pages, id: ModuleId, result: DeepResult) {
       if (data.cookies?.length) table(p, x.cookiesTable, [x.cookie, 'Secure', 'HttpOnly', 'SameSite'], [46, 16, 18, 20], data.cookies.map((k) => [k.name, k.secure ? good(d.pdf.yes) : soft(d.pdf.no), k.httponly ? good(d.pdf.yes) : soft(d.pdf.no), k.samesite || dim('–')]))
       else { subheading(p, x.cookiesTable); paragraph(p, x.cookiesNone) }
     }
+    factTable(p, x.formsLine, [[x.formsLine, data.forms ? fill(x.formsValue, data.forms) : ''], [x.securityTxt, data.security_txt === undefined ? '' : data.security_txt ? d.pdf.yes : d.pdf.no], [x.theme, data.theme], [x.wpLatest, data.wp_latest]])
+    table(p, x.cveTable, [x.program, x.version, x.cveCount, x.examples], [20, 14, 18, 48], (data.cves || []).map((row) => [row.name, row.version, row.high ? bad(`${row.count} (${row.high})`) : soft(`${row.count} (0)`), dim(row.ids.join(', '))]))
+    table(p, x.pluginsTable, [x.plugin, x.version, x.latest, x.updated, d.pdf.state], [34, 14, 14, 18, 20], (data.plugins || []).map((row) => [
+      row.slug, row.version || '–', row.latest || '–', dim(row.updated || '–'),
+      row.closed ? bad(x.closed) : row.vulns ? bad(`CVE ${row.vulns}`) : row.version && row.latest && row.version !== row.latest ? soft(row.version) : good('OK'),
+    ]))
+    table(p, x.outsideTable, [x.server, x.signed], [70, 30], (data.outside || []).map((host) => [host, data.unsigned?.includes(host) ? soft(d.pdf.no) : good(d.pdf.yes)]))
     if (data.libs?.length) {
       table(p, x.libsTable, [x.library, x.version, x.weaknesses, x.fixedIn], [30, 18, 30, 22], data.libs.map((lib) => [lib.name, lib.version, !lib.known ? dim(x.notAsked) : lib.count ? (lib.high ? bad : soft)(`${lib.count} (${lib.high})`) : good('0'), lib.fixed || '–']))
     } else if (data.headers) { subheading(p, x.libsTable); paragraph(p, x.libsNone) }
@@ -281,6 +292,10 @@ function moduleDetails(p: Pages, id: ModuleId, result: DeepResult) {
   }
   if (id === 'reputation') {
     table(p, x.repTable, [x.listName, x.target, x.result], [40, 34, 26], (data.table || []).map((row) => [row.list, dim(row.target), row.state === 'clean' ? good(x.clean) : row.state === 'listed' ? bad(x.listed) : dim(x.unavailable)]))
+  }
+  if (id === 'crawl') {
+    table(p, `${x.pagesTable} (${data.pages?.length || 0})`, [x.path, x.status, x.time], [66, 16, 18], (data.pages || []).map((page) => [page.path, page.status >= 500 ? bad(String(page.status)) : page.status >= 400 ? soft(String(page.status)) : good(String(page.status)), dim(`${page.ms} ms`)]))
+    if (data.cut_short) paragraph(p, x.cutShort, 400, 22, MUTED)
   }
   if (id === 'active') {
     factTable(p, d.ui.modules.active, [[d.pdf.filesChecked, data.checked_files ? String(data.checked_files) : ''], [d.pdf.portsChecked, data.checked_ports ? String(data.checked_ports) : '']])
@@ -395,7 +410,7 @@ function drawCover(p: Pages, report: DeepReport, counts: Record<string, number>)
   setFont(c, 800, 24)
   c.fillText(d.pdf.scope, M, p.y)
   p.y += 40
-  for (const id of [...PUBLIC, 'active'] as ModuleId[]) {
+  for (const id of [...PUBLIC, 'active', 'crawl'] as ModuleId[]) {
     const state = partState(report.parts[id])
     setFont(c, 400, 23, INK2)
     c.fillText(d.ui.modules[id], M, p.y)
@@ -493,8 +508,9 @@ export function drawDeepReport(report: DeepReport): HTMLCanvasElement[] {
     if (solved.length) paragraph(p, `${d.ui.solved}: ${solved.map(problemTitle).join('; ')}`)
   }
 
-  for (const id of [...PUBLIC, 'active'] as ModuleId[]) {
+  for (const id of [...PUBLIC, 'active', 'crawl'] as ModuleId[]) {
     const part = parts[id]
+    if (id === 'crawl' && !part) continue
     section(d.ui.modules[id])
     paragraph(p, d.pdf.intro[id], 400, 24, MUTED)
     if (id === 'active' && !part) { paragraph(p, d.pdf.activeNotRun, 600); continue }

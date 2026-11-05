@@ -71,6 +71,9 @@ describe('words', () => {
       item('takeover_risk', 'fail', { host: 'h', target: 't' }), item('spoof_open', 'fail'), item('exposed_file', 'fail', { path: 'p', kind: 'env' }),
       item('open_port', 'fail', { port: 1, service: 's' }), item('vuln_library', 'fail', { name: 'n', version: 'v' }), item('domain_expiry', 'fail', { date: 'd', days: 1 }),
       item('rep_listed', 'fail', { list: 'l', target: 't' }), item('eol_runtime', 'fail', { name: 'n', version: 'v', date: 'd' }),
+      item('safe_browsing_listed', 'fail', { threats: 't' }), item('js_secret', 'fail', { kind: 'k', path: 'p' }), item('password_plain', 'fail', { count: 1 }),
+      item('plugin_vuln', 'fail', { slug: 's', version: 'v', count: 1, ids: 'i' }), item('cors_reflect', 'fail'), item('dir_listing', 'fail', { path: 'p' }),
+      item('axfr_open', 'fail', { server: 's' }), item('sri_missing', 'warn', { count: 1, hosts: 'h' }), item('cve_server', 'warn', { name: 'n', version: 'v', count: 1, high: 0, ids: 'i' }),
       item('sensitive_hosts', 'warn', { hosts: 'h', count: 1 }), item('dangling_cname', 'warn', { host: 'h', target: 't' }), item('tls_old', 'warn', { versions: 'v' }),
     ]
     const fired = new Set(findChains({ items: everything, csp: false, hsts: false }).map((c) => c.id))
@@ -109,6 +112,24 @@ describe('words', () => {
 
   it('fills only what it knows', () => {
     expect(fill('{a} və {b}', { a: 1 })).toBe('1 və {b}')
+  })
+})
+
+describe('new scenarios', () => {
+  it('names what was really found, and never fires on a note', () => {
+    expect(ids([item('cve_unavailable', 'info'), item('security_txt_missing', 'info'), item('cors_any', 'info'), item('crawl_summary', 'info', { pages: 3 })], { csp: false, hsts: false })).toEqual([])
+    expect(ids([item('js_secret', 'fail', { kind: 'AWS', path: '/a.js' })])).toEqual(['leaked_key'])
+    expect(ids([item('password_plain_pages', 'fail', { paths: '/in' })])).toEqual(['password_exposed'])
+  })
+
+  it('outside scripts are a scenario only without CSP', () => {
+    const sri = item('sri_missing', 'warn', { count: 1, hosts: 'cdn.net' })
+    expect(ids([sri], { csp: true })).toEqual([])
+    expect(ids([sri], { csp: false })).toEqual(['outside_code'])
+  })
+
+  it('a site on plain HTTP without HSTS is a transport scenario', () => {
+    expect(ids([item('http_no_redirect', 'warn')], { hsts: false })).toEqual(['weak_transport'])
   })
 })
 

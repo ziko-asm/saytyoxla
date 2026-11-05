@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import os
 import re
 import socket
 import ssl
@@ -21,10 +22,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import wait as wait_for
 from datetime import date, datetime, timezone
+from urllib.parse import urljoin, urlsplit
 
 import requests
 
-from scanner import checks, fetch
+from scanner import checks, cve, fetch, page_audit, tlsprobe
 from scanner.models import Context
 from scanner.safety import HOST_RE, UnsafeTarget, is_public_ip, normalize, resolve_public
 
@@ -63,7 +65,8 @@ SENSITIVE = re.compile(r"(^|[-.])(dev|develop|test|testing|stage|staging|uat|qa|
                        r"cpanel|whm|plesk|phpmyadmin|pma|db|database|mysql|jenkins|gitlab|git|grafana|kibana|vpn|ftp|internal|"
                        r"intranet)($|[-.])")
 
-# CNAME target -> what the provider shows for a name nobody has claimed. Anyone may then claim it.
+# CNAME target -> what the provider says for a name nobody has claimed, where anyone can then claim it. Each message
+# was checked against the provider's real answer for a made-up name. An empty one means a missing target is the sign.
 TAKEOVER = {
     "github.io": "There isn't a GitHub Pages site here",
     "herokuapp.com": "No such app",
@@ -71,14 +74,24 @@ TAKEOVER = {
     "amazonaws.com": "NoSuchBucket",
     "bitbucket.io": "Repository not found",
     "surge.sh": "project not found",
-    "ghost.io": "The thing you were looking for is no longer here",
-    "pantheonsite.io": "The gods are wise",
-    "readthedocs.io": "is unknown to Read the Docs",
-    "myshopify.com": "Sorry, this shop is currently unavailable",
+    "ghost.io": "Failed to resolve DNS path for this host",
+    "pantheonsite.io": "Unknown site",
+    "readthedocs.io": "Project not found",
+    "helpscoutdocs.com": "No settings were found for this company",
+    "helpjuice.com": "We could not find what you're looking for",
+    "hatenablog.com": "404 Blog is not found",
+    "launchrock.com": "It looks like you may have taken a wrong turn",
     "azurewebsites.net": "",
     "cloudapp.net": "",
+    "cloudapp.azure.com": "",
     "trafficmanager.net": "",
-    "cloudfront.net": "Bad request.",
+}
+# Here the service is gone too, but the provider ties a name to its owner, so calling it a takeover would be untrue
+DEAD = {
+    "netlify.app": "Not Found - Request ID", "netlify.com": "Not Found - Request ID",
+    "vercel.app": "DEPLOYMENT_NOT_FOUND", "vercel-dns.com": "DEPLOYMENT_NOT_FOUND",
+    "firebaseapp.com": "Site Not Found", "web.app": "Site Not Found",
+    "myshopify.com": "Store unavailable", "squarespace.com": "No Such Website", "webflow.io": "The page you are looking for doesn",
 }
 
 
@@ -128,20 +141,21 @@ def certificate_stats(entries: list) -> dict:
             "next_expiry": min((e["to"] for e in active), default=""), "issuers": sorted({e["issuer"] for e in entries if e.get("issuer")})[:6]}
 
 
-def _provider_of(target: str) -> str | None:
-    return next((p for p in TAKEOVER if target == p or target.endswith("." + p)), None)
+def _provider_of(target: str, table: dict = TAKEOVER) -> str | None:
+    return next((p for p in table if target == p or target.endswith("." + p)), None)
 
 
-def _unclaimed(host: str, provider: str) -> bool:
-    """Does the provider itself say that nobody has claimed this name?"""
-    sign = TAKEOVER[provider]
+def _service_says(host: str, sign: str) -> bool:
+    """Does the provider itself answer for this name with its "nobody here" message?"""
     if not sign:
         return False
-    try:
-        _, _, _, _, body, _ = fetch._get(f"https://{host}/", budget=FILE_BUDGET, verify=False)
-    except (requests.RequestException, UnsafeTarget):
-        return False
-    return sign.encode() in body
+    for scheme in ("https", "http"):
+        try:
+            _, _, _, _, body, _ = fetch._get(f"{scheme}://{host}/", budget=FILE_BUDGET, verify=False)
+        except (requests.RequestException, UnsafeTarget):
+            continue
+        return sign.lower().encode() in body.lower()
+    return False
 
 
 def inspect_host(host: str) -> dict:
@@ -151,11 +165,14 @@ def inspect_host(host: str) -> dict:
     out = {"host": host, "live": bool(ips), "cname": target, "ips": ips[:3], "flag": ""}
     if target:
         provider = _provider_of(target)
+        dead = _provider_of(target, DEAD)
         target_state = fetch.dns_lookup(target, "A")[0]
         if target_state == "nx":
             out["flag"] = "takeover" if provider else "dangling"
-        elif provider and _unclaimed(host, provider):
+        elif provider and _service_says(host, TAKEOVER[provider]):
             out["flag"] = "takeover"
+        elif dead and _service_says(host, DEAD[dead]):
+            out["flag"] = "dead"
     if ips and not all(is_public_ip(ip) for ip in ips):
         out["flag"] = out["flag"] or "private"
     if not out["flag"] and out["live"] and SENSITIVE.search(host):
@@ -187,6 +204,8 @@ def surface(raw: str) -> dict:
             items.append(_item("takeover_risk", FAIL, host=h["host"], target=h["cname"]))
         elif h["flag"] == "dangling":
             items.append(_item("dangling_cname", WARN, host=h["host"], target=h["cname"]))
+        elif h["flag"] == "dead":
+            items.append(_item("dead_service", WARN, host=h["host"], target=h["cname"]))
     if by_flag("sensitive"):
         items.append(_item("sensitive_hosts", WARN, hosts=", ".join(by_flag("sensitive")[:8]), count=len(by_flag("sensitive"))))
     if by_flag("private"):
@@ -195,7 +214,7 @@ def surface(raw: str) -> dict:
         items.append(_item("surface_clean", OK))
     if len(hosts) < len(chosen) or len(names) > MAX_HOSTS:
         items.append(_item("surface_partial", INFO, checked=len(hosts), total=len(names)))
-    order = {"takeover": 0, "dangling": 1, "private": 2, "sensitive": 3, "": 4}
+    order = {"takeover": 0, "dangling": 1, "dead": 1, "private": 2, "sensitive": 3, "": 4}
     return _result("surface", domain, items, total=len(names), certs=certificate_stats(entries), hosts=sorted(hosts, key=lambda h: (order[h["flag"]], h["host"])))
 
 
@@ -391,9 +410,6 @@ CMS_SIGNS = {"WordPress": rb"wp-content/|wp-includes/", "Joomla": rb"/media/jui/
              "Bitrix": rb"/bitrix/(?:js|templates)/", "Tilda": rb"tildacdn\.", "Wix": rb"static\.wixstatic\.com", "Shopify": rb"cdn\.shopify\.com"}
 
 
-SECURITY_HEADERS = ("strict-transport-security", "content-security-policy", "x-frame-options", "x-content-type-options", "referrer-policy", "permissions-policy")
-
-
 def detect_libraries(html: str) -> dict:
     """{package: version} from script addresses. Only addresses that state a version count: guessing would invent problems."""
     found = {}
@@ -429,33 +445,93 @@ def osv_vulns(name: str, version: str) -> dict | None:
     return {"count": len(vulns), "high": high, "ids": [v["id"] for v in vulns[:3]], "fixed": max(fixes, key=_version_key, default="")}
 
 
+def _fetch_quietly(url: str, budget: float = 3):
+    try:
+        return fetch._get(url, budget=budget, verify=False)
+    except (requests.RequestException, UnsafeTarget):
+        return None
+
+
+def _older(version: str, latest: str) -> bool:
+    return bool(version and latest and cve.version_key(version) < cve.version_key(latest))
+
+
+def _software_items(found: list, items: list) -> list:
+    """Known weaknesses for each server program whose exact version is visible."""
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        answers = list(pool.map(lambda x: cve.server_cves(*x), found))
+    rows = []
+    unknown = False
+    for (name, version), answer in zip(found, answers, strict=True):
+        if answer is None:
+            unknown = unknown or name.lower() in cve.CPE and version.count(".") >= 1
+        elif answer["count"]:
+            rows.append({"name": name, "version": version, **answer})
+            items.append(_item("cve_server", WARN, name=name, version=version, count=answer["count"], high=answer["high"], ids=", ".join(answer["ids"][:3])))
+    if unknown:
+        items.append(_item("cve_unavailable", INFO))
+    return rows
+
+
+def _plugin_items(slugs: dict, items: list) -> list:
+    chosen = list(slugs.items())[:8]
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        infos = list(pool.map(lambda kv: cve.plugin_info(kv[0]), chosen))
+        vulns = list(pool.map(lambda kv: cve.plugin_vulns(*kv), chosen))
+    rows = []
+    for (slug, version), info, vuln in zip(chosen, infos, vulns, strict=True):
+        info = info or {}
+        rows.append({"slug": slug, "version": version, "latest": info.get("latest", ""), "updated": info.get("updated", ""),
+                     "closed": info.get("closed", False), "vulns": vuln["count"] if vuln else None})
+        if vuln and vuln["count"]:
+            items.append(_item("plugin_vuln", FAIL, slug=slug, version=version, count=vuln["count"], ids=", ".join(vuln["ids"])))
+        if info.get("closed"):
+            items.append(_item("plugin_closed", FAIL, slug=slug))
+        elif _older(version, info.get("latest", "")):
+            items.append(_item("plugin_old", WARN, slug=slug, version=version, latest=info["latest"]))
+    return rows
+
+
 def tech(raw: str) -> dict:
     url = normalize(raw)
     host = url.split("/")[2]
+    blank = {"software": [], "csp": None, "hsts": None}
     try:
         # A bad certificate is the TLS part's finding; the software behind it can still be read
         r, final, chain, elapsed, body, _ = fetch._get(url, budget=10, verify=False)
     except requests.RequestException:
-        return _result("tech", host, [_item("page_unavailable", INFO)], software=[], csp=None, hsts=None)
+        try:    # a site with no HTTPS at all still has a page to read
+            r, final, chain, elapsed, body, _ = fetch._get(f"http://{host}/", budget=8, verify=False)
+        except requests.RequestException:
+            return _result("tech", host, [_item("page_unavailable", INFO)], **blank)
     headers = {k.lower(): v for k, v in r.headers.items()}
     if r.status_code in (401, 403, 429, 503):
-        return _result("tech", host, [_item("page_blocked", INFO, status=r.status_code)], software=[], csp=None, hsts=None)
+        return _result("tech", host, [_item("page_blocked", INFO, status=r.status_code)], **blank)
     html = body.decode("utf-8", "replace")
-    items, software = [], []
-    libs = []
+    items, software, libs = [], [], []
+    base = final.split("?")[0]
+    https = final.startswith("https://")
+    site = "/".join(final.split("/")[:3])
 
     for cms, sign in CMS_SIGNS.items():
         if re.search(sign, body):
             software.append({"name": cms, "version": ""})
     generator = (checks.parse(html).meta.get("generator") or "").strip()
     wp = re.match(r"(?i)wordpress\s+(\d+\.\d+(?:\.\d+)?)", generator)
+    wp_latest = None
     if wp:
         software = [s for s in software if s["name"] != "WordPress"] + [{"name": "WordPress", "version": wp.group(1)}]
-        items.append(_item("cms_version_shown", WARN, name="WordPress", version=wp.group(1)))
+        wp_latest = cve.latest_wordpress()
+        if _older(wp.group(1), wp_latest or ""):
+            items.append(_item("cms_outdated", WARN, name="WordPress", version=wp.group(1), latest=wp_latest))
+        else:
+            items.append(_item("cms_version_shown", WARN, name="WordPress", version=wp.group(1)))
 
-    php = re.search(r"PHP/(\d+\.\d+)(?:\.\d+)?", headers.get("x-powered-by", "") + " " + headers.get("server", ""))
+    visible = []
+    php = re.search(r"PHP/(\d+\.\d+)((?:\.\d+)?)", headers.get("x-powered-by", "") + " " + headers.get("server", ""))
     if php:
-        software.append({"name": "PHP", "version": php.group(1)})
+        software.append({"name": "PHP", "version": php.group(1) + php.group(2)})
+        visible.append(("PHP", php.group(1) + php.group(2)))
         ended = PHP_EOL.get(php.group(1))
         if ended and date.fromisoformat(ended) < datetime.now(timezone.utc).date():
             items.append(_item("eol_runtime", FAIL, name="PHP", version=php.group(1), date=ended))
@@ -464,9 +540,34 @@ def tech(raw: str) -> dict:
     server = re.match(r"(nginx|apache|microsoft-iis|litespeed|openresty)/(\d+(?:\.\d+)*)", headers.get("server", ""), re.IGNORECASE)
     if server:
         software.append({"name": server.group(1), "version": server.group(2)})
+        visible.append((server.group(1), server.group(2)))
         items.append(_item("version_shown", WARN, name=server.group(1), version=server.group(2)))
+    if wp:
+        visible.append(("WordPress", wp.group(1)))
 
+    # The page's own scripts, as any browser fetches them: versions, leaked keys and source maps
+    parsed = page_audit.parse(html)
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        loaded = list(pool.map(_fetch_quietly, page_audit.own_scripts(parsed, base)))
     libraries = detect_libraries(html)
+    leaks, maps = {}, []
+    for kind in page_audit.find_secrets(body):
+        leaks[kind] = "/"
+    for answer in loaded:
+        if not answer or answer[0].status_code != 200:
+            continue
+        path = "/" + answer[1].split("/", 3)[-1].split("?")[0][:100]
+        for name, version in page_audit.banner_versions(answer[4]).items():
+            libraries.setdefault(name, version)
+        for kind in page_audit.find_secrets(answer[4]):
+            leaks.setdefault(kind, path)
+        if re.search(rb"//[#@] ?sourceMappingURL=(?!data:)\S+", answer[4][-2000:]) or "x-sourcemap" in {k.lower() for k in answer[0].headers}:
+            maps.append(path)
+    for kind, path in leaks.items():
+        items.append(_item("js_secret", FAIL, kind=kind, path=path))
+    if maps:
+        items.append(_item("source_map", WARN, paths=", ".join(maps[:3])))
+
     with ThreadPoolExecutor(max_workers=6) as pool:
         answers = list(pool.map(lambda kv: (kv, osv_vulns(*kv)), libraries.items()))
     unknown = 0
@@ -480,15 +581,62 @@ def tech(raw: str) -> dict:
                                count=vulns["count"], ids=", ".join(vulns["ids"])))
     if unknown:
         items.append(_item("osv_unavailable", INFO))
-    if not items:
-        items.append(_item("tech_clean", OK))
+    cves = _software_items(visible, items)
+    plugins = _plugin_items(cve.detect_plugins(html), items) if any(s["name"] == "WordPress" for s in software) else []
+
+    # Forms and outside scripts
+    forms = page_audit.audit_forms(parsed, base)
+    if forms["password_plain"]:
+        items.append(_item("password_plain", FAIL, count=forms["password_plain"]))
+    if forms["outside"]:
+        items.append(_item("form_outside", WARN, hosts=", ".join(forms["outside"][:4])))
+    outside = page_audit.outside_resources(parsed, base)
+    if outside["plain_scripts"]:
+        items.append(_item("script_plain", FAIL, count=outside["plain_scripts"]))
+    if outside["unsigned"]:
+        items.append(_item("sri_missing", WARN, count=len(outside["unsigned"]), hosts=", ".join(outside["unsigned"][:4])))
+
+    # Headers and cookies
+    quality = page_audit.audit_headers(headers)
+    if quality["missing"]:
+        items.append(_item("headers_missing", WARN, count=len(quality["missing"]), names=", ".join(quality["missing"])))
+    if quality["csp_unsafe"]:
+        items.append(_item("csp_unsafe", WARN, words=", ".join(quality["csp_unsafe"])))
+    if quality["hsts_short"]:
+        items.append(_item("hsts_short", WARN))
+    if quality["cors_any"]:
+        items.append(_item("cors_any", INFO))
     cookies = []
     for raw_cookie in fetch.set_cookies(r)[:15]:
         low = raw_cookie.lower()
         cookies.append({"name": raw_cookie.split("=", 1)[0].strip()[:60], "secure": "; secure" in low, "httponly": "; httponly" in low,
                         "samesite": (re.search(r"samesite=(\w+)", low) or [None, ""])[1]})
+    weak_cookies = page_audit.audit_cookies(cookies, https)
+    if weak_cookies:
+        items.append(_item("cookie_weak", WARN, names=", ".join(weak_cookies)))
+
+    # Public files, and whether plain HTTP moves visitors to HTTPS
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        robots_job = pool.submit(_fetch_quietly, site + "/robots.txt")
+        security_job = pool.submit(_fetch_quietly, site + "/.well-known/security.txt")
+        plain_job = pool.submit(_fetch_quietly, f"http://{host}/", 5) if https else None
+    robots = robots_job.result()
+    secret_paths = page_audit.robots_paths(robots[4].decode("utf-8", "replace")) if robots and robots[0].status_code == 200 else []
+    if secret_paths:
+        items.append(_item("robots_reveals", INFO, paths=", ".join(secret_paths[:5])))
+    security = security_job.result()
+    has_security = bool(security and security[0].status_code == 200 and b"contact:" in security[4].lower()[:5000])
+    if not has_security:
+        items.append(_item("security_txt_missing", INFO))
+    plain = plain_job.result() if plain_job else None
+    if plain and not plain[1].startswith("https://"):
+        items.append(_item("http_no_redirect", WARN))
+    if not any(i["status"] in (WARN, FAIL) for i in items):
+        items.append(_item("tech_clean", OK))
     return _result("tech", host, items, software=software, csp="content-security-policy" in headers, hsts="strict-transport-security" in headers,
-                   headers=[{"name": name, "value": headers.get(name, "")[:220]} for name in SECURITY_HEADERS], libs=libs, cookies=cookies,
+                   headers=[{"name": name, "value": headers.get(name, "")[:220]} for name in page_audit.SECURITY_HEADERS], libs=libs, cookies=cookies, cves=cves,
+                   plugins=plugins, theme=cve.detect_theme(html), wp_latest=wp_latest or "", outside=outside["hosts"][:20], unsigned=outside["unsigned"][:20],
+                   forms={"total": forms["total"], "passwords": forms["passwords"]}, security_txt=has_security,
                    page={"final_url": final[:200], "status": r.status_code, "ms": round(elapsed), "bytes": len(body), "redirects": len(chain)})
 
 
@@ -580,6 +728,11 @@ def _caa(domain: str) -> list | None:
     return []
 
 
+def _speaks(host: str, ip: str, version: tuple) -> bool | None:
+    answer = tlsprobe.accepts_version(host, ip, version)
+    return tlsprobe.accepts_version(host, ip, version) if answer is None else answer
+
+
 def tls_dns(raw: str) -> dict:
     host = _host(raw)
     domain = fetch.mail_domain(host)
@@ -587,12 +740,11 @@ def tls_dns(raw: str) -> dict:
     items = []
     with ThreadPoolExecutor(max_workers=8) as pool:
         cert_job = pool.submit(fetch.cert_info, host, ip)
-        old_jobs = {name: pool.submit(_handshake, host, ip, "DEFAULT:@SECLEVEL=0", version) for name, version in
-                    (("TLS 1.0", ssl.TLSVersion.TLSv1), ("TLS 1.1", ssl.TLSVersion.TLSv1_1))}
+        old_jobs = {name: pool.submit(_speaks, host, ip, version) for name, version in (("TLS 1.0", tlsprobe.TLS10), ("TLS 1.1", tlsprobe.TLS11))}
         new_jobs = {name: pool.submit(_handshake, host, ip, "DEFAULT:@SECLEVEL=0", version) for name, version in
                     (("TLS 1.2", ssl.TLSVersion.TLSv1_2), ("TLS 1.3", ssl.TLSVersion.TLSv1_3))}
         details_job = pool.submit(_cert_details, host, ip)
-        weak_job = pool.submit(_handshake, host, ip, "3DES:RC4:DES:NULL:EXPORT:@SECLEVEL=0")
+        weak_job = pool.submit(tlsprobe.weak_cipher, host, ip)
         apex_job = pool.submit(_apex, domain)
         caa_job = pool.submit(_caa, domain)
     cert = cert_job.result()
@@ -609,7 +761,7 @@ def tls_dns(raw: str) -> dict:
     elif all(job.result() is False for job in old_jobs.values()):
         items.append(_item("tls_old_off", OK))
     if weak_job.result():
-        items.append(_item("tls_weak_cipher", FAIL))
+        items.append(_item("tls_weak_cipher", FAIL, cipher=weak_job.result()))
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         ds_job = pool.submit(fetch.dns_lookup, apex, "DS")
@@ -668,19 +820,46 @@ IP_LISTS = {"Spamhaus SBL/XBL": ("zen.spamhaus.org", {f"127.0.0.{i}" for i in (2
             "SpamCop": ("bl.spamcop.net", {"127.0.0.2"}, "2.0.0.127")}
 
 
+def _zone(zone: str) -> str:
+    """With a Spamhaus DQS key its lists answer any server. The key goes only into this DNS name, never into a result."""
+    key = os.getenv("SPAMHAUS_DQS_KEY")
+    if key and zone.endswith(".spamhaus.org"):
+        return f"{key}.{zone.removesuffix('.spamhaus.org')}.dq.spamhaus.net"
+    return zone
+
+
+def _safe_browsing(domain: str) -> dict | None:
+    """Google's verdict with a key; None without one, or if it did not answer."""
+    key = os.getenv("GOOGLE_SAFE_BROWSING_KEY")
+    if not key:
+        return None
+    try:
+        r = requests.post("https://safebrowsing.googleapis.com/v4/threatMatches:find", params={"key": key}, headers=HEADERS, timeout=6, json={
+            "client": {"clientId": "saytyoxla", "clientVersion": "1.0"},
+            "threatInfo": {"threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
+                           "platformTypes": ["ANY_PLATFORM"], "threatEntryTypes": ["URL"],
+                           "threatEntries": [{"url": f"https://{domain}/"}, {"url": f"http://{domain}/"}]}})
+        if r.status_code != 200:
+            return None
+        return {"threats": sorted({m.get("threatType", "") for m in r.json().get("matches", [])})}
+    except (requests.RequestException, ValueError):
+        return None
+
+
 def reputation(raw: str) -> dict:
     domain = _domain(raw)
     ips = [r.address for r in fetch.dns_lookup(_host(raw), "A")[1] if is_public_ip(r.address)][:2]
     jobs, canaries = {}, {}
     with ThreadPoolExecutor(max_workers=12) as pool:
         for name, (zone, codes, test) in {**DOMAIN_LISTS, **IP_LISTS}.items():
-            canaries[name] = pool.submit(_listed, f"{test}.{zone}", codes)
+            canaries[name] = pool.submit(_listed, f"{test}.{_zone(zone)}", codes)
         for name, (zone, codes, _) in DOMAIN_LISTS.items():
-            jobs[(name, domain)] = pool.submit(_listed, f"{domain}.{zone}", codes)
+            jobs[(name, domain)] = pool.submit(_listed, f"{domain}.{_zone(zone)}", codes)
         for ip in ips:
             reversed_ip = ".".join(reversed(ip.split(".")))
             for name, (zone, codes, _) in IP_LISTS.items():
-                jobs[(name, ip)] = pool.submit(_listed, f"{reversed_ip}.{zone}", codes)
+                jobs[(name, ip)] = pool.submit(_listed, f"{reversed_ip}.{_zone(zone)}", codes)
+        google_job = pool.submit(_safe_browsing, domain)
     # Lists refuse many large resolvers by answering "not listed" for everything. A list that does not
     # even know its own test entry has told us nothing, so its "not listed" must not read as clean.
     working = {name for name, job in canaries.items() if job.result()}
@@ -689,11 +868,17 @@ def reputation(raw: str) -> dict:
              for (name, target), job in jobs.items()]
     items = [_item("rep_listed", FAIL, list=name, target=target) for (name, target), hit in answers.items() if hit]
     checked = sorted({name for (name, _), hit in answers.items() if hit is not None})
+    google = google_job.result()
+    if google is not None:
+        checked = sorted([*checked, "Google Safe Browsing"])
+        if google["threats"]:
+            items.append(_item("safe_browsing_listed", FAIL, threats=", ".join(google["threats"])))
+        table.append({"list": "Google Safe Browsing", "target": domain, "state": "listed" if google["threats"] else "clean"})
     if not items and checked:
         items.append(_item("rep_clean", OK, lists=", ".join(checked)))
     if not checked:
         items.append(_item("rep_unknown", INFO))
-    return _result("reputation", domain, items, checked=checked, table=table, safe_browsing=f"https://transparencyreport.google.com/safe-browsing/search?url={domain}")
+    return _result("reputation", domain, items, checked=checked, table=table, safe_browsing_checked=google is not None, safe_browsing=f"https://transparencyreport.google.com/safe-browsing/search?url={domain}")
 
 
 # ---------------------------------------------------------------- ownership and active checks
@@ -739,8 +924,36 @@ EXPOSED = {
     "/info.php": ("phpinfo", rb"phpinfo\(\)"),
     "/server-status": ("status", rb"Apache Server Status"),
     "/.DS_Store": ("listing", rb"^\x00\x00\x00\x01Bud1"),
+    "/.env.local": ("env", rb"(?m)^[A-Z][A-Z0-9_]+=\S*"),
+    "/.env.production": ("env", rb"(?m)^[A-Z][A-Z0-9_]+=\S*"),
+    "/.env.backup": ("env", rb"(?m)^[A-Z][A-Z0-9_]+=\S*"),
+    "/.git/index": ("git", rb"^DIRC"),
+    "/.hg/hgrc": ("git", rb"\[paths\]"),
+    "/.aws/credentials": ("key", rb"aws_access_key_id"),
+    "/docker-compose.yml": ("config", rb"(?m)^(services|version):"),
+    "/web.config": ("config", rb"<configuration"),
+    "/wp-config.php.save": ("config", rb"DB_PASSWORD"),
+    "/wp-config.php.old": ("config", rb"DB_PASSWORD"),
+    "/.wp-config.php.swp": ("config", rb"b0VIM"),
+    "/configuration.php.bak": ("config", rb"(?i)password"),
+    "/.vscode/sftp.json": ("config", rb'"password"'),
+    "/sftp-config.json": ("config", rb'"password"'),
+    "/db.sql": ("database", rb"(?i)(CREATE TABLE|INSERT INTO)"),
+    "/backup.zip": ("backup", rb"^PK\x03\x04"),
+    "/site.zip": ("backup", rb"^PK\x03\x04"),
+    "/www.zip": ("backup", rb"^PK\x03\x04"),
+    "/backup.tar.gz": ("backup", rb"^\x1f\x8b"),
+    "/wp-content/debug.log": ("log", rb"PHP (Notice|Warning|Fatal|Parse)"),
+    "/storage/logs/laravel.log": ("log", rb"(production|local)\.(ERROR|INFO|WARNING)"),
+    "/error_log": ("log", rb"PHP (Notice|Warning|Fatal|Parse)"),
+    "/elmah.axd": ("debug", rb"Error Log for"),
+    "/actuator/env": ("debug", rb'"propertySources"'),
+    "/_profiler/": ("debug", rb"Symfony Profiler"),
+    "/telescope": ("debug", rb"Laravel Telescope|telescope"),
 }
-PANELS = {"/phpmyadmin/": rb"phpMyAdmin", "/adminer.php": rb"Adminer", "/wp-login.php": rb"wp-submit"}
+PANELS = {"/phpmyadmin/": rb"phpMyAdmin", "/adminer.php": rb"Adminer", "/wp-login.php": rb"wp-submit", "/administrator/": rb"Joomla", "/cpanel": rb"cPanel"}
+LISTED_DIRS = ("/uploads/", "/backup/", "/backups/", "/files/", "/wp-content/uploads/", "/images/", "/assets/", "/logs/")
+LISTING = rb"<title>Index of /|<h1>Index of /|Directory listing for /"
 PORTS = {21: ("FTP", WARN), 22: ("SSH", INFO), 23: ("Telnet", FAIL), 445: ("SMB", FAIL), 1433: ("SQL Server", FAIL), 2375: ("Docker", FAIL),
          3306: ("MySQL", FAIL), 3389: ("RDP", FAIL), 5432: ("PostgreSQL", FAIL), 5900: ("VNC", FAIL), 6379: ("Redis", FAIL),
          9200: ("Elasticsearch", FAIL), 11211: ("Memcached", FAIL), 27017: ("MongoDB", FAIL)}
@@ -764,26 +977,153 @@ def _port_open(ip: str, port: int) -> bool:
         return False
 
 
+def _cors_reflects(base: str, ip: str) -> bool:
+    """Does the site let any other site read its answers with the visitor's own login?"""
+    try:
+        with fetch._session(ip) as session:
+            r = session.get(base + "/", headers={"User-Agent": fetch.USER_AGENT, "Origin": "https://saytyoxla-origin-test.example"},
+                            allow_redirects=False, stream=True, verify=False, timeout=4)
+            r.close()
+    except requests.RequestException:
+        return False
+    return r.headers.get("access-control-allow-origin") == "https://saytyoxla-origin-test.example" and r.headers.get("access-control-allow-credentials", "").lower() == "true"
+
+
+def _axfr_open(domain: str) -> str:
+    """The name server that hands the whole DNS zone to anyone, if there is one. Asked only for a proven owner."""
+    try:
+        import dns.exception
+        import dns.query
+        import dns.zone
+    except ImportError:
+        return ""
+    for record in fetch.dns_lookup(domain, "NS")[1][:3]:
+        server = str(record.target).rstrip(".")
+        addresses = fetch.dns_lookup(server, "A")[1]
+        if not addresses or not is_public_ip(addresses[0].address):
+            continue
+        try:
+            zone = dns.zone.from_xfr(dns.query.xfr(addresses[0].address, domain, lifetime=4, timeout=3))
+        except (OSError, EOFError, ValueError, dns.exception.DNSException):     # the normal answer is a refusal, in many forms
+            continue
+        if len(zone.nodes) > 0:
+            return server
+    return ""
+
+
 def active(raw: str) -> dict:
     host = _host(raw)
     if not is_owner(host):
         raise UnsafeTarget("Əvvəlcə saytın sizə aid olduğunu təsdiqləyin.")
     ip = resolve_public(host)
-    base = f"https://{host}"
+    base = f"https://{host}" if _port_open(ip, 443) else f"http://{host}"
     pool = ThreadPoolExecutor(max_workers=16)
     files = {p: pool.submit(_probe_path, base, host, p, s) for p, (_, s) in EXPOSED.items()}
     panels = {p: pool.submit(_probe_path, base, host, p, s) for p, s in PANELS.items()}
     ports = {p: pool.submit(_port_open, ip, p) for p in PORTS}
-    wait_for([*files.values(), *panels.values(), *ports.values()], timeout=SURFACE_BUDGET)
+    dirs = {p: pool.submit(_probe_path, base, host, p, LISTING) for p in LISTED_DIRS}
+    xmlrpc_job = pool.submit(_probe_path, base, host, "/xmlrpc.php", rb"XML-RPC server accepts POST")
+    users_job = pool.submit(_probe_path, base, host, "/wp-json/wp/v2/users", rb'"slug"')
+    cors_job = pool.submit(_cors_reflects, base, ip)
+    axfr_job = pool.submit(_axfr_open, fetch.mail_domain(host))
+    wait_for([*files.values(), *panels.values(), *ports.values(), *dirs.values(), xmlrpc_job, users_job, cors_job, axfr_job], timeout=SURFACE_BUDGET)
     pool.shutdown(wait=False, cancel_futures=True)
     done = lambda job: job.done() and not job.cancelled() and not job.exception() and job.result()
 
     items = [_item("exposed_file", WARN if EXPOSED[p][0] == "listing" else FAIL, path=p, kind=EXPOSED[p][0]) for p, j in files.items() if done(j)]
     items += [_item("admin_panel", WARN, path=p) for p, j in panels.items() if done(j)]
     items += [_item("open_port", PORTS[p][1], port=p, service=PORTS[p][0]) for p, j in ports.items() if done(j)]
+    items += [_item("dir_listing", FAIL, path=p) for p, j in dirs.items() if done(j)]
+    if done(xmlrpc_job):
+        items.append(_item("xmlrpc_open", WARN))
+    if done(users_job):
+        items.append(_item("user_list", WARN))         # that the names are open is the finding; the names stay out of it
+    if done(cors_job):
+        items.append(_item("cors_reflect", FAIL))
+    if done(axfr_job):
+        items.append(_item("axfr_open", FAIL, server=axfr_job.result()))
     if not items:
-        items.append(_item("active_clean", OK, files=len(EXPOSED), ports=len(PORTS)))
-    return _result("active", host, items, checked_files=len(EXPOSED) + len(PANELS), checked_ports=len(PORTS))
+        items.append(_item("active_clean", OK, files=len(EXPOSED) + len(LISTED_DIRS), ports=len(PORTS)))
+    return _result("active", host, items, checked_files=len(EXPOSED) + len(PANELS) + len(LISTED_DIRS) + 2, checked_ports=len(PORTS))
 
 
-MODULES = {"surface": surface, "mail": mail, "tech": tech, "tls": tls_dns, "reputation": reputation, "active": active}
+# ---------------------------------------------------------------- the owner's whole site, a page at a time
+CRAWL_PAGES = 30
+CRAWL_BUDGET = 26
+SKIP_LINK = re.compile(r"(?i)\.(pdf|zip|gz|rar|jpe?g|png|gif|webp|svg|ico|mp4|mp3|css|js|woff2?|xml|docx?|xlsx?)(\?|$)|logout|signout|cikis|delete|remove")
+
+
+def _same_site_links(page: page_audit.Page, base: str, host: str) -> list:
+    found = []
+    for link in page.links:
+        target = urljoin(base, link).split("#")[0]
+        parts = urlsplit(target)
+        if parts.scheme in ("http", "https") and parts.hostname == host and not SKIP_LINK.search(target):
+            found.append(target)
+    return list(dict.fromkeys(found))
+
+
+def _read_page(url: str):
+    try:
+        return fetch._get(url, budget=6, verify=False)
+    except (requests.RequestException, UnsafeTarget):
+        return None
+
+
+def crawl(raw: str) -> dict:
+    """Follows the owner's links within the site, with plain GETs only: no form is sent and nothing is changed."""
+    host = _host(raw)
+    if not is_owner(host):
+        raise UnsafeTarget("Əvvəlcə saytın sizə aid olduğunu təsdiqləyin.")
+    start = normalize(raw)
+    seen, queue, pages = {start}, [start], []
+    leaks, errors, plain_forms, outside_forms, plain_scripts = {}, [], [], [], []
+    deadline = time.monotonic() + CRAWL_BUDGET
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        while queue and len(pages) < CRAWL_PAGES and time.monotonic() < deadline:
+            batch, queue = queue[:6], queue[6:]
+            for answer in pool.map(_read_page, batch):
+                if not answer:
+                    continue
+                r, final, _, elapsed, body, _ = answer
+                if urlsplit(final).hostname != host:
+                    continue
+                path = (urlsplit(final).path or "/")[:120]
+                pages.append({"path": path, "status": r.status_code, "ms": round(elapsed)})
+                if "html" not in r.headers.get("content-type", "html").lower():
+                    continue
+                parsed = page_audit.parse(body.decode("utf-8", "replace"))
+                for kind in page_audit.find_secrets(body):
+                    leaks.setdefault(kind, path)
+                if re.search(page_audit.ERROR_SIGNS, body):
+                    errors.append(path)
+                forms = page_audit.audit_forms(parsed, final)
+                if forms["password_plain"]:
+                    plain_forms.append(path)
+                if forms["outside"]:
+                    outside_forms.append(path)
+                if page_audit.outside_resources(parsed, final)["plain_scripts"]:
+                    plain_scripts.append(path)
+                for link in _same_site_links(parsed, final, host):
+                    if link not in seen and len(seen) < CRAWL_PAGES * 4:
+                        seen.add(link)
+                        queue.append(link)
+    broken = [p["path"] for p in pages if p["status"] >= 500]
+    items = [_item("crawl_summary", INFO, pages=len(pages))]
+    items += [_item("js_secret", FAIL, kind=kind, path=path) for kind, path in leaks.items()]
+    if plain_forms:
+        items.append(_item("password_plain_pages", FAIL, paths=", ".join(plain_forms[:5])))
+    if plain_scripts:
+        items.append(_item("mixed_pages", WARN, count=len(plain_scripts), paths=", ".join(plain_scripts[:5])))
+    if errors:
+        items.append(_item("error_shown", WARN, count=len(errors), paths=", ".join(errors[:5])))
+    if broken:
+        items.append(_item("server_errors", WARN, count=len(broken), paths=", ".join(broken[:5])))
+    if outside_forms:
+        items.append(_item("forms_outside_pages", INFO, paths=", ".join(outside_forms[:5])))
+    if len(items) == 1:
+        items.append(_item("crawl_clean", OK))
+    return _result("crawl", host, items, pages=pages[:CRAWL_PAGES], cut_short=bool(queue))
+
+
+MODULES = {"surface": surface, "mail": mail, "tech": tech, "tls": tls_dns, "reputation": reputation, "active": active, "crawl": crawl}
