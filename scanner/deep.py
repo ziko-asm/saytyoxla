@@ -82,32 +82,50 @@ TAKEOVER = {
 }
 
 
-def _cert_spotter(domain: str) -> set | None:
+def _issuer_org(name: str) -> str:
+    m = re.search(r"\bO=\"?([^,\"]+)", name or "")
+    return m.group(1).strip() if m else ""
+
+
+def _cert_spotter(domain: str) -> list | None:
     r = requests.get("https://api.certspotter.com/v1/issuances", headers=HEADERS, timeout=HTTP_TIMEOUT,
-                     params={"domain": domain, "include_subdomains": "true", "expand": "dns_names"})
+                     params={"domain": domain, "include_subdomains": "true", "expand": ["dns_names", "issuer"]})
     if r.status_code != 200:
         return None
-    return {n for entry in r.json() for n in entry.get("dns_names", [])}
+    return [{"names": e.get("dns_names", []), "issuer": (e.get("issuer") or {}).get("friendly_name") or _issuer_org((e.get("issuer") or {}).get("name", "")),
+             "from": e.get("not_before", "")[:10], "to": e.get("not_after", "")[:10]} for e in r.json()]
 
 
-def _crt_sh(domain: str) -> set | None:
+def _crt_sh(domain: str) -> list | None:
     r = requests.get("https://crt.sh/", headers=HEADERS, timeout=HTTP_TIMEOUT, params={"q": f"%.{domain}", "output": "json"})
     if r.status_code != 200:
         return None
-    return {n for entry in r.json() for n in entry.get("name_value", "").split()}
+    return [{"names": e.get("name_value", "").split(), "issuer": _issuer_org(e.get("issuer_name", "")),
+             "from": e.get("not_before", "")[:10], "to": e.get("not_after", "")[:10]} for e in r.json()]
 
 
-def certificate_names(domain: str) -> set | None:
-    """Names found in public certificate logs; None if neither log answered."""
+def _certificate_log(domain: str) -> list | None:
     for source in (_cert_spotter, _crt_sh):
         try:
-            names = source(domain)
+            entries = source(domain)
         except (requests.RequestException, ValueError):
             continue
-        if names is not None:
-            found = {n.lower().lstrip("*.").rstrip(".") for n in names}
-            return {n for n in found if (n == domain or n.endswith("." + domain)) and HOST_RE.match(n)}
+        if entries is not None:
+            return entries
     return None
+
+
+def certificate_names(entries: list, domain: str) -> set:
+    found = {n.lower().lstrip("*.").rstrip(".") for e in entries for n in e["names"]}
+    return {n for n in found if (n == domain or n.endswith("." + domain)) and HOST_RE.match(n)}
+
+
+def certificate_stats(entries: list) -> dict:
+    today = datetime.now(timezone.utc).date().isoformat()
+    starts = sorted(e["from"] for e in entries if e.get("from"))
+    active = [e for e in entries if e.get("to", "") >= today]
+    return {"count": len(entries), "active": len(active), "first": starts[0] if starts else "", "last": starts[-1] if starts else "",
+            "next_expiry": min((e["to"] for e in active), default=""), "issuers": sorted({e["issuer"] for e in entries if e.get("issuer")})[:6]}
 
 
 def _provider_of(target: str) -> str | None:
@@ -130,7 +148,7 @@ def inspect_host(host: str) -> dict:
     cname = fetch.dns_lookup(host, "CNAME")
     target = str(cname[1][0].target).rstrip(".").lower() if cname[0] == "ok" else ""
     ips = [r.address for r in fetch.dns_lookup(host, "A")[1]]
-    out = {"host": host, "live": bool(ips), "cname": target, "flag": ""}
+    out = {"host": host, "live": bool(ips), "cname": target, "ips": ips[:3], "flag": ""}
     if target:
         provider = _provider_of(target)
         target_state = fetch.dns_lookup(target, "A")[0]
@@ -147,9 +165,10 @@ def inspect_host(host: str) -> dict:
 
 def surface(raw: str) -> dict:
     domain = _domain(raw)
-    names = certificate_names(domain)
-    if names is None:
+    entries = _certificate_log(domain)
+    if entries is None:
         return _result("surface", domain, [_item("surface_unavailable", INFO)], hosts=[], total=0)
+    names = certificate_names(entries, domain)
     names.discard(domain)
     names.discard("www." + domain)
     # Names that look sensitive first: with a very long list they are the ones worth the time
@@ -177,7 +196,7 @@ def surface(raw: str) -> dict:
     if len(hosts) < len(chosen) or len(names) > MAX_HOSTS:
         items.append(_item("surface_partial", INFO, checked=len(hosts), total=len(names)))
     order = {"takeover": 0, "dangling": 1, "private": 2, "sensitive": 3, "": 4}
-    return _result("surface", domain, items, total=len(names), hosts=sorted(hosts, key=lambda h: (order[h["flag"]], h["host"])))
+    return _result("surface", domain, items, total=len(names), certs=certificate_stats(entries), hosts=sorted(hosts, key=lambda h: (order[h["flag"]], h["host"])))
 
 
 # ---------------------------------------------------------------- e-mail
@@ -188,7 +207,7 @@ def _spf_of(records: list | None) -> list:
     return [r for r in records or [] if r.lower().startswith("v=spf1")]
 
 
-def spf_tree(domain: str, seen: set | None = None, depth: int = 0, deadline: float | None = None) -> dict:
+def spf_tree(domain: str, seen: set | None = None, depth: int = 0, deadline: float | None = None, steps: list | None = None) -> dict:
     """How many DNS lookups an SPF record really costs, following every include."""
     seen = set() if seen is None else seen
     deadline = time.monotonic() + SPF_BUDGET if deadline is None else deadline
@@ -206,13 +225,19 @@ def spf_tree(domain: str, seen: set | None = None, depth: int = 0, deadline: flo
     if not spf:
         result["void"] += records == []
         return result
+    own = 0
+    step = {"domain": domain, "depth": depth, "lookups": 0}
+    if steps is not None:
+        steps.append(step)
     for term in spf[0].split()[1:]:
         body = term.lower().lstrip("+-~?")
         mech = re.split(r"[:/=]", body)[0]
         if mech in LOOKUP_TERMS or mech == "redirect":
             result["lookups"] += 1
+            own += 1
+            step["lookups"] = own
         if mech in ("include", "redirect") and re.search(r"[:=]", body):
-            sub = spf_tree(re.split(r"[:=]", term, maxsplit=1)[1].strip(), seen, depth + 1, deadline)
+            sub = spf_tree(re.split(r"[:=]", term, maxsplit=1)[1].strip(), seen, depth + 1, deadline, steps)
             for key in ("lookups", "void"):
                 result[key] += sub[key]
             result["unknown"] = result["unknown"] or sub["unknown"]
@@ -264,7 +289,8 @@ def mail(raw: str) -> dict:
     with ThreadPoolExecutor(max_workers=6) as pool:
         spf_job = pool.submit(fetch.txt_records, domain)
         dmarc_job = pool.submit(fetch.dmarc_records, domain)
-        tree_job = pool.submit(spf_tree, domain)
+        steps = []
+        tree_job = pool.submit(spf_tree, domain, None, 0, None, steps)
         dkim_job = pool.submit(_dkim_records, domain)
         mx_job = pool.submit(fetch.dns_lookup, domain, "MX")
         sts_job = pool.submit(_mta_sts_mode, domain)
@@ -341,7 +367,14 @@ def mail(raw: str) -> dict:
             items.append(_item("mta_sts_missing", INFO))
         if not any(r.lower().startswith("v=tlsrptv1") for r in rpt_job.result() or []):
             items.append(_item("tls_rpt_missing", INFO))
-    return _result("mail", domain, items, records={"spf": spf, "dmarc": [rec] if rec else [], "dmarc_parent": parent or "",
+    mx_hosts = sorted((r.preference, str(r.exchange).rstrip(".")) for r in mx if str(r.exchange) != ".")[:6]
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        mx_ips = list(pool.map(lambda x: [a.address for a in fetch.dns_lookup(x[1], "A")[1]][:3], mx_hosts))
+    return _result("mail", domain, items, spf_lookups=tree["lookups"], spf_limit=SPF_LIMIT, spf_steps=steps[:25], dmarc_tags=tags,
+                   dkim=[{"selector": name, "bits": dkim_bits(r)} for name, r in (dkim or {}).items()],
+                   mx_hosts=[{"priority": p, "host": h, "ips": i} for (p, h), i in zip(mx_hosts, mx_ips, strict=True)],
+                   mta_sts=sts_job.result(), tls_rpt=next((r for r in rpt_job.result() or [] if r.lower().startswith("v=tlsrptv1")), ""),
+                   records={"spf": spf, "dmarc": [rec] if rec else [], "dmarc_parent": parent or "",
                                                    "mx": sorted(str(r.exchange).rstrip(".") for r in mx if str(r.exchange) != ".")[:6]})
 
 
@@ -356,6 +389,9 @@ PHP_EOL = {"5.3": "2014-08-14", "5.4": "2015-09-03", "5.5": "2016-07-21", "5.6":
            "7.4": "2022-11-28", "8.0": "2023-11-26", "8.1": "2025-12-31", "8.2": "2026-12-31", "8.3": "2027-12-31", "8.4": "2028-12-31"}
 CMS_SIGNS = {"WordPress": rb"wp-content/|wp-includes/", "Joomla": rb"/media/jui/|Joomla!", "Drupal": rb"Drupal\.settings|/sites/default/files/",
              "Bitrix": rb"/bitrix/(?:js|templates)/", "Tilda": rb"tildacdn\.", "Wix": rb"static\.wixstatic\.com", "Shopify": rb"cdn\.shopify\.com"}
+
+
+SECURITY_HEADERS = ("strict-transport-security", "content-security-policy", "x-frame-options", "x-content-type-options", "referrer-policy", "permissions-policy")
 
 
 def detect_libraries(html: str) -> dict:
@@ -374,6 +410,10 @@ def detect_libraries(html: str) -> dict:
     return found
 
 
+def _version_key(version: str) -> tuple:
+    return tuple(int(x) for x in re.findall(r"\d+", version)[:4])
+
+
 def osv_vulns(name: str, version: str) -> dict | None:
     try:
         r = requests.post("https://api.osv.dev/v1/query", headers=HEADERS, timeout=HTTP_TIMEOUT,
@@ -384,7 +424,9 @@ def osv_vulns(name: str, version: str) -> dict | None:
     except (requests.RequestException, ValueError):
         return None
     high = sum((v.get("database_specific") or {}).get("severity") in ("HIGH", "CRITICAL") for v in vulns)
-    return {"count": len(vulns), "high": high, "ids": [v["id"] for v in vulns[:3]]}
+    # The version that leaves all of these behind: the highest fix named by any of them
+    fixes = [ev["fixed"] for v in vulns for a in v.get("affected", []) for rng in a.get("ranges", []) for ev in rng.get("events", []) if ev.get("fixed")]
+    return {"count": len(vulns), "high": high, "ids": [v["id"] for v in vulns[:3]], "fixed": max(fixes, key=_version_key, default="")}
 
 
 def tech(raw: str) -> dict:
@@ -392,7 +434,7 @@ def tech(raw: str) -> dict:
     host = url.split("/")[2]
     try:
         # A bad certificate is the TLS part's finding; the software behind it can still be read
-        r, _, _, _, body, _ = fetch._get(url, budget=10, verify=False)
+        r, final, chain, elapsed, body, _ = fetch._get(url, budget=10, verify=False)
     except requests.RequestException:
         return _result("tech", host, [_item("page_unavailable", INFO)], software=[], csp=None, hsts=None)
     headers = {k.lower(): v for k, v in r.headers.items()}
@@ -400,6 +442,7 @@ def tech(raw: str) -> dict:
         return _result("tech", host, [_item("page_blocked", INFO, status=r.status_code)], software=[], csp=None, hsts=None)
     html = body.decode("utf-8", "replace")
     items, software = [], []
+    libs = []
 
     for cms, sign in CMS_SIGNS.items():
         if re.search(sign, body):
@@ -429,6 +472,7 @@ def tech(raw: str) -> dict:
     unknown = 0
     for (name, version), vulns in answers:
         software.append({"name": name, "version": version})
+        libs.append({"name": name, "version": version, "known": vulns is not None, **{k: (vulns or {}).get(k, d) for k, d in (("count", 0), ("high", 0), ("ids", []), ("fixed", ""))}})
         if vulns is None:
             unknown += 1
         elif vulns["count"]:
@@ -438,8 +482,14 @@ def tech(raw: str) -> dict:
         items.append(_item("osv_unavailable", INFO))
     if not items:
         items.append(_item("tech_clean", OK))
-    return _result("tech", host, items, software=software, csp="content-security-policy" in headers,
-                   hsts="strict-transport-security" in headers)
+    cookies = []
+    for raw_cookie in fetch.set_cookies(r)[:15]:
+        low = raw_cookie.lower()
+        cookies.append({"name": raw_cookie.split("=", 1)[0].strip()[:60], "secure": "; secure" in low, "httponly": "; httponly" in low,
+                        "samesite": (re.search(r"samesite=(\w+)", low) or [None, ""])[1]})
+    return _result("tech", host, items, software=software, csp="content-security-policy" in headers, hsts="strict-transport-security" in headers,
+                   headers=[{"name": name, "value": headers.get(name, "")[:220]} for name in SECURITY_HEADERS], libs=libs, cookies=cookies,
+                   page={"final_url": final[:200], "status": r.status_code, "ms": round(elapsed), "bytes": len(body), "redirects": len(chain)})
 
 
 # ---------------------------------------------------------------- TLS and DNS
@@ -464,15 +514,49 @@ def _handshake(host: str, ip: str, ciphers: str, version=None) -> bool | None:
         return None
 
 
-def _rdap_expiry(domain: str) -> str | None:
+def _rdap(kind: str, name: str) -> dict:
+    """Public registration data. Many country domains, .az among them, publish none: that is an empty answer."""
     try:
-        r = requests.get(f"https://rdap.org/domain/{domain}", headers=HEADERS, timeout=6)
-        if r.status_code != 200:
-            return None
-        event = next((e for e in r.json().get("events", []) if e.get("eventAction") == "expiration"), None)
-        return event["eventDate"][:10] if event else None
-    except (requests.RequestException, ValueError, KeyError):
-        return None
+        r = requests.get(f"https://rdap.org/{kind}/{name}", headers=HEADERS, timeout=6)
+        return r.json() if r.status_code == 200 else {}
+    except (requests.RequestException, ValueError):
+        return {}
+
+
+def _domain_record(domain: str) -> dict:
+    data = _rdap("domain", domain)
+    events = {e.get("eventAction"): e.get("eventDate", "")[:10] for e in data.get("events", [])}
+    registrar = next((v[3] for e in data.get("entities", []) if "registrar" in e.get("roles", [])
+                      for v in (e.get("vcardArray") or [None, []])[1] if v[0] == "fn"), "")
+    return {"registrar": registrar, "created": events.get("registration", ""), "updated": events.get("last changed", ""),
+            "expires": events.get("expiration", ""), "status": data.get("status", [])[:6]}
+
+
+def _ip_record(ip: str) -> dict:
+    data = _rdap("ip", ip)
+    state, ptr = "none", []
+    try:
+        import dns.reversename
+        state, ptr = fetch.dns_lookup(str(dns.reversename.from_address(ip)), "PTR", lifetime=3)
+    except (ImportError, ValueError):
+        pass
+    return {"ip": ip, "network": data.get("name", ""), "country": data.get("country", ""), "ptr": str(ptr[0].target).rstrip(".") if state == "ok" else ""}
+
+
+def _cert_details(host: str, ip: str) -> dict:
+    """What a browser would be shown. Only a certificate that passes validation can be read in detail here."""
+    try:
+        with socket.create_connection((ip, 443), timeout=4) as raw, ssl.create_default_context().wrap_socket(raw, server_hostname=host) as tls:
+            c = tls.getpeercert()
+            cipher = tls.cipher()
+    except (OSError, ssl.SSLError):
+        return {}
+    field = lambda part, key: dict(x[0] for x in c.get(part, ())).get(key, "")
+    until = datetime.fromtimestamp(ssl.cert_time_to_seconds(c["notAfter"]), tz=timezone.utc)
+    return {"subject": field("subject", "commonName"), "issuer": field("issuer", "organizationName"), "issuer_cn": field("issuer", "commonName"),
+            "from": datetime.fromtimestamp(ssl.cert_time_to_seconds(c["notBefore"]), tz=timezone.utc).date().isoformat(), "to": until.date().isoformat(),
+            "days_left": (until - datetime.now(timezone.utc)).days, "names": [v for k, v in c.get("subjectAltName", ()) if k == "DNS"][:20],
+            "cipher": cipher[0], "bits": cipher[2]}
 
 
 def _apex(domain: str) -> str:
@@ -505,6 +589,9 @@ def tls_dns(raw: str) -> dict:
         cert_job = pool.submit(fetch.cert_info, host, ip)
         old_jobs = {name: pool.submit(_handshake, host, ip, "DEFAULT:@SECLEVEL=0", version) for name, version in
                     (("TLS 1.0", ssl.TLSVersion.TLSv1), ("TLS 1.1", ssl.TLSVersion.TLSv1_1))}
+        new_jobs = {name: pool.submit(_handshake, host, ip, "DEFAULT:@SECLEVEL=0", version) for name, version in
+                    (("TLS 1.2", ssl.TLSVersion.TLSv1_2), ("TLS 1.3", ssl.TLSVersion.TLSv1_3))}
+        details_job = pool.submit(_cert_details, host, ip)
         weak_job = pool.submit(_handshake, host, ip, "3DES:RC4:DES:NULL:EXPORT:@SECLEVEL=0")
         apex_job = pool.submit(_apex, domain)
         caa_job = pool.submit(_caa, domain)
@@ -527,7 +614,11 @@ def tls_dns(raw: str) -> dict:
     with ThreadPoolExecutor(max_workers=3) as pool:
         ds_job = pool.submit(fetch.dns_lookup, apex, "DS")
         ns_job = pool.submit(fetch.dns_lookup, apex, "NS")
-        expiry_job = pool.submit(_rdap_expiry, apex)
+        record_job = pool.submit(_domain_record, apex)
+        ip_job = pool.submit(_ip_record, ip)
+        a_job = pool.submit(fetch.dns_lookup, host, "A")
+        aaaa_job = pool.submit(fetch.dns_lookup, host, "AAAA")
+        soa_job = pool.submit(fetch.dns_lookup, apex, "SOA")
     ds_state = ds_job.result()[0]
     if ds_state == "ok":
         items.append(_item("dnssec_on", OK))
@@ -542,12 +633,18 @@ def tls_dns(raw: str) -> dict:
         items.append(_item("caa_set", OK, issuers=", ".join(caa[:4])))
     elif caa == []:
         items.append(_item("caa_missing", INFO))
-    expiry = expiry_job.result()
+    record = record_job.result()
+    expiry = record["expires"]
     if expiry:
         days = (date.fromisoformat(expiry) - datetime.now(timezone.utc).date()).days
         status = FAIL if days < 14 else WARN if days < 45 else OK
         items.append(_item("domain_expiry", status, date=expiry, days=days))
-    return _result("tls", host, items, apex=apex, nameservers=names[:6], issuer=cert.get("issuer") or "")
+    soa = soa_job.result()[1]
+    return _result("tls", host, items, apex=apex, nameservers=names[:6], issuer=cert.get("issuer") or "", cert=details_job.result(),
+                   protocols={name: job.result() for name, job in {**old_jobs, **new_jobs}.items()},
+                   addresses=[r.address for r in a_job.result()[1]][:6], addresses6=[r.address for r in aaaa_job.result()[1]][:6],
+                   soa={"primary": str(soa[0].mname).rstrip("."), "serial": soa[0].serial} if soa else {},
+                   caa=caa or [], dnssec=ds_state == "ok", domain_record=record, ip_record=ip_job.result())
 
 
 # ---------------------------------------------------------------- reputation
@@ -588,13 +685,15 @@ def reputation(raw: str) -> dict:
     # even know its own test entry has told us nothing, so its "not listed" must not read as clean.
     working = {name for name, job in canaries.items() if job.result()}
     answers = {key: job.result() for key, job in jobs.items() if key[0] in working}
+    table = [{"list": name, "target": target, "state": "unavailable" if name not in working or job.result() is None else "listed" if job.result() else "clean"}
+             for (name, target), job in jobs.items()]
     items = [_item("rep_listed", FAIL, list=name, target=target) for (name, target), hit in answers.items() if hit]
     checked = sorted({name for (name, _), hit in answers.items() if hit is not None})
     if not items and checked:
         items.append(_item("rep_clean", OK, lists=", ".join(checked)))
     if not checked:
         items.append(_item("rep_unknown", INFO))
-    return _result("reputation", domain, items, checked=checked, safe_browsing=f"https://transparencyreport.google.com/safe-browsing/search?url={domain}")
+    return _result("reputation", domain, items, checked=checked, table=table, safe_browsing=f"https://transparencyreport.google.com/safe-browsing/search?url={domain}")
 
 
 # ---------------------------------------------------------------- ownership and active checks

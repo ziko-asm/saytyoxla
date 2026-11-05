@@ -86,7 +86,7 @@ CONTENT = {
 <h2>Yoxlanılan sayt nə görür?</h2>
 <p>Yoxlama zamanı saytın əsas səhifəsi, robots.txt və sitemap.xml faylları serverimizdən bir dəfə açılır. Sayt sizin IP ünvanınızı yox, serverimizin ünvanını görür.</p>
 <h2>Dərin analiz</h2>
-<p>Dərin analiz domen adını sertifikat qeydlərinə (Cert Spotter, crt.sh), qeydiyyat bazasına (rdap.org) və DNS qara siyahılarına, saytda görünən kitabxananın adı və versiyasını isə zəiflik bazasına (OSV) göndərir. Sayt tərəfdən yalnız əsas səhifə bir dəfə açılır və TLS bağlantısı sınanır. Əvvəlki yoxlama ilə müqayisə yalnız sizin brauzerinizdə (localStorage) saxlanılır, serverə getmir.</p>
+<p>Dərin analiz domen adını sertifikat qeydlərinə (Cert Spotter, crt.sh), qeydiyyat bazasına (rdap.org, IP ünvanı ilə birlikdə) və DNS qara siyahılarına, saytda görünən kitabxananın adı və versiyasını isə zəiflik bazasına (OSV) göndərir. Sayt tərəfdən yalnız əsas səhifə bir dəfə açılır və TLS bağlantısı sınanır. Əvvəlki yoxlama ilə müqayisə yalnız sizin brauzerinizdə (localStorage) saxlanılır, serverə getmir.</p>
 <p>Dərin yoxlama (açıq fayllar və portlar) yalnız saytın sizin olduğunu DNS qeydi və ya fayl ilə sübut etdikdən sonra işləyir. Fayl tapılsa, yalnız yolu göstərilir, məzmunu nə göstərilir, nə də saxlanılır.</p>
 <h2>WhatsApp</h2>
 <p>«WhatsApp-a yazın» düyməsini bassanız, hazır mesaj WhatsApp-da açılır və onu siz özünüz göndərirsiniz. Bundan sonra WhatsApp-ın öz qaydaları tətbiq olunur.</p>
@@ -105,7 +105,7 @@ CONTENT = {
 <h2>What the checked site sees</h2>
 <p>During a check, the site's home page, robots.txt and sitemap.xml are opened once from our server. The site sees our server's address, not your IP address.</p>
 <h2>Deep analysis</h2>
-<p>The deep analysis sends the domain name to certificate logs (Cert Spotter, crt.sh), a registration database (rdap.org) and DNS blocklists, and the name and version of a library visible on the site to a vulnerability database (OSV). On the site itself only the home page is opened once and TLS connections are tried. The comparison with an earlier check is kept only in your browser (localStorage) and does not reach the server.</p>
+<p>The deep analysis sends the domain name to certificate logs (Cert Spotter, crt.sh), a registration database (rdap.org, along with the IP address) and DNS blocklists, and the name and version of a library visible on the site to a vulnerability database (OSV). On the site itself only the home page is opened once and TLS connections are tried. The comparison with an earlier check is kept only in your browser (localStorage) and does not reach the server.</p>
 <p>The deep check (exposed files and ports) runs only after you prove the site is yours with a DNS record or a file. If a file is found, only its path is shown; its content is neither shown nor stored.</p>
 <h2>WhatsApp</h2>
 <p>If you press "Message on WhatsApp", a prepared message opens in WhatsApp and you send it yourself. WhatsApp's own rules apply from there.</p>
@@ -124,7 +124,7 @@ CONTENT = {
 <h2>Что видит проверяемый сайт</h2>
 <p>При проверке главная страница сайта, robots.txt и sitemap.xml один раз открываются с нашего сервера. Сайт видит адрес нашего сервера, а не ваш IP-адрес.</p>
 <h2>Глубокий анализ</h2>
-<p>Глубокий анализ отправляет имя домена в журналы сертификатов (Cert Spotter, crt.sh), базу регистрации (rdap.org) и чёрные списки DNS, а название и версию библиотеки, видимой на сайте, в базу уязвимостей (OSV). На самом сайте только один раз открывается главная страница и проверяются соединения TLS. Сравнение с прошлой проверкой хранится только в вашем браузере (localStorage) и на сервер не передаётся.</p>
+<p>Глубокий анализ отправляет имя домена в журналы сертификатов (Cert Spotter, crt.sh), базу регистрации (rdap.org, вместе с IP-адресом) и чёрные списки DNS, а название и версию библиотеки, видимой на сайте, в базу уязвимостей (OSV). На самом сайте только один раз открывается главная страница и проверяются соединения TLS. Сравнение с прошлой проверкой хранится только в вашем браузере (localStorage) и на сервер не передаётся.</p>
 <p>Глубокая проверка (открытые файлы и порты) работает только после того, как вы докажете записью DNS или файлом, что сайт ваш. Если файл найден, показывается только путь, а содержимое не показывается и не хранится.</p>
 <h2>WhatsApp</h2>
 <p>Если вы нажмёте «Написать в WhatsApp», готовое сообщение откроется в WhatsApp, и отправляете его вы сами. Дальше действуют правила WhatsApp.</p>
