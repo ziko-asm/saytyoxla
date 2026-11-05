@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compareSnapshots, findChains, snapshotOf } from './chains'
+import { actionPlan, compareSnapshots, findChains, snapshotOf } from './chains'
 import type { DeepItem } from './chains'
 import { ALL_WORDS, fill } from './deepText'
 
@@ -90,6 +90,15 @@ describe('words', () => {
     }
   })
 
+  it('the report has the same parts in every language', () => {
+    for (const words of langs) {
+      expect(Object.keys(words.pdf).sort()).toEqual(Object.keys(langs[0].pdf).sort())
+      expect(words.pdf.terms).toHaveLength(langs[0].pdf.terms.length)
+      expect(words.pdf.sources).toHaveLength(langs[0].pdf.sources.length)
+      expect(words.pdf.limits).toHaveLength(langs[0].pdf.limits.length)
+    }
+  })
+
   it('never says a site can be hacked as a fact', () => {
     const banned = /sındırılır|sındırıla bilər\b|can be hacked|will be hacked|взломают/i
     for (const words of langs) for (const chain of Object.values(words.chains)) expect(chain.could).not.toMatch(banned)
@@ -97,6 +106,24 @@ describe('words', () => {
 
   it('fills only what it knows', () => {
     expect(fill('{a} və {b}', { a: 1 })).toBe('1 və {b}')
+  })
+})
+
+describe('action plan', () => {
+  it('does not repeat a problem a scenario already speaks for, and keeps what it does not', () => {
+    const spoof = item('spoof_open', 'fail')
+    const first = item('takeover_risk', 'fail', { host: 'a', target: 't' })
+    const second = item('takeover_risk', 'fail', { host: 'b', target: 't' })
+    const note = item('version_shown', 'warn', { name: 'n', version: 'v' })
+    const items = [note, item('dkim_found', 'ok'), item('mx_none', 'info'), spoof, first, second]
+    const steps = actionPlan(findChains({ items }), items)
+    expect(steps.map((s) => ('chain' in s ? s.chain.id : s.item.id))).toEqual(['brand_phish', 'takeover_risk', 'version_shown'])
+    expect('item' in steps[1] && steps[1].item.params.host).toBe('b')
+  })
+
+  it('is empty when nothing is wrong, whatever was unknown', () => {
+    const items = [item('dns_unavailable', 'info'), item('spoof_blocked', 'ok')]
+    expect(actionPlan(findChains({ items }), items)).toEqual([])
   })
 })
 

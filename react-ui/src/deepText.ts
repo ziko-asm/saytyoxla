@@ -19,6 +19,20 @@ type Words = {
     ownTitle: string; ownLead: string; ownOnly: string; ownStart: string; ownDns: string; ownDnsHint: string; ownFile: string; ownFileHint: string; ownCode: string
     ownCheck: string; ownChecking: string; ownNotYet: string; limits: string
   }
+  pdf: PdfWords
+}
+
+export type PdfWords = {
+  download: string; busy: string; view: string; error: string; fileName: string
+  title: string; site: string; date: string; confidential: string
+  verdictTitle: string; verdicts: Record<'critical' | 'high' | 'medium' | 'none', string>; incomplete: string
+  scope: string; states: Record<'done' | 'partial' | 'failed' | 'notRun', string>
+  contents: string; plan: string; planLead: string; planEmpty: string; scenarios: string; scenariosLead: string
+  intro: Record<'surface' | 'mail' | 'tech' | 'tls' | 'reputation' | 'active', string>
+  activeNotRun: string; partFailed: string; hostName: string; pointsTo: string; state: string; working: string
+  yes: string; no: string; issuer: string; apex: string; filesChecked: string; portsChecked: string
+  method: string; sourcesTitle: string; sources: string[]; limitsTitle: string; limits: string[]
+  glossary: string; terms: [string, string][]
 }
 
 const AZ: Words = {
@@ -119,6 +133,66 @@ const AZ: Words = {
     ownFile: 'Yol 2: fayl', ownFileHint: 'Bu ünvanda açılan, içində aşağıdakı kod olan mətn faylı qoyun.', ownCode: 'Kod',
     ownCheck: 'Təsdiqlə və yoxla', ownChecking: 'Yoxlanılır…', ownNotYet: 'DNS dəyişikliyi bir neçə dəqiqə çəkə bilər. Sonra yenidən basın.',
     limits: 'Bu analiz kənardan görünənlərə baxır və saytın təhlükəsiz olduğuna zəmanət vermir. Bəzi cavablar səhv ola bilər, ona görə vacib qərardan əvvəl özünüz yoxlayın.',
+  },
+  pdf: {
+    download: 'Dərin analiz PDF-i', busy: 'Hazırlanır…', view: 'Hesabata bax', error: 'PDF hazırlana bilmədi. Yenidən cəhd edin.', fileName: 'derin-analiz',
+    title: 'Dərin analiz hesabatı', site: 'Sayt', date: 'Yoxlama vaxtı', confidential: 'Bu hesabatda saytın zəif yerləri yazılıb. Onu yalnız etibar etdiyiniz şəxslərlə paylaşın.',
+    verdictTitle: 'Ümumi nəticə',
+    verdicts: {
+      critical: 'Təcili addım tələb edən ssenari tapıldı. Əvvəlcə növbəti səhifədəki ilk addımdan başlayın.',
+      high: 'Yüksək səviyyəli ssenari tapıldı. Bu həftə həll etməyə çalışın.',
+      medium: 'Orta səviyyəli ssenari tapıldı. Təcili deyil, amma planlaşdırın.',
+      none: 'Tapılan faktlardan təhlükəli ssenari çıxmadı. Bu, saytın təhlükəsiz olduğuna zəmanət deyil, yalnız kənardan görünənlərə aiddir.',
+    },
+    incomplete: 'Bəzi hissələr tam yoxlanıla bilmədi, ona görə nəticə tam deyil.',
+    scope: 'Nə yoxlanıldı', states: { done: 'Yoxlanıldı', partial: 'Qismən', failed: 'Cavab alınmadı', notRun: 'İşlədilmədi' },
+    contents: 'Mündəricat', plan: 'Fəaliyyət planı', planLead: 'Ən vacibdən başlayaraq sıralanıb.', planEmpty: 'Həll tələb edən problem tapılmadı.',
+    scenarios: 'Hücum ssenariləri', scenariosLead: 'Tapılan faktlar birləşdirilib. Bunlar ehtimaldır: kiminsə bunu etdiyini və ya edəcəyini göstərmir.',
+    intro: {
+      surface: 'Hər verilən HTTPS sertifikatı ictimai qeydlərə yazılır, ona görə subdomenlərinizi hər kəs görə bilər. Bu hissə həmin siyahıya hücum edənin gözü ilə baxır: unudulmuş xidmətlər və başqasının ələ keçirə biləcəyi adlar.',
+      mail: 'E-poçt protokolu göndərənin adını yoxlamır. Sizin adınızdan saxta məktubu yalnız DNS-dəki SPF, DKIM və DMARC qeydləri dayandıra bilər. Bu test yalnız DNS-i oxuyur, heç bir məktub göndərmir.',
+      tech: 'Əsas səhifənin kənardan göstərdiyi proqramlar və versiyaları oxunur, JS kitabxanaları açıq OSV zəiflik bazası ilə müqayisə olunur. Versiyanın köhnə olması saytın mütləq sındırıla biləcəyi demək deyil.',
+      tls: 'TLS ziyarətçi ilə sayt arasındakı bağlantını şifrələyir, DNS isə domeninizin hara getdiyini deyir. Bu hissə köhnə şifrələməyə, sertifikata və domenin idarəsinə baxır.',
+      reputation: 'Domeniniz və IP ünvanınız spam və zərərli fəaliyyət siyahılarında axtarılır. Siyahıda olmaq məktublarınızın çatmamasına səbəb ola bilər.',
+      active: 'Sahiblik sübutundan sonra sayta birbaşa sorğu göndərilir: internetdən açılmamalı olan fayllar, idarəetmə səhifələri və açıq portlar.',
+    },
+    activeNotRun: 'Bu yoxlama işlədilmədi, çünki saytın sahibliyi təsdiqlənməyib. Ona görə açıq fayllar və portlar haqqında bu hesabat heç nə demir.',
+    partFailed: 'Bu hissə yoxlanıla bilmədi, ona görə onun haqqında heç nə demək olmur.',
+    hostName: 'Ad', pointsTo: 'Yönəlir', state: 'Vəziyyət', working: 'İşləyir',
+    yes: 'Var', no: 'Yoxdur', issuer: 'Sertifikatı verən', apex: 'Əsas domen', filesChecked: 'Yoxlanan fayl yolu', portsChecked: 'Yoxlanan port',
+    method: 'Necə yoxlanıldı və hədlər', sourcesTitle: 'Məlumat mənbələri',
+    sources: [
+      'Subdomenlər: ictimai sertifikat qeydləri (Cert Spotter, crt.sh).',
+      'E-poçt, TLS və DNS: açıq DNS qeydləri və saytın 443 portu ilə TLS bağlantısı.',
+      'Proqramlar: əsas səhifə bir dəfə açılır, kitabxanalar OSV bazasında axtarılır (osv.dev).',
+      'Domenin bitmə tarixi: rdap.org (hər domen zonası üçün məlumat olmaya bilər).',
+      'Reputasiya: DNS qara siyahıları. Yalnız öz test ünvanını düzgün tanıyan siyahılar nəzərə alınır.',
+    ],
+    limitsTitle: 'Bu hesabat nəyi göstərmir',
+    limits: [
+      'Bu, tam təhlükəsizlik auditi deyil. Saytın kodu, parollar, giriş formaları və server içi yoxlanılmır.',
+      'Sertifikatı olmayan və ya ümumi (*) sertifikat işlədən subdomenlər siyahıda görünməyə bilər.',
+      'DKIM yalnız geniş yayılmış seçici adlarında axtarılır. Tapılmaması DKIM-in olmadığını sübut etmir.',
+      'Kitabxana versiyası yalnız fayl ünvanında yazılıbsa görünür. Bazada olan zəiflik saytınızda işə düşməyə də bilər.',
+      'Ssenarilər qaydalarla qurulur və ehtimal bildirir. Onlar baş vermiş hadisə deyil.',
+      'Nəticələr yoxlama anına aiddir və 10 dəqiqəyə qədər yaddaşdan gələ bilər. Bəzi cavablar səhv ola bilər, vacib qərardan əvvəl mütəxəssislə yoxlayın.',
+    ],
+    glossary: 'Terminlər',
+    terms: [
+      ['Subdomen', 'Domeninizin alt ünvanı, məsələn mail.example.az.'],
+      ['CNAME', 'Bir adı başqa ada yönləndirən DNS qeydi.'],
+      ['Subdomenin ələ keçirilməsi', 'Ad artıq işləməyən xidmətə yönəlir və başqası həmin xidmətdə adı öz hesabına götürür.'],
+      ['SPF', 'Domeniniz adından hansı serverlərin məktub göndərə biləcəyini yazan DNS qeydi.'],
+      ['DKIM', 'Məktubun yolda dəyişmədiyini sübut edən rəqəmsal imza.'],
+      ['DMARC', 'SPF və DKIM-dən keçməyən məktubla nə etməli olduğunu deyən qayda.'],
+      ['MTA-STS', 'Sizə gələn məktubların şifrəli bağlantı ilə gəlməsini tələb edir.'],
+      ['TLS', 'Brauzerlə sayt arasındakı bağlantını şifrələyən protokol (HTTPS-in əsası).'],
+      ['HSTS', 'Brauzerə saytı yalnız HTTPS ilə açmağı deyən başlıq.'],
+      ['CSP', 'Səhifədə hansı skriptlərin işləyə biləcəyini məhdudlaşdıran başlıq.'],
+      ['DNSSEC', 'DNS cavablarının saxtalaşdırılmasına qarşı rəqəmsal imza.'],
+      ['CAA', 'Domeniniz üçün hansı təşkilatların sertifikat verə biləcəyini yazan qeyd.'],
+      ['Port', 'Serverdə xidmətin bağlantı gözlədiyi nömrəli giriş.'],
+    ],
   },
 }
 
@@ -221,6 +295,66 @@ const EN: Words = {
     ownCheck: 'Confirm and check', ownChecking: 'Checking…', ownNotYet: 'A DNS change can take a few minutes. Press again afterwards.',
     limits: 'This analysis looks at what is visible from outside and does not guarantee the site is safe. Some answers may be wrong, so check for yourself before an important decision.',
   },
+  pdf: {
+    download: 'Deep analysis PDF', busy: 'Preparing…', view: 'View the report', error: 'The PDF could not be prepared. Try again.', fileName: 'deep-analysis',
+    title: 'Deep analysis report', site: 'Site', date: 'Checked at', confidential: 'This report lists the site’s weak points. Share it only with people you trust.',
+    verdictTitle: 'Overall result',
+    verdicts: {
+      critical: 'A scenario that needs urgent action was found. Begin with the first step on the next page.',
+      high: 'A high-level scenario was found. Try to solve it this week.',
+      medium: 'A medium-level scenario was found. It is not urgent, but plan for it.',
+      none: 'The facts found did not add up to a dangerous scenario. This is no guarantee that the site is safe; it covers only what is visible from outside.',
+    },
+    incomplete: 'Some parts could not be fully checked, so this result is incomplete.',
+    scope: 'What was checked', states: { done: 'Checked', partial: 'Partly', failed: 'No answer', notRun: 'Not run' },
+    contents: 'Contents', plan: 'Action plan', planLead: 'Ordered from the most important.', planEmpty: 'No problem that needs solving was found.',
+    scenarios: 'Attack scenarios', scenariosLead: 'The facts found, combined. These are possibilities: they do not show that anyone has done this or will.',
+    intro: {
+      surface: 'Every HTTPS certificate issued is written to public logs, so anyone can see your subdomains. This part looks at that list the way an attacker would: forgotten services and names someone else could take over.',
+      mail: 'The e-mail protocol does not verify the sender’s name. Only the SPF, DKIM and DMARC records in DNS can stop fake mail in your name. This test only reads DNS and sends no mail.',
+      tech: 'The software and versions the home page shows from outside are read, and JS libraries are compared with the open OSV vulnerability database. An old version does not mean the site can certainly be broken into.',
+      tls: 'TLS encrypts the connection between a visitor and the site, and DNS says where your domain goes. This part looks at old encryption, the certificate and how the domain is managed.',
+      reputation: 'Your domain and IP address are looked up on spam and harmful-activity lists. Being listed can stop your mail from arriving.',
+      active: 'After proof of ownership, requests go straight to the site: files that should not open from the internet, admin pages and open ports.',
+    },
+    activeNotRun: 'This check was not run because ownership of the site was not confirmed. So this report says nothing about exposed files and ports.',
+    partFailed: 'This part could not be checked, so nothing can be said about it.',
+    hostName: 'Name', pointsTo: 'Points to', state: 'State', working: 'Working',
+    yes: 'Present', no: 'Missing', issuer: 'Certificate issuer', apex: 'Main domain', filesChecked: 'File paths checked', portsChecked: 'Ports checked',
+    method: 'How it was checked, and limits', sourcesTitle: 'Sources of information',
+    sources: [
+      'Subdomains: public certificate logs (Cert Spotter, crt.sh).',
+      'E-mail, TLS and DNS: public DNS records and TLS connections to the site’s port 443.',
+      'Software: the home page is opened once and libraries are looked up in the OSV database (osv.dev).',
+      'Domain expiry: rdap.org (some domain zones may have no data).',
+      'Reputation: DNS blocklists. Only lists that correctly recognise their own test entry are counted.',
+    ],
+    limitsTitle: 'What this report does not show',
+    limits: [
+      'This is not a full security audit. The site’s code, passwords, login forms and the inside of the server are not checked.',
+      'Subdomains with no certificate of their own, or on a wildcard (*) certificate, may not appear in the list.',
+      'DKIM is looked up only under common selector names. Not finding it does not prove it is missing.',
+      'A library version is visible only if the file address states it. A weakness in the database may not apply to your site.',
+      'Scenarios come from rules and state possibilities. They are not events that have happened.',
+      'Results describe the moment of the check and may come from memory for up to 10 minutes. Some answers may be wrong, so check with a specialist before an important decision.',
+    ],
+    glossary: 'Terms',
+    terms: [
+      ['Subdomain', 'A lower address of your domain, such as mail.example.az.'],
+      ['CNAME', 'A DNS record that sends one name to another.'],
+      ['Subdomain takeover', 'A name points to a service no longer in use, and someone else claims that name in their own account there.'],
+      ['SPF', 'A DNS record saying which servers may send mail in your domain’s name.'],
+      ['DKIM', 'A digital signature proving a message was not changed on the way.'],
+      ['DMARC', 'A rule saying what to do with mail that fails SPF and DKIM.'],
+      ['MTA-STS', 'Requires mail to you to arrive over an encrypted connection.'],
+      ['TLS', 'The protocol that encrypts the connection between browser and site (the basis of HTTPS).'],
+      ['HSTS', 'A header telling the browser to open the site only over HTTPS.'],
+      ['CSP', 'A header limiting which scripts may run on a page.'],
+      ['DNSSEC', 'A digital signature against forged DNS answers.'],
+      ['CAA', 'A record saying which organisations may issue certificates for your domain.'],
+      ['Port', 'A numbered entrance where a service on the server waits for connections.'],
+    ],
+  },
 }
 
 const RU: Words = {
@@ -321,6 +455,66 @@ const RU: Words = {
     ownFile: 'Способ 2: файл', ownFileHint: 'Разместите по этому адресу текстовый файл с кодом ниже.', ownCode: 'Код',
     ownCheck: 'Подтвердить и проверить', ownChecking: 'Проверяем…', ownNotYet: 'Изменение DNS может занять несколько минут. Затем нажмите снова.',
     limits: 'Анализ смотрит на то, что видно снаружи, и не гарантирует безопасность сайта. Часть ответов может быть неверной, поэтому перед важным решением проверьте сами.',
+  },
+  pdf: {
+    download: 'PDF глубокого анализа', busy: 'Готовим…', view: 'Посмотреть отчёт', error: 'Не удалось подготовить PDF. Попробуйте снова.', fileName: 'glubokiy-analiz',
+    title: 'Отчёт глубокого анализа', site: 'Сайт', date: 'Время проверки', confidential: 'В этом отчёте указаны слабые места сайта. Делитесь им только с теми, кому доверяете.',
+    verdictTitle: 'Общий результат',
+    verdicts: {
+      critical: 'Найден сценарий, требующий срочных действий. Начните с первого шага на следующей странице.',
+      high: 'Найден сценарий высокого уровня. Постарайтесь решить его на этой неделе.',
+      medium: 'Найден сценарий среднего уровня. Это не срочно, но запланируйте.',
+      none: 'Из найденных фактов опасный сценарий не складывается. Это не гарантия безопасности сайта: речь только о том, что видно снаружи.',
+    },
+    incomplete: 'Некоторые части проверить полностью не удалось, поэтому результат неполный.',
+    scope: 'Что проверено', states: { done: 'Проверено', partial: 'Частично', failed: 'Нет ответа', notRun: 'Не запускалось' },
+    contents: 'Содержание', plan: 'План действий', planLead: 'Порядок от самого важного.', planEmpty: 'Проблем, требующих решения, не найдено.',
+    scenarios: 'Сценарии атаки', scenariosLead: 'Найденные факты, собранные вместе. Это возможности: они не показывают, что кто-то это сделал или сделает.',
+    intro: {
+      surface: 'Каждый выданный HTTPS-сертификат записывается в публичные журналы, поэтому ваши поддомены может увидеть любой. Эта часть смотрит на список глазами атакующего: забытые сервисы и имена, которые может занять другой.',
+      mail: 'Протокол почты не проверяет имя отправителя. Поддельные письма от вашего имени могут остановить только записи SPF, DKIM и DMARC в DNS. Этот тест только читает DNS и писем не отправляет.',
+      tech: 'Читаются программы и версии, которые главная страница показывает снаружи, а JS-библиотеки сравниваются с открытой базой уязвимостей OSV. Старая версия не значит, что сайт обязательно можно взломать.',
+      tls: 'TLS шифрует соединение между посетителем и сайтом, а DNS указывает, куда ведёт домен. Эта часть смотрит на старое шифрование, сертификат и управление доменом.',
+      reputation: 'Домен и IP-адрес ищутся в списках спама и вредоносной активности. Попадание в список может помешать доставке ваших писем.',
+      active: 'После подтверждения владения запросы идут прямо на сайт: файлы, которые не должны открываться из интернета, служебные страницы и открытые порты.',
+    },
+    activeNotRun: 'Эта проверка не запускалась, так как владение сайтом не подтверждено. Поэтому об открытых файлах и портах отчёт ничего не говорит.',
+    partFailed: 'Эту часть проверить не удалось, поэтому о ней сказать нечего.',
+    hostName: 'Имя', pointsTo: 'Указывает на', state: 'Состояние', working: 'Работает',
+    yes: 'Есть', no: 'Нет', issuer: 'Кто выдал сертификат', apex: 'Основной домен', filesChecked: 'Проверено путей', portsChecked: 'Проверено портов',
+    method: 'Как проверялось и границы', sourcesTitle: 'Источники данных',
+    sources: [
+      'Поддомены: публичные журналы сертификатов (Cert Spotter, crt.sh).',
+      'Почта, TLS и DNS: открытые записи DNS и TLS-соединения с портом 443 сайта.',
+      'Программы: главная страница открывается один раз, библиотеки ищутся в базе OSV (osv.dev).',
+      'Срок домена: rdap.org (по некоторым доменным зонам данных может не быть).',
+      'Репутация: чёрные списки DNS. Учитываются только списки, верно распознающие собственную тестовую запись.',
+    ],
+    limitsTitle: 'Чего этот отчёт не показывает',
+    limits: [
+      'Это не полный аудит безопасности. Код сайта, пароли, формы входа и внутренность сервера не проверяются.',
+      'Поддомены без своего сертификата или с общим (*) сертификатом могут не попасть в список.',
+      'DKIM ищется только под распространёнными именами селекторов. Если он не найден, это не доказывает его отсутствие.',
+      'Версия библиотеки видна, только если указана в адресе файла. Уязвимость из базы может не затрагивать ваш сайт.',
+      'Сценарии строятся по правилам и говорят о возможностях. Это не произошедшие события.',
+      'Результаты относятся к моменту проверки и до 10 минут могут браться из памяти. Часть ответов может быть неверной, поэтому перед важным решением проконсультируйтесь со специалистом.',
+    ],
+    glossary: 'Термины',
+    terms: [
+      ['Поддомен', 'Вложенный адрес вашего домена, например mail.example.az.'],
+      ['CNAME', 'Запись DNS, отправляющая одно имя на другое.'],
+      ['Захват поддомена', 'Имя указывает на неиспользуемый сервис, и другой человек занимает это имя в своём аккаунте там.'],
+      ['SPF', 'Запись DNS о том, какие серверы могут отправлять почту от имени домена.'],
+      ['DKIM', 'Цифровая подпись, доказывающая, что письмо не изменили в пути.'],
+      ['DMARC', 'Правило о том, что делать с письмами, не прошедшими SPF и DKIM.'],
+      ['MTA-STS', 'Требует, чтобы письма к вам приходили по зашифрованному соединению.'],
+      ['TLS', 'Протокол, шифрующий соединение браузера с сайтом (основа HTTPS).'],
+      ['HSTS', 'Заголовок, велящий браузеру открывать сайт только по HTTPS.'],
+      ['CSP', 'Заголовок, ограничивающий, какие скрипты могут работать на странице.'],
+      ['DNSSEC', 'Цифровая подпись против подделки ответов DNS.'],
+      ['CAA', 'Запись о том, какие организации могут выдавать сертификаты для домена.'],
+      ['Порт', 'Нумерованный вход, где сервис на сервере ждёт соединений.'],
+    ],
   },
 }
 

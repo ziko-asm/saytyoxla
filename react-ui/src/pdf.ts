@@ -6,22 +6,22 @@
 import type { Finding, Report, Status } from './types'
 import { LANG, t } from './i18n'
 
-const W = 1240, H = 1754            // A4 at 150 dpi
+export const W = 1240, H = 1754            // A4 at 150 dpi
 const PT_W = 595.28, PT_H = 841.89  // A4 in PDF points
-const M = 80, BOTTOM = H - 110
+export const M = 80, BOTTOM = H - 110
 const FONT = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
-const INK = '#0f1b2d', INK2 = '#3d4b60', MUTED = '#5b6779', LINE = '#e3e8f0'
-const COLOR: Record<Status, string> = { fail: '#dc2626', warn: '#b45309', ok: '#047857', info: '#64748b' }
+export const INK = '#0f1b2d', INK2 = '#3d4b60', MUTED = '#5b6779', LINE = '#e3e8f0'
+export const COLOR: Record<Status, string> = { fail: '#dc2626', warn: '#b45309', ok: '#047857', info: '#64748b' }
 
-type Ctx = CanvasRenderingContext2D
+export type Ctx = CanvasRenderingContext2D
 
-function setFont(c: Ctx, weight: number, size: number, color = INK) {
+export function setFont(c: Ctx, weight: number, size: number, color = INK) {
   c.font = `${weight} ${size}px ${FONT}`
   c.fillStyle = color
 }
 
 // Lines that fit maxWidth; a word too long for one line (an address) is cut
-function wrap(c: Ctx, text: string, maxWidth: number): string[] {
+export function wrap(c: Ctx, text: string, maxWidth: number): string[] {
   const lines: string[] = []
   let line = ''
   for (const word of text.split(/\s+/).filter(Boolean)) {
@@ -43,12 +43,12 @@ function wrap(c: Ctx, text: string, maxWidth: number): string[] {
   return lines
 }
 
-function drawLines(c: Ctx, lines: string[], x: number, y: number, height: number) {
+export function drawLines(c: Ctx, lines: string[], x: number, y: number, height: number) {
   lines.forEach((l, i) => c.fillText(l, x, y + i * height))
   return y + lines.length * height
 }
 
-function roundRect(c: Ctx, x: number, y: number, w: number, h: number, r: number, fill: string, stroke?: string) {
+export function roundRect(c: Ctx, x: number, y: number, w: number, h: number, r: number, fill: string, stroke?: string) {
   c.beginPath()
   c.roundRect(x, y, w, h, r)
   c.fillStyle = fill
@@ -72,7 +72,7 @@ function statusIcon(c: Ctx, status: Status, cx: number, cy: number) {
   c.stroke()
 }
 
-class Pages {
+export class Pages {
   canvases: HTMLCanvasElement[] = []
   c!: Ctx
   y = M
@@ -154,7 +154,7 @@ function findingHeight(c: Ctx, f: Finding, width: number) {
   return h + 18
 }
 
-function drawFinding(p: Pages, f: Finding) {
+export function drawFinding(p: Pages, f: Finding) {
   const c = p.c
   const x = M + 82, width = W - M - x - 28
   const height = findingHeight(c, f, width)
@@ -208,15 +208,18 @@ function drawPages(report: Report, host: string, color: string, categories: stri
   p.need(note.length * 30 + 10)
   setFont(p.c, 400, 21, MUTED)
   drawLines(p.c, note, M, p.y + 6, 30)
+  numberPages(p.canvases)
+  return p.canvases
+}
 
-  p.canvases.forEach((canvas, i) => {
+export function numberPages(canvases: HTMLCanvasElement[]) {
+  canvases.forEach((canvas, i) => {
     const c = canvas.getContext('2d') as Ctx
     setFont(c, 400, 20, MUTED)
     c.fillText(`SaytYoxla · ${window.location.host}`, M, H - 70)
-    const page = `${i + 1} / ${p.canvases.length}`
+    const page = `${i + 1} / ${canvases.length}`
     c.fillText(page, W - M - c.measureText(page).width, H - 70)
   })
-  return p.canvases
 }
 
 function jpegOf(canvas: HTMLCanvasElement): Promise<Uint8Array> {
@@ -286,10 +289,14 @@ export function saveFile(file: File) {
   setTimeout(() => URL.revokeObjectURL(link.href), 60_000)
 }
 
-async function renderPages(report: Report, host: string, color: string, categories: string[], when: string) {
+export async function loadFonts() {
   try {
     await Promise.all(['400 24px Inter', '600 24px Inter', '700 24px Inter', '800 24px Inter'].map((f) => document.fonts.load(f, 'əşğ')))
   } catch { /* the system font is good enough */ }
+}
+
+async function renderPages(report: Report, host: string, color: string, categories: string[], when: string) {
+  await loadFonts()
   return drawPages(report, host, color, categories, when)
 }
 
@@ -300,8 +307,11 @@ export async function reportPageImages(report: Report, host: string, color: stri
 }
 
 export async function downloadReportPdf(report: Report, host: string, color: string, categories: string[], when: string) {
-  const images = await Promise.all((await renderPages(report, host, color, categories, when)).map(jpegOf))
-  const name = `saytyoxla-${host.replace(/[^\p{L}\p{N}.-]+/gu, '-')}.pdf`
+  await deliverPdf(await renderPages(report, host, color, categories, when), `saytyoxla-${host.replace(/[^\p{L}\p{N}.-]+/gu, '-')}.pdf`)
+}
+
+export async function deliverPdf(canvases: HTMLCanvasElement[], name: string) {
+  const images = await Promise.all(canvases.map(jpegOf))
   const file = new File([buildPdf(images) as BlobPart], name, { type: 'application/pdf' })
 
   // Browsers inside apps (Instagram, Facebook) ignore downloads but can pass a file to the share sheet

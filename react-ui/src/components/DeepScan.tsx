@@ -1,38 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { compareSnapshots, findChains, snapshotOf } from '../chains'
-import type { Changes, Chain, DeepItem } from '../chains'
+import type { Changes, Chain } from '../chains'
+import { PUBLIC, deepPdfName, factRows, itemToFinding, problemTitle, renderDeepReport, sortedItems } from '../deepPdf'
+import type { DeepHost, DeepPart, DeepParts, DeepResult, ModuleId } from '../deepPdf'
 import { d, fill } from '../deepText'
 import { LANG, LOCALE, t } from '../i18n'
-import type { Finding } from '../types'
+import { deliverPdf } from '../pdf'
 import { FindingItem } from './FindingItem'
 import { Code } from './Generators'
+import { ReportPreview } from './ReportPreview'
 
 // The public parts run side by side, each its own request: one slow or failed part leaves the rest standing.
 // The active part is separate, and the server refuses it until the site's owner has proved control.
-const PUBLIC = ['surface', 'mail', 'tech', 'tls', 'reputation'] as const
-type ModuleId = typeof PUBLIC[number] | 'active'
-type Host = { host: string; live: boolean; cname: string; flag: '' | 'takeover' | 'dangling' | 'sensitive' | 'private' }
-type Data = {
-  hosts?: Host[]; software?: { name: string; version: string }[]; csp?: boolean | null; hsts?: boolean | null
-  nameservers?: string[]; records?: { spf?: string[]; dmarc?: string[]; dmarc_parent?: string; mx?: string[] }
-  checked?: string[]; safe_browsing?: string
-}
-type Result = { module: ModuleId; host: string; items: DeepItem[]; data: Data }
-type Part = { state: 'loading' | 'done' | 'error'; result?: Result; error?: string }
+type Part = DeepPart
+type Result = DeepResult
+type Host = DeepHost
 type Proof = { host: string; token: string; dns_name: string; file_url: string }
-
-const ORDER: Record<string, number> = { fail: 0, warn: 1, ok: 2, info: 3 }
 
 async function ask(path: string, body: object) {
   const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, lang: LANG }) })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : t.genericError)
   return data
-}
-
-function toFinding(item: DeepItem): Finding {
-  const words = d.items[item.id] || [item.id, '']
-  return { id: `deep-${item.id}`, status: item.status, title: fill(words[0], item.params), detail: fill(words[1], item.params), fix: item.status === 'fail' || item.status === 'warn' ? fill(words[2] || '', item.params) : '' } as Finding
 }
 
 function remember(host: string, snapshot: ReturnType<typeof snapshotOf>): Changes | null {
@@ -43,16 +32,6 @@ function remember(host: string, snapshot: ReturnType<typeof snapshotOf>): Change
     return before ? compareSnapshots(JSON.parse(before), snapshot) : null
   } catch {
     return null     // a private window or blocked storage: the check itself still stands
-  }
-}
-
-function problemTitle(key: string) {
-  const [id, params] = key.split(/\|(.*)/s)
-  const words = d.items[id]
-  try {
-    return words ? fill(words[0], JSON.parse(params)) : id
-  } catch {
-    return id
   }
 }
 
@@ -72,14 +51,7 @@ function ChainCard({ chain }: { chain: Chain }) {
 }
 
 function Facts({ result }: { result: Result }) {
-  const { data } = result
-  const rows: [string, string][] = []
-  if (data.software?.length) rows.push([d.ui.software, data.software.map((s) => `${s.name}${s.version ? ` ${s.version}` : ''}`).join(', ')])
-  if (data.records?.spf?.length) rows.push(['SPF', data.records.spf.join(' ')])
-  if (data.records?.dmarc?.length) rows.push(['DMARC', data.records.dmarc.join(' ')])
-  if (data.records?.mx?.length) rows.push(['MX', data.records.mx.join(', ')])
-  if (data.nameservers?.length) rows.push([d.ui.nameservers, data.nameservers.join(', ')])
-  if (data.checked?.length) rows.push([d.ui.lists, data.checked.join(', ')])
+  const rows = factRows(result)
   if (!rows.length) return null
   return <dl className="facts">{rows.map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl>
 }
@@ -102,7 +74,7 @@ function Hosts({ hosts }: { hosts: Host[] }) {
 
 function Section({ id, part, onRetry }: { id: ModuleId; part?: Part; onRetry: () => void }) {
   if (!part) return null
-  const items = [...(part.result?.items || [])].sort((a, b) => ORDER[a.status] - ORDER[b.status])
+  const items = sortedItems(part.result?.items || [])
   return (
     <section className="deep-part" aria-busy={part.state === 'loading'}>
       <h3>{d.ui.modules[id]}</h3>
@@ -114,7 +86,7 @@ function Section({ id, part, onRetry }: { id: ModuleId; part?: Part; onRetry: ()
       )}
       {part.result && <Facts result={part.result} />}
       {part.result?.data.hosts && part.result.data.hosts.length > 0 && <Hosts hosts={part.result.data.hosts} />}
-      {items.map((item, i) => <FindingItem key={`${item.id}${i}`} f={toFinding(item)} />)}
+      {items.map((item, i) => <FindingItem key={`${item.id}${i}`} f={itemToFinding(item)} />)}
       {part.result?.data.safe_browsing && (
         <p className="tool-more"><a href={part.result.data.safe_browsing} target="_blank" rel="noopener noreferrer">{d.ui.safeBrowsing} →</a></p>
       )}
@@ -166,7 +138,7 @@ function Ownership({ target, part, onCheck }: { target: string; part?: Part; onC
       {part?.state === 'error' && <p className="form-error" role="alert">{part.error}</p>}
       {part?.result && (
         <>
-          {[...part.result.items].sort((a, b) => ORDER[a.status] - ORDER[b.status]).map((item, i) => <FindingItem key={`${item.id}${i}`} f={toFinding(item)} />)}
+          {sortedItems(part.result.items).map((item, i) => <FindingItem key={`${item.id}${i}`} f={itemToFinding(item)} />)}
         </>
       )}
     </section>
@@ -176,7 +148,11 @@ function Ownership({ target, part, onCheck }: { target: string; part?: Part; onC
 export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarget: (value: string) => void }) {
   const [url, setUrl] = useState(initialUrl)
   const [target, setTarget] = useState('')
-  const [parts, setParts] = useState<Partial<Record<ModuleId, Part>>>({})
+  const [parts, setParts] = useState<DeepParts>({})
+  const [when, setWhen] = useState('')
+  const [pdfState, setPdfState] = useState<'idle' | 'saving' | 'opening' | 'failed'>('idle')
+  const [pages, setPages] = useState<string[] | null>(null)
+  const closePreview = useCallback(() => setPages(null), [])
   const [changes, setChanges] = useState<Changes | null>(null)
   const [error, setError] = useState('')
   const input = useRef<HTMLInputElement>(null)
@@ -207,6 +183,8 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
     onTarget(clean)
     setChanges(null)
     setParts({})
+    setPdfState('idle')
+    setWhen(new Date().toLocaleString(LOCALE[LANG], { timeZoneName: 'short' }))
     window.history.replaceState(null, '', `${window.location.pathname}?tool=deep&url=${encodeURIComponent(clean)}`)
     PUBLIC.forEach((id) => runModule(id, clean))
   }
@@ -234,8 +212,36 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished, target])
 
+  // A deep check still running would be missing from the report
+  const pdfReady = publicDone && parts.active?.state !== 'loading'
+  const reportHost = (PUBLIC.map((id) => parts[id]?.result?.host).find(Boolean)) || target
+  const report = () => ({ host: reportHost, when, parts, chains, changes })
+
+  async function savePdf() {
+    setPdfState('saving')
+    try {
+      await deliverPdf(await renderDeepReport(report()), deepPdfName(reportHost))
+      setPdfState('idle')
+    } catch {
+      setPdfState('failed')
+    }
+  }
+
+  async function viewReport() {
+    setPdfState('opening')
+    try {
+      setPages((await renderDeepReport(report())).map((canvas) => canvas.toDataURL('image/jpeg', 0.9)))
+      setPdfState('idle')
+    } catch {
+      setPdfState('failed')
+    }
+  }
+
+  const pdfBusy = pdfState === 'saving' || pdfState === 'opening'
+
   return (
     <>
+      {pages && <ReportPreview host={reportHost} pages={pages} saving={pdfState === 'saving'} onSave={savePdf} onClose={closePreview} />}
       <form className="scan" noValidate onSubmit={(e) => { e.preventDefault(); start(url) }}>
         <label htmlFor="deep-url" className="sr">{t.urlLabel}</label>
         <input ref={input} id="deep-url" name="url" type="text" inputMode="url" autoComplete="url" autoCapitalize="off"
@@ -248,6 +254,13 @@ export function DeepScan({ initialUrl, onTarget }: { initialUrl: string; onTarge
       {error && <p className="form-error" role="alert">{error}</p>}
       {target && (
         <div className="deep-results">
+          {pdfReady && (
+            <div className="deep-actions">
+              <button className="btn btn-primary" type="button" disabled={pdfBusy} onClick={savePdf}>{pdfState === 'saving' ? d.pdf.busy : d.pdf.download}</button>
+              <button className="btn btn-ghost" type="button" disabled={pdfBusy} onClick={viewReport}>{pdfState === 'opening' ? d.pdf.busy : d.pdf.view}</button>
+              {pdfState === 'failed' && <p className="form-error" role="alert">{d.pdf.error}</p>}
+            </div>
+          )}
           <section className="deep-part">
             <h3>{d.ui.chainsTitle}</h3>
             {!publicDone && <p className="g-tip">{d.ui.chainsWait}</p>}

@@ -313,3 +313,5 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 .flag{font-size:13px;font-weight:700;color:var(--warn)}
 .flag.takeover{color:var(--fail)}
 @media print{.deep-link{display:none}}
+.deep-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.deep-actions .form-error{flex:1 1 100%;margin:0}
