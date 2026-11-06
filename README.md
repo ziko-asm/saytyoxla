@@ -67,4 +67,4 @@ Or on Render: New → Blueprint → this repo (`render.yaml`).
 ## License
 All rights reserved, see [LICENSE](LICENSE). Third-party components keep their own licenses.
 
-By [Ziya Azizov (ayfar)](https://ayfar.dev) · [LinkedIn](https://www.linkedin.com/in/ziya-azizov-91bba638a).
+By [Ziya Azizov (ayfar)](https://ayfar.dev) · [LinkedIn](https://www.linkedin.com/in/ziyaazizov).

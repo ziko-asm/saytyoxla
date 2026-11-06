@@ -85,7 +85,7 @@ def llms_txt() -> str:
 Azərbaycandakı kiçik bizneslər, sayt sahibləri və saytları quran proqramçılar.
 
 ## Müəllif
-Ziya Azizov — https://www.linkedin.com/in/ziya-azizov-91bba638a
+Ziya Azizov — https://www.linkedin.com/in/ziyaazizov
 
 ## Səhifələr
 - [SaytYoxla]({SITE_URL}/): saytı yoxlama forması, bələdçi və tez-tez verilən suallar

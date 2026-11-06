@@ -40,7 +40,7 @@ LINKS = {
 UPDATED = {"az": "Son yenilənmə: 5 noyabr 2026", "en": "Last updated: 5 November 2026", "ru": "Обновлено: 5 ноября 2026"}
 
 WHATSAPP = '<a href="https://wa.me/994772172358" target="_blank" rel="noopener">WhatsApp</a>'
-LINKEDIN = '<a href="https://www.linkedin.com/in/ziya-azizov-91bba638a" target="_blank" rel="noopener">LinkedIn</a>'
+LINKEDIN = '<a href="https://www.linkedin.com/in/ziyaazizov" target="_blank" rel="noopener">LinkedIn</a>'
 INSTAGRAM = '<a href="https://www.instagram.com/ayfar.web/" target="_blank" rel="noopener">Instagram</a>'
 CONTACT = f"{WHATSAPP} · {LINKEDIN} · {INSTAGRAM}"
 

@@ -212,7 +212,7 @@ def page(lang: str) -> str:
     ld = json.dumps({
         "@context": "https://schema.org", "@type": "Article", "headline": title, "description": desc,
         "inLanguage": lang, "datePublished": s["dates"][-1], "url": SITE + PATHS[lang],
-        "author": {"@type": "Person", "name": "Ziya Azizov", "url": "https://www.linkedin.com/in/ziya-azizov-91bba638a"},
+        "author": {"@type": "Person", "name": "Ziya Azizov", "url": "https://www.linkedin.com/in/ziyaazizov"},
         "publisher": {"@type": "Organization", "name": "SaytYoxla", "url": SITE + "/"},
     }, ensure_ascii=False)
     cta_home = HOMES[lang]
@@ -347,7 +347,7 @@ footer a{{display:inline-block;padding:13px 4px}}
   <h2>{L(lang, "Necə yoxlandı", "How it was checked", "Как проверяли")}</h2>
   <p class="method">{method}</p>
 </main>
-<footer><div class="wrap">SaytYoxla · <a href="https://ayfar.dev/">ayfar.dev</a> · <a href="https://www.linkedin.com/in/ziya-azizov-91bba638a">Ziya Azizov</a> · {footer_links(lang)}</div></footer>
+<footer><div class="wrap">SaytYoxla · <a href="https://ayfar.dev/">ayfar.dev</a> · <a href="https://www.linkedin.com/in/ziyaazizov">Ziya Azizov</a> · {footer_links(lang)}</div></footer>
 </body>
 </html>
 """
