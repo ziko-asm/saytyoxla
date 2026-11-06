@@ -347,7 +347,7 @@ footer a{{display:inline-block;padding:13px 4px}}
   <h2>{L(lang, "Necə yoxlandı", "How it was checked", "Как проверяли")}</h2>
   <p class="method">{method}</p>
 </main>
-<footer><div class="wrap">SaytYoxla · <a href="https://ayfar.vercel.app/">ayfar.vercel.app</a> · <a href="https://www.linkedin.com/in/ziya-azizov-91bba638a">Ziya Azizov</a> · {footer_links(lang)}</div></footer>
+<footer><div class="wrap">SaytYoxla · <a href="https://ayfar.dev/">ayfar.dev</a> · <a href="https://www.linkedin.com/in/ziya-azizov-91bba638a">Ziya Azizov</a> · {footer_links(lang)}</div></footer>
 </body>
 </html>
 """
