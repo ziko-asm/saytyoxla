@@ -180,6 +180,8 @@ def test_home_page_has_seo_tags():
 
 def test_cors_allows_ayfar_only():
     pre = {"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"}
+    new = client.options("/api/scan", headers={"Origin": "https://ayfar.dev", **pre})
+    assert new.status_code == 200 and new.headers["access-control-allow-origin"] == "https://ayfar.dev"
     ok = client.options("/api/scan", headers={"Origin": "https://ayfar.vercel.app", **pre})
     assert ok.status_code == 200 and ok.headers["access-control-allow-origin"] == "https://ayfar.vercel.app"
     bad = client.options("/api/scan", headers={"Origin": "https://evil.example", **pre})

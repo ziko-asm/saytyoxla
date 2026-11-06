@@ -58,7 +58,7 @@ app.mount("/react", StaticFiles(directory=REACT), name="react")
 # The scan form embedded on ayfar (the author's portfolio) calls /api/scan from the browser.
 # Only those origins may; the per-IP rate limit still applies because the request comes from the visitor.
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv(
-    "ALLOWED_ORIGINS", "https://ayfar.vercel.app,https://ayfar.az,https://www.ayfar.az").split(",") if o.strip()]
+    "ALLOWED_ORIGINS", "https://ayfar.dev,https://www.ayfar.dev,https://ayfar.vercel.app,https://ayfar.az,https://www.ayfar.az").split(",") if o.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=["POST"],
                    allow_headers=["Content-Type"], max_age=86400)
 
