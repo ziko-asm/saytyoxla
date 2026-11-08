@@ -333,3 +333,16 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 @media print{.clear-row{display:none}}
 .deep-monitor{display:grid;gap:10px;margin-top:10px;padding-top:14px;border-top:1px solid var(--line)}
 .deep-monitor h4{margin:0}
+
+/* between phone and desktop widths the header's buttons no longer fit on one row: let them wrap instead of widening the page */
+@media (min-width:641px) and (max-width:1020px){
+  .top .wrap{flex-wrap:wrap;height:auto;min-height:66px;padding-top:10px;padding-bottom:10px;row-gap:8px}
+  .top-right{flex-wrap:wrap;justify-content:flex-end;row-gap:8px;min-width:0}
+  .glos-btn{margin-left:0}
+}
+/* fingers: language buttons and the brand get a 44 px touch area without changing how they look */
+@media (pointer:coarse){
+  .langs a,.brand{position:relative}
+  .langs a::after,.brand::after{content:"";position:absolute;inset:-8px -3px}
+}
+
