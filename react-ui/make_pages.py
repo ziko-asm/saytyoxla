@@ -222,7 +222,6 @@ T = [
      "Если хотите, напишите в WhatsApp, мы поможем.")),
 
     # footer
-    ('<section class="wrap glos-cta"><a class="glos-btn" href="/lugat/">Sayt haqqında ümumi məlumat</a></section>\n\n', "", ""),   # Azerbaijani-only page
     ('<a href="/aletler/">Alətlər</a>', '<a href="/en/tools/">Tools</a>', '<a href="/ru/instrumenty/">Инструменты</a>'),
     ('<a href="/haqqimizda/">Haqqımızda</a>','<a href="/en/about/">About</a>', '<a href="/ru/o-nas/">О сервисе</a>'),
     ('<a href="/mexfilik/">Məxfilik</a>', '<a href="/en/privacy/">Privacy</a>', '<a href="/ru/konfidencialnost/">Конфиденциальность</a>'),

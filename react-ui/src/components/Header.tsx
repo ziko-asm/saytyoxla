@@ -37,6 +37,7 @@ export function Header({ onHelp, checked = '', tools = '' }: Props) {
               <a href={HOME[LANG] + query} aria-current={tools ? undefined : 'page'}>{t.partScan}</a>
               <a href={TOOLS_PATH[LANG] + query} aria-current={tools ? 'page' : undefined}>{t.partTools}</a>
             </nav>
+            {LANG === 'az' && <a className="glos-btn" href="/lugat/">Sayt haqqında ümumi məlumat</a>}
           </div>
         </div>
       </header>
