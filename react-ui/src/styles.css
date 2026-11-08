@@ -181,8 +181,9 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 .faq summary .ico{transition:transform .2s;color:var(--muted)}
 .faq details[open] summary .ico{transform:rotate(180deg)}
 .faq details p{margin:0;padding:0 18px 16px;color:var(--ink-2)}
-.glos-btn{margin-left:25px;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;font-size:14px;white-space:nowrap;border-radius:12px;border:2px solid var(--brand-2,#1d4ed8);color:var(--brand-2,#1d4ed8);font-weight:700;text-decoration:none}
+.glos-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;font-size:14px;white-space:nowrap;border-radius:12px;border:2px solid var(--brand-2,#1d4ed8);color:var(--brand-2,#1d4ed8);font-weight:700;text-decoration:none}
 .glos-btn:hover,.glos-btn:focus-visible{background:var(--brand-2,#1d4ed8);color:#fff}
+@media (min-width:641px){.glos-btn{margin-left:25px}}
 .foot{padding:26px 0 36px;text-align:center;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
 .foot a{display:inline-block;padding:13px 4px}
 
