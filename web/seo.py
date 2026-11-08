@@ -62,6 +62,7 @@ def _info_urls() -> str:
         alts = "".join(f'    <xhtml:link rel="alternate" hreflang="{l}" href="{SITE_URL}{p}"/>\n' for l, p in by_lang.items())
         out += "".join(f"  <url>\n    <loc>{SITE_URL}{p}</loc>\n    <lastmod>{LASTMOD}</lastmod>\n{alts}  </url>\n"
                        for p in by_lang.values())
+    out += f"  <url>\n    <loc>{SITE_URL}/lugat/</loc>\n    <lastmod>{LASTMOD}</lastmod>\n  </url>\n"   # Azerbaijani only
     return out
 
 

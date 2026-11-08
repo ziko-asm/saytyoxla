@@ -6,6 +6,7 @@ SaytYoxla web service.
 GET  /            the Azerbaijani front page (React, built from react-ui/ into web/react/)
 GET  /en/, /ru/   the same page in English and Russian
 GET  /hesabat/, /en/report/, /ru/otchet/   survey of Azerbaijani websites (web/survey.py)
+GET  /lugat/   "Sayt haqqında ümumi məlumat": one long text with word search (web/glossary.py)
 GET  /haqqimizda/, /mexfilik/, /sertler/ and their en/ru versions   about, privacy, terms (web/pages.py)
 GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 GET  /aletler/, /en/tools/, /ru/instrumenty/   the Tools part of the site
@@ -43,7 +44,7 @@ from scanner import i18n
 from scanner import monitor as scanner_monitor
 from scanner import tools as scanner_tools
 from scanner.safety import UnsafeTarget, normalize
-from web import pages, ratelimit, seo, survey
+from web import glossary, pages, ratelimit, seo, survey
 
 log = logging.getLogger("saytyoxla")
 STATIC = Path(__file__).parent / "static"
@@ -202,6 +203,17 @@ def tools_page(request: Request):
     lang = next(l for l, p in pages.TOOLS_PATHS.items() if p == request.url.path)
     home = (REACT / pages.HOMES[lang].strip("/") / "index.html").read_text(encoding="utf-8")
     return HTMLResponse(pages.tools_page(home, lang))
+
+
+@app.get("/lugat/", include_in_schema=False)
+def glossary_page():
+    """One long Azerbaijani text about websites and their security, with a search box (web/glossary.py)."""
+    return HTMLResponse(glossary.page())
+
+
+@app.get("/lugat", include_in_schema=False)
+def glossary_slash():
+    return RedirectResponse("/lugat/", status_code=301)
 
 
 @app.get("/haqqimizda/", include_in_schema=False)

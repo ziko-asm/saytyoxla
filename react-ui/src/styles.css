@@ -180,6 +180,9 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 .faq summary .ico{transition:transform .2s;color:var(--muted)}
 .faq details[open] summary .ico{transform:rotate(180deg)}
 .faq details p{margin:0;padding:0 18px 16px;color:var(--ink-2)}
+.glos-cta{text-align:center;padding:8px 16px 28px}
+.glos-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:12px;border:2px solid var(--brand-2,#1d4ed8);color:var(--brand-2,#1d4ed8);font-weight:700;text-decoration:none}
+.glos-btn:hover,.glos-btn:focus-visible{background:var(--brand-2,#1d4ed8);color:#fff}
 .foot{padding:26px 0 36px;text-align:center;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
 .foot a{display:inline-block;padding:13px 4px}
 
@@ -229,7 +232,7 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
 /* print: just the report, with its colours, and a line that says where it came from */
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .top,.hero,.what,.faq,.foot,.rep-actions,.cta-card,.guide,.loading,.skip{display:none!important}
+  .top,.hero,.what,.faq,.glos-cta,.foot,.rep-actions,.cta-card,.guide,.loading,.skip{display:none!important}
   body{background:#fff}
   .print-head{display:block;font-weight:800;font-size:18px;margin:0 0 14px;color:var(--brand)}
   .print-head span{font-weight:400;font-size:14px;color:var(--muted)}
