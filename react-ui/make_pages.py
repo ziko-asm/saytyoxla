@@ -223,6 +223,7 @@ T = [
 
     # footer
     ('<a href="/aletler/">Alətlər</a>', '<a href="/en/tools/">Tools</a>', '<a href="/ru/instrumenty/">Инструменты</a>'),
+    ('<a href="/muqayise/">Müqayisə</a>', '<a href="/en/compare/">Compare</a>', '<a href="/ru/sravnenie/">Сравнение</a>'),
     ('<a href="/haqqimizda/">Haqqımızda</a>','<a href="/en/about/">About</a>', '<a href="/ru/o-nas/">О сервисе</a>'),
     ('<a href="/mexfilik/">Məxfilik</a>', '<a href="/en/privacy/">Privacy</a>', '<a href="/ru/konfidencialnost/">Конфиденциальность</a>'),
     ('<a href="/sertler/">Şərtlər</a>', '<a href="/en/terms/">Terms</a>', '<a href="/ru/usloviya/">Условия</a>'),

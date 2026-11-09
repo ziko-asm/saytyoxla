@@ -13,7 +13,9 @@ GOOD_HTML = """<html lang="az"><head><title>Detalların mexaniki emalı | Bakı<
 <meta name="description" content="Ф1750 mm-ədək detalların mexaniki emalı. 40 illik usta təcrübəsi. Əlaqə: 050 000 00 00.">
 <meta property="og:title" content="Detallar"><meta property="og:image" content="https://example.az/a.png">
 <link rel="canonical" href="https://example.az/">
-<link rel="stylesheet" href="https://cdn.example.com/a.css"></head><body><h1>Detalların emalı</h1><img src="/a.jpg"></body></html>"""
+<link rel="stylesheet" href="https://cdn.example.com/a.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "LocalBusiness", "name": "Detallar"}</script>
+</head><body><h1>Detalların emalı</h1><img src="/a.jpg" alt="Torna dəzgahı"></body></html>"""
 
 BAD_HTML = """<html><head><meta name="generator" content="WordPress 5.2.1"></head>
 <body><img src="http://example.az/a.jpg"><script src="http://cdn.example.com/x.js"></script></body></html>"""
@@ -23,7 +25,8 @@ def ctx(**kw):
     base = {"input_url": "https://example.az/", "final_url": "https://example.az/", "host": "example.az",
             "status_code": 200, "elapsed_ms": 400, "html": GOOD_HTML, "html_bytes": len(GOOD_HTML),
             "http_to_https": True,
-            "cert": {"days_left": 80, "issuer": "Let's Encrypt", "expires": "2027-01-01", "error": None, "tls": "TLSv1.3"},
+            "cert": {"days_left": 80, "issuer": "Let's Encrypt", "expires": "2027-01-01", "error": None, "tls": "TLSv1.3",
+                     "alpn": "h2"},
             "robots": "User-agent: *\nAllow: /\n", "sitemap": True, "dkim": ["google"],
             "headers": {"strict-transport-security": "max-age=31536000", "x-content-type-options": "nosniff",
                         "referrer-policy": "strict-origin", "x-frame-options": "SAMEORIGIN",
@@ -352,6 +355,50 @@ def test_page_with_real_text_and_scripts_is_judged_normally():
     assert f["h1"].status == WARN and f["description"].status == WARN
 
 
+def test_uncompressed_page_is_a_recommendation_unless_it_is_tiny():
+    big = {"html_bytes": 60_000}
+    assert by_id(checks.run_checks(ctx(**big)))["compression"].status == WARN
+    for encoding in ("gzip", "br", "zstd"):
+        headers = {**ctx().headers, "content-encoding": encoding}
+        assert by_id(checks.run_checks(ctx(headers=headers, **big)))["compression"].status == OK
+    assert by_id(checks.run_checks(ctx(html_bytes=900)))["compression"].status == OK
+
+
+@pytest.mark.parametrize("protocol,status", [("h2", OK), ("http/1.1", WARN), (None, "info")])
+def test_http2_comes_from_the_tls_handshake(protocol, status):
+    cert = {**ctx().cert, "alpn": protocol}
+    f = by_id(checks.run_checks(ctx(cert=cert)))["http2"]
+    assert f.status == status and (f.penalty > 0) is (status == WARN)
+
+
+def test_http2_is_not_judged_without_https_or_a_readable_certificate():
+    assert by_id(checks.run_checks(ctx(final_url="http://example.az/", cert=None)))["http2"].status == "info"
+    broken = {"days_left": None, "issuer": "", "expires": None, "error": "certificate has expired"}
+    assert by_id(checks.run_checks(ctx(cert=broken)))["http2"].status == "info"
+
+
+def test_images_without_a_description_are_counted():
+    html = ('<html><body><p>' + "söz " * 100 + '</p><img src="a.jpg"><img src="b.jpg" alt="Mağaza">'
+            '<img src="line.png" alt=""><img src="pixel.gif" width="1" height="1"></body></html>')
+    f = by_id(checks.run_checks(ctx(html=html)))["img_alt"]
+    assert f.status == WARN and "sayı: 1 (cəmi 3)" in f.detail and f.fix
+    assert by_id(checks.run_checks(ctx(html="<html><body><p>Mətn</p></body></html>")))["img_alt"].status == OK
+
+
+def test_structured_data_is_found_as_json_ld_or_microdata():
+    text = "<p>" + "söz " * 100 + "</p>"
+    assert by_id(checks.run_checks(ctx(html=f"<html><body>{text}</body></html>")))["schema"].status == WARN
+    micro = f'<html><body><div itemscope itemtype="https://schema.org/Store">{text}</div></body></html>'
+    assert by_id(checks.run_checks(ctx(html=micro)))["schema"].status == OK
+    assert by_id(checks.run_checks(ctx()))["schema"].status == OK
+
+
+def test_a_data_block_does_not_make_a_page_look_built_by_javascript():
+    html = '<html><head><script type="application/ld+json">{}</script></head><body><p>Qısa</p></body></html>'
+    f = by_id(checks.run_checks(ctx(html=html)))
+    assert checks.parse(html).scripts == 0 and f["h1"].status == WARN and f["description"].status == WARN
+
+
 def test_core_protections_cap_the_grade():
     base = {"strict-transport-security": "max-age=31536000", "x-content-type-options": "nosniff",
             "referrer-policy": "no-referrer", "x-frame-options": "DENY", "content-security-policy": "default-src 'self'"}
@@ -368,7 +415,7 @@ def test_no_note_when_the_cap_changes_nothing():
     r = _report()
     assert r.score == 100 and r.score_note == ""
     low = _report(final_url="http://example.az/", cert=None, http_to_https=False, headers={}, html=BAD_HTML,
-                  html_bytes=2_000_000, elapsed_ms=6000, txt_records={"spf": [], "dmarc": []})
+                  html_bytes=2_000_000, elapsed_ms=6000, txt_records={"spf": [], "dmarc": []}, sitemap=False)
     assert low.score < 39 and low.score_note == ""
 
 

@@ -35,7 +35,7 @@ class Context:
     html_bytes: int = 0
     redirect_chain: list = field(default_factory=list)
     http_to_https: bool | None = None               # does http:// end on https://?
-    cert: dict | None = None                        # {"days_left", "issuer", "error"}
+    cert: dict | None = None                        # {"days_left", "issuer", "error", "tls", "alpn"}
     # {"spf": [...], "dmarc": [...], "dmarc_parent": "example.az" when inherited}; a list is None on error
     txt_records: dict = field(default_factory=dict)
     cookies: list = field(default_factory=list)     # raw Set-Cookie values of the final response

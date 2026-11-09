@@ -32,6 +32,9 @@ TOOLS_META = {  # short name, <title>, description, heading
            "Проверьте по отдельности SSL, DMARC, SPF и DKIM. Создайте готовые записи DMARC, SPF, CSP, заголовки, robots.txt и sitemap. Бесплатно.",
            "Инструменты для сайта"),
 }
+# Two to four sites side by side (web/compare.py, web/static/compare.js)
+COMPARE_PATHS = {"az": "/muqayise/", "en": "/en/compare/", "ru": "/ru/sravnenie/"}
+COMPARE_NAME = {"az": "Müqayisə", "en": "Compare", "ru": "Сравнение"}
 LINKS = {
     "about": {"az": "Haqqımızda", "en": "About", "ru": "О сервисе"},
     "privacy": {"az": "Məxfilik", "en": "Privacy", "ru": "Конфиденциальность"},
@@ -220,6 +223,7 @@ footer a{display:inline-block;padding:13px 4px}
 .brand{color:var(--ink)}
 }
 """
+OG_LOCALE = {"az": "az_AZ", "en": "en_US", "ru": "ru_RU"}
 SKIP = {"az": "Məzmuna keç", "en": "Skip to content", "ru": "Перейти к содержимому"}
 ICON_LINKS = ('<link rel="icon" href="/favicon.ico" sizes="32x32">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">\n'
               '<link rel="manifest" href="/site.webmanifest">\n<meta name="color-scheme" content="light dark">')
@@ -227,7 +231,8 @@ ICON_LINKS = ('<link rel="icon" href="/favicon.ico" sizes="32x32">\n<link rel="a
 
 def footer_links(lang: str) -> str:
     tools = f'<a href="{TOOLS_PATHS[lang]}">{TOOLS_META[lang][0]}</a>'
-    return " · ".join([tools] + [f'<a href="{PATHS[k][lang]}">{LINKS[k][lang]}</a>' for k in PATHS])
+    compare = f'<a href="{COMPARE_PATHS[lang]}">{COMPARE_NAME[lang]}</a>'
+    return " · ".join([tools, compare] + [f'<a href="{PATHS[k][lang]}">{LINKS[k][lang]}</a>' for k in PATHS])
 
 
 def _shell(lang: str, title: str, desc: str, body: str, paths: dict[str, str], robots: str = "index, follow",
@@ -235,6 +240,12 @@ def _shell(lang: str, title: str, desc: str, body: str, paths: dict[str, str], r
     alt = "".join(f'<link rel="alternate" hreflang="{l}" href="{SITE_URL}{p}">\n' for l, p in paths.items())
     if canonical:
         alt = f'<link rel="canonical" href="{SITE_URL}{canonical}">\n{alt}<link rel="alternate" hreflang="x-default" href="{SITE_URL}{paths["az"]}">\n'
+        # The card a shared link shows in WhatsApp, Telegram and Facebook
+        alt += (f'<meta property="og:type" content="website">\n<meta property="og:site_name" content="SaytYoxla">\n'
+                f'<meta property="og:locale" content="{OG_LOCALE[lang]}">\n<meta property="og:url" content="{SITE_URL}{canonical}">\n'
+                f'<meta property="og:title" content="{title}">\n<meta property="og:description" content="{desc}">\n'
+                f'<meta property="og:image" content="{SITE_URL}/static/og-image.png">\n<meta property="og:image:width" content="1200">\n'
+                f'<meta property="og:image:height" content="630">\n<meta name="twitter:card" content="summary_large_image">\n')
     else:
         alt = ""
     langs = "".join(f'<a href="{paths[l]}" hreflang="{l}" lang="{l}"{" aria-current=page" if l == lang else ""}>{l.upper()}</a>'

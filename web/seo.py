@@ -12,7 +12,7 @@ import os
 import re
 
 SITE_URL = os.getenv("SITE_URL", "https://saytyoxla.vercel.app").rstrip("/")
-LASTMOD = "2026-11-05"          # bump when the front page changes
+LASTMOD = "2026-11-10"          # bump when the front page changes
 
 # Google Search Console "HTML file" verification. Only the exact file names listed
 # here (or in the GOOGLE_VERIFY_FILES env var, comma-separated) are served, so no
@@ -55,10 +55,10 @@ def sitemap_xml() -> str:
 
 
 def _info_urls() -> str:
+    from web.pages import COMPARE_PATHS, TOOLS_PATHS
     from web.pages import PATHS as INFO
-    from web.pages import TOOLS_PATHS
     out = ""
-    for by_lang in [TOOLS_PATHS, *INFO.values()]:
+    for by_lang in [TOOLS_PATHS, COMPARE_PATHS, *INFO.values()]:
         alts = "".join(f'    <xhtml:link rel="alternate" hreflang="{l}" href="{SITE_URL}{p}"/>\n' for l, p in by_lang.items())
         out += "".join(f"  <url>\n    <loc>{SITE_URL}{p}</loc>\n    <lastmod>{LASTMOD}</lastmod>\n{alts}  </url>\n"
                        for p in by_lang.values())
@@ -74,8 +74,8 @@ def llms_txt() -> str:
 ## Nəyi yoxlayır
 - Təhlükəsizlik: HTTPS, sertifikatın bitmə tarixi, TLS versiyası, HTTP→HTTPS yönləndirmə, HSTS, clickjacking qorunması, nosniff, CSP-nin keyfiyyəti, Referrer-Policy, cookie qoruması, server versiyasının açıqlanması, qarışıq məzmun
 - E-poçt: SPF, DMARC və geniş yayılmış adlarda DKIM qeydləri (saxta məktublara qarşı)
-- Sürət: serverin cavab vaxtı, HTML həcmi
-- Telefon və Google: viewport, başlıq (title), təsvir, H1, səhifənin dili, canonical, sosial şəbəkə kartı, noindex, robots.txt, sitemap
+- Sürət: serverin cavab vaxtı, HTML həcmi, sıxılma (gzip/brotli), HTTP/2
+- Telefon və Google: viewport, başlıq (title), təsvir, H1, səhifənin dili, canonical, sosial şəbəkə kartı, şəkillərin alt təsviri, Schema.org məlumatı, noindex, robots.txt, sitemap
 
 ## Necə işləyir
 - Nəticə 0–100 bal və A–F qiyməti ilə verilir; hər problemin altında necə düzəldiləcəyi yazılır
@@ -93,6 +93,7 @@ Ziya Azizov — https://www.linkedin.com/in/ziyaazizov
 - [Azərbaycan saytlarının təhlükəsizlik vəziyyəti]({SITE_URL}/hesabat/): yüzdən çox açıq saytın passiv yoxlamasının ümumi nəticələri (sayt adları olmadan)
 - [Dərin analiz]({SITE_URL}/aletler/?tool=deep): subdomenlər və ələ keçirilmə riski, saxta e-poçt testi, bilinən zəifliklər, TLS və DNS, qara siyahılar, hücum ssenariləri; açıq fayl və port yoxlaması yalnız sahiblik təsdiqindən sonra
 - [Alətlər]({SITE_URL}/aletler/): SSL, DMARC, SPF, DKIM, başlıqlar və cookie-ləri ayrıca yoxlamaq; DMARC, SPF, CSP, başlıqlar, robots.txt, meta teqlər, sitemap, security.txt və yönləndirmə generatorları
+- [Müqayisə]({SITE_URL}/muqayise/): iki–dörd saytın balını və hər yoxlamanın nəticəsini yan-yana göstərir (məsələn, öz saytınız və rəqibiniz)
 - [Haqqımızda]({SITE_URL}/haqqimizda/), [Məxfilik]({SITE_URL}/mexfilik/), [Şərtlər]({SITE_URL}/sertler/)
 - [SaytYoxla in English]({SITE_URL}/en/): the same free website check in English
 - [SaytYoxla на русском]({SITE_URL}/ru/): та же бесплатная проверка сайта на русском

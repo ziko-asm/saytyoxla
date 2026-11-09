@@ -155,6 +155,8 @@ def _get(url: str, resolve=resolve_public, budget: float = PAGE_BUDGET, verify: 
 def cert_info(host: str, ip: str | None = None, port: int = 443) -> dict:
     """Certificate of `host`, read from the already-checked address `ip` (never a fresh DNS answer)."""
     ctx = ssl.create_default_context()
+    if ssl.HAS_ALPN:        # what every browser offers; the answer says whether the site speaks HTTP/2
+        ctx.set_alpn_protocols(["h2", "http/1.1"])
     try:
         ip = ip or resolve_public(host)
         with (
@@ -163,10 +165,11 @@ def cert_info(host: str, ip: str | None = None, port: int = 443) -> dict:
         ):
             c = tls.getpeercert()
             version = tls.version()
+            protocol = (tls.selected_alpn_protocol() or "http/1.1") if ssl.HAS_ALPN else None
         expires = datetime.fromtimestamp(ssl.cert_time_to_seconds(c["notAfter"]), tz=timezone.utc)
         issuer = dict(x[0] for x in c.get("issuer", ())).get("organizationName", "")
         return {"days_left": (expires - datetime.now(timezone.utc)).days, "issuer": issuer,
-                "expires": expires.date().isoformat(), "error": None, "tls": version}
+                "expires": expires.date().isoformat(), "error": None, "tls": version, "alpn": protocol}
     except ssl.SSLCertVerificationError as e:
         return {"days_left": None, "issuer": "", "expires": None, "error": e.verify_message or "invalid"}
     except UnsafeTarget:
