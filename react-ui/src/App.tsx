@@ -4,8 +4,10 @@ import { ScanForm } from './components/ScanForm'
 import { Loading } from './components/Loading'
 import { ReportView } from './components/ReportView'
 import { Guide } from './components/Guide'
+import { RecentSites } from './components/RecentSites'
 import type { Report } from './types'
 import { LANG, t } from './i18n'
+import { loadRecent, pushRecent, saveRecent } from './recent'
 
 export default function App() {
   const [url, setUrl] = useState('')
@@ -14,6 +16,7 @@ export default function App() {
   const [report, setReport] = useState<Report | null>(null)
   const [guideOpen, setGuideOpen] = useState(false)
   const [checked, setChecked] = useState('')
+  const [recent, setRecent] = useState<string[]>(loadRecent)
   const input = useRef<HTMLInputElement>(null)
 
   // fresh = true skips the server's 10-minute cache, so a fixed site shows its new result
@@ -40,6 +43,12 @@ export default function App() {
         // The address bar now holds a link to this result: it can be shared, reloaded or opened in another language
         window.history.replaceState(null, '', `${window.location.pathname}?url=${encodeURIComponent(value)}`)
         setChecked(value)
+        // Only sites that were really scanned are remembered, not typos that came back as errors
+        setRecent((list) => {
+          const next = pushRecent(list, value)
+          saveRecent(next)
+          return next
+        })
       }
     } catch {
       setError(t.networkError)
@@ -82,6 +91,20 @@ export default function App() {
         error={error}
         onHelp={() => setGuideOpen(true)}
       />
+      {!report && (
+        <RecentSites
+          sites={recent}
+          disabled={loading}
+          onPick={(site) => {
+            setUrl(site)
+            scan(site)
+          }}
+          onClear={() => {
+            setRecent([])
+            saveRecent([])
+          }}
+        />
+      )}
       {loading && <Loading />}
       {report && <ReportView report={report} onAgain={again} onRescan={() => scan(report.url, true)} />}
       </main>

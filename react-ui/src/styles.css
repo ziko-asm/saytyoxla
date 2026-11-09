@@ -346,3 +346,11 @@ h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
   .langs a::after,.brand::after{content:"";position:absolute;inset:-8px -3px}
 }
 
+
+/* Recently checked sites (localStorage), under the scan form */
+.recent{text-align:center;margin-top:16px}
+.recent-title{color:var(--muted);font-size:14px;margin:0 0 8px}
+.recent-list{list-style:none;margin:0 0 4px;padding:0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip-btn{background:var(--surface);color:var(--ink);border:1px solid var(--line-2);border-radius:999px;font:500 14px var(--font);min-height:44px;padding:6px 14px;cursor:pointer;max-width:100%;overflow-wrap:anywhere}
+.chip-btn:hover:not(:disabled){border-color:var(--brand-2);color:var(--brand-2)}
+.chip-btn:disabled{opacity:.6;cursor:default}
