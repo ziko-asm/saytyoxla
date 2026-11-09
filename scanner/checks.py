@@ -30,12 +30,19 @@ class _Page(HTMLParser):
         self.canonical = False
         self.scripts = 0
         self.text_chars = 0
+        self.images = 0
+        self.images_no_alt = 0
+        self.structured = False     # JSON-LD or microdata that tells Google what the business is
 
     def handle_starttag(self, tag, attrs):
         a = {k.lower(): (v or "") for k, v in attrs}
         if tag in ("script", "style"):
             self._hidden_depth += 1
-            self.scripts += tag == "script"
+            kind = a.get("type", "").strip().lower()
+            if kind == "application/ld+json":
+                self.structured = True
+            # Only code counts as a script: a data block (JSON-LD, a template) does not build the page
+            self.scripts += tag == "script" and (not kind or kind == "module" or "javascript" in kind)
         elif tag == "html":
             self.lang = a.get("lang", "").strip()
         elif tag == "h1":
@@ -44,6 +51,11 @@ class _Page(HTMLParser):
             self.canonical = True
         elif tag == "meta" and a.get("property") and a.get("content"):
             self.properties.add(a["property"].lower())
+        elif tag == "img" and a.get("width") not in ("0", "1") and a.get("height") not in ("0", "1"):
+            self.images += 1        # 1-pixel images are counters, not pictures
+            self.images_no_alt += "alt" not in a
+        if "itemscope" in a and "schema.org" in a.get("itemtype", "").lower():
+            self.structured = True
         if tag == "svg":
             self._svg_depth += 1
         elif tag == "title":
@@ -388,6 +400,36 @@ def html_size(ctx: Context, page) -> Finding:
                    "" if st == OK else "Səhifəyə daxil edilmiş böyük kodları və şəkilləri ayrı fayllara çıxarın.", 4)
 
 
+SMALL_PAGE = 1400       # bytes: such a page fits in one network packet, so compressing it gains nothing
+COMPRESSED = ("gzip", "br", "zstd", "deflate")
+
+
+def compression(ctx: Context, page) -> Finding:
+    title = "Səhifənin sıxılması (gzip)"
+    encoding = ctx.headers.get("content-encoding", "").lower()
+    if any(name in encoding for name in COMPRESSED):
+        return Finding("compression", SPEED, title, OK, "Server səhifəni sıxılmış göndərir, ona görə daha tez yüklənir.", "", 3)
+    if ctx.html_bytes < SMALL_PAGE:
+        return Finding("compression", SPEED, title, OK, "Səhifə çox kiçikdir, sıxılmaya ehtiyac yoxdur.", "", 3)
+    return Finding("compression", SPEED, title, WARN,
+                   "Server səhifəni sıxmadan göndərir. Zəif internetdə və telefonda səhifə daha gec açılır.",
+                   "Serverdə və ya hostinq panelində gzip və ya brotli sıxılmasını açın.", 3)
+
+
+def http2(ctx: Context, page) -> Finding:
+    title = "Sürətli protokol (HTTP/2)"
+    if urlsplit(ctx.final_url).scheme != "https":
+        return Finding("http2", SPEED, title, INFO, "Sayt https olmadığı üçün yoxlanılmadı.")
+    protocol = (ctx.cert or {}).get("alpn")
+    if not protocol:
+        return Finding("http2", SPEED, title, INFO, "HTTP/2 dəstəyi oxunmadı.")
+    ok = protocol == "h2"
+    return Finding("http2", SPEED, title, OK if ok else WARN,
+                   "Sayt HTTP/2 ilə işləyir: səhifənin faylları bir bağlantı ilə, eyni vaxtda yüklənir." if ok else
+                   "Sayt köhnə HTTP/1.1 ilə işləyir: səhifənin faylları növbə ilə yükləndiyi üçün sayt daha ləng açılır.",
+                   "" if ok else "Hostinq panelində və ya serverdə HTTP/2-ni açın; əksər hostinqlərdə bu pulsuzdur.", 2)
+
+
 # ---------------------------------------------------------------- mobile & search
 def viewport(ctx: Context, page) -> Finding:
     ok = "width=device-width" in page.meta.get("viewport", "").replace(" ", "")
@@ -444,6 +486,29 @@ def open_graph(ctx: Context, page) -> Finding:
                    "" if ok else "Səhifəyə og:title və og:image meta teqlərini əlavə edin.", 2)
 
 
+def image_alt(ctx: Context, page) -> Finding:
+    title = "Şəkillərin təsviri (alt)"
+    if not page.images:
+        return Finding("img_alt", SEO, title, OK, "Əsas səhifədə təsvir tələb edən şəkil yoxdur.", "", 2)
+    n = page.images_no_alt
+    if not n:
+        return Finding("img_alt", SEO, title, OK, f"Bütün şəkillərin təsviri var (şəkil sayı: {page.images}).", "", 2)
+    return Finding("img_alt", SEO, title, WARN,
+                   f"Təsviri (alt) olmayan şəkil sayı: {n} (cəmi {page.images}). "
+                   "Google və ekranı səslə oxuyan proqramlar bu şəkillərdə nə olduğunu bilmir.",
+                   "Hər şəklə qısa təsvir yazın: <img src=\"...\" alt=\"Məhsulun adı\">. Bəzək şəkillərinə alt=\"\" yazın.", 2)
+
+
+def structured_data(ctx: Context, page) -> Finding:
+    title = "Google üçün biznes məlumatı (Schema.org)"
+    return Finding("schema", SEO, title, OK if page.structured else WARN,
+                   "Səhifədə Google-un oxuduğu strukturlaşdırılmış məlumat var." if page.structured else
+                   "Səhifədə strukturlaşdırılmış məlumat (Schema.org) yoxdur. "
+                   "O, Google-a biznesin adını, ünvanını və iş saatlarını dəqiq anlamağa kömək edir.",
+                   "" if page.structured else
+                   "Səhifəyə biznesinizi təsvir edən JSON-LD əlavə edin (məsələn, LocalBusiness növü).", 1)
+
+
 def blocks_everyone(robots: str) -> bool:
     """Does robots.txt tell every crawler to stay away from the whole site?"""
     agents, in_rules, blocked = [], False, False
@@ -487,15 +552,16 @@ def sitemap(ctx: Context, page) -> Finding:
 
 
 ALL_CHECKS = [https_used, certificate, tls_version, http_redirect, hsts, framing, nosniff, csp, referrer, cookies,
-              disclosure, mixed_content, spf, dmarc, dkim, response_time, html_size, viewport,
-              title_tag, description, heading, language, canonical, open_graph, indexing, sitemap]
+              disclosure, mixed_content, spf, dmarc, dkim, response_time, html_size, compression, http2, viewport,
+              title_tag, description, heading, language, canonical, open_graph, image_alt, structured_data,
+              indexing, sitemap]
 
 
-CONTENT_CHECKS = {"viewport", "title", "description", "mixed", "h1", "lang", "canonical", "og"}
+CONTENT_CHECKS = {"viewport", "title", "description", "mixed", "h1", "lang", "canonical", "og", "schema"}
 EMPTY_NOTE = ("Səhifənin məzmunu oxunmadı (server boş cavab qaytardı). "
               "Bu yoxlama bala təsir etmir; saytı brauzerdə açıb yenidən yoxlayın.")
 # Pages built by JavaScript fill these in only in a browser, and the scanner does not run scripts
-RENDERED_CHECKS = {"title", "description", "h1", "canonical", "og"}
+RENDERED_CHECKS = {"title", "description", "h1", "canonical", "og", "schema"}
 RENDERED_TEXT_LIMIT = 200
 RENDERED_NOTE = ("Səhifə JavaScript ilə qurulur, bu məlumat brauzerdə əlavə oluna bilər və burada yoxlanılmadı. "
                  "Bu yoxlama bala təsir etmir.")

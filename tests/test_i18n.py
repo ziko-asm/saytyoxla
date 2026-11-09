@@ -49,6 +49,9 @@ VARIANTS = [
     {"html": "<html><head><title>Bir tətbiq səhifəsi</title></head><body><script src='/a.js'></script></body></html>"},
     {"txt_records": {"spf": [], "dmarc": ["v=DMARC1; p=reject"], "dmarc_parent": "example.az"}},
     {"txt_records": {"spf": ["v=spf1 -all"], "dmarc": ["v=DMARC1; p=none"], "dmarc_parent": "example.az"}},
+    {"html_bytes": 60_000, "cert": {"days_left": 80, "expires": "2027-01-01", "error": None, "alpn": "http/1.1"}},
+    {"html_bytes": 60_000, "headers": {"content-encoding": "gzip"},
+     "html": "<html><body><p>" + "söz " * 100 + "</p><img src='a.jpg'></body></html>"},
 ]
 
 ERRORS = [
@@ -79,7 +82,8 @@ def test_variants_reach_every_status():
     for v in VARIANTS:
         c = ctx(**v)
         seen.update((f.id, f.status) for f in checks.run_checks(c))
-    for fid in ("https", "cert", "http_redirect", "hsts", "dmarc", "speed", "size", "title", "description"):
+    for fid in ("https", "cert", "http_redirect", "hsts", "dmarc", "speed", "size", "title", "description",
+                "compression", "http2", "img_alt", "schema"):
         assert len({s for i, s in seen if i == fid}) >= 2, fid
 
 

@@ -325,6 +325,49 @@ EXACT: dict[str, tuple[str, str]] = {
         ("Страница строится на JavaScript, поэтому эти данные могут добавляться в браузере и здесь не проверялись. "
         "Эта проверка не влияет на балл.")),
 
+    # compression, HTTP/2, image descriptions, structured data
+    "Səhifənin sıxılması (gzip)": ("Page compression (gzip)", "Сжатие страницы (gzip)"),
+    "Sürətli protokol (HTTP/2)": ("Fast protocol (HTTP/2)", "Быстрый протокол (HTTP/2)"),
+    "Şəkillərin təsviri (alt)": ("Image descriptions (alt)", "Описания изображений (alt)"),
+    "Google üçün biznes məlumatı (Schema.org)": ("Business details for Google (Schema.org)", "Данные о бизнесе для Google (Schema.org)"),
+    "Server səhifəni sıxılmış göndərir, ona görə daha tez yüklənir.": (
+        "The server sends the page compressed, so it loads faster.",
+        "Сервер отправляет страницу сжатой, поэтому она загружается быстрее."),
+    "Səhifə çox kiçikdir, sıxılmaya ehtiyac yoxdur.": (
+        "The page is very small and does not need compression.", "Страница очень маленькая, сжатие ей не нужно."),
+    "Server səhifəni sıxmadan göndərir. Zəif internetdə və telefonda səhifə daha gec açılır.": (
+        "The server sends the page uncompressed. On a slow connection or a phone it opens later.",
+        "Сервер отправляет страницу без сжатия. При слабом интернете и на телефоне она открывается дольше."),
+    "Serverdə və ya hostinq panelində gzip və ya brotli sıxılmasını açın.": (
+        "Turn on gzip or brotli compression on the server or in your hosting panel.",
+        "Включите сжатие gzip или brotli на сервере или в панели хостинга."),
+    "HTTP/2 dəstəyi oxunmadı.": ("HTTP/2 support could not be read.", "Не удалось определить поддержку HTTP/2."),
+    "Sayt HTTP/2 ilə işləyir: səhifənin faylları bir bağlantı ilə, eyni vaxtda yüklənir.": (
+        "The site uses HTTP/2: the page's files load over one connection at the same time.",
+        "Сайт работает по HTTP/2: файлы страницы загружаются по одному соединению одновременно."),
+    "Sayt köhnə HTTP/1.1 ilə işləyir: səhifənin faylları növbə ilə yükləndiyi üçün sayt daha ləng açılır.": (
+        "The site uses the older HTTP/1.1: the page's files load one after another, so it opens more slowly.",
+        "Сайт работает по старому HTTP/1.1: файлы страницы загружаются по очереди, поэтому он открывается медленнее."),
+    "Hostinq panelində və ya serverdə HTTP/2-ni açın; əksər hostinqlərdə bu pulsuzdur.": (
+        "Turn on HTTP/2 in your hosting panel or on the server; most hosts offer it for free.",
+        "Включите HTTP/2 в панели хостинга или на сервере; у большинства хостингов это бесплатно."),
+    "Əsas səhifədə təsvir tələb edən şəkil yoxdur.": (
+        "The home page has no images that need a description.", "На главной странице нет изображений, которым нужно описание."),
+    "Hər şəklə qısa təsvir yazın: <img src=\"...\" alt=\"Məhsulun adı\">. Bəzək şəkillərinə alt=\"\" yazın.": (
+        "Give every image a short description: <img src=\"...\" alt=\"Product name\">. For decorative images write alt=\"\".",
+        "Добавьте каждому изображению короткое описание: <img src=\"...\" alt=\"Название товара\">. Декоративным укажите alt=\"\"."),
+    "Səhifədə Google-un oxuduğu strukturlaşdırılmış məlumat var.": (
+        "The page has structured data that Google reads.", "На странице есть структурированные данные, которые читает Google."),
+    "Səhifədə strukturlaşdırılmış məlumat (Schema.org) yoxdur. "
+    "O, Google-a biznesin adını, ünvanını və iş saatlarını dəqiq anlamağa kömək edir.": (
+        ("The page has no structured data (Schema.org). "
+         "It helps Google understand the business's name, address and opening hours exactly."),
+        ("На странице нет структурированных данных (Schema.org). "
+         "Они помогают Google точно понять название, адрес и часы работы бизнеса.")),
+    "Səhifəyə biznesinizi təsvir edən JSON-LD əlavə edin (məsələn, LocalBusiness növü).": (
+        "Add JSON-LD that describes your business to the page (for example, the LocalBusiness type).",
+        "Добавьте на страницу JSON-LD с описанием вашего бизнеса (например, тип LocalBusiness)."),
+
     # score limits
     "Sayt etibarlı HTTPS ilə açılmadığı üçün bal 39-dan yuxarı ola bilməz.": (
         "The score cannot go above 39 because the site does not open over trusted HTTPS.",
@@ -462,6 +505,13 @@ PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.DOTALL), en, ru
     (r"Səhifənin dili göstərilib \((.+)\)\.",
      r"The page's language is set (\1).",
      r"Язык страницы указан (\1)."),
+    (r"Bütün şəkillərin təsviri var \(şəkil sayı: (\d+)\)\.",
+     r"Every image has a description (images: \1).",
+     r"У всех изображений есть описание (изображений: \1)."),
+    ((r"Təsviri \(alt\) olmayan şəkil sayı: (\d+) \(cəmi (\d+)\)\. "
+      r"Google və ekranı səslə oxuyan proqramlar bu şəkillərdə nə olduğunu bilmir\."),
+     r"Images without a description (alt): \1 of \2. Google and screen readers cannot tell what these images show.",
+     r"Изображений без описания (alt): \1 из \2. Google и программы чтения с экрана не знают, что на них показано."),
     # summary
     (r"(\d+) ciddi problem və (\d+) təkmilləşdirmə tövsiyəsi tapıldı\.",
      r"Found \1 serious problem(s) and \2 improvement(s) to make.",

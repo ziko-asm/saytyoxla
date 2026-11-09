@@ -169,13 +169,23 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
         ("cavab-vaxti", "Serverin cavab vaxtı və səhifənin həcmi nədir?", "surət speed cavab vaxti ms html olcu size yavas",
          "<p>İnsanlar yavaş saytı tərk edir. SaytYoxla serverin cavab vaxtını ölçür: 1500 ms-dən az yaxşı, 4000 ms-ə qədər xəbərdarlıq, ondan çox pisdir (8 bal). "
          "HTML həcmi də ölçülür: 300 KB-dan azı yaxşı, 1000 KB-a qədər xəbərdarlıq (4 bal). Bunlar saytın tam yüklənməsi deyil, yalnız serverin cavab sürətidir.</p>"),
+        ("sixilma-http2", "Sıxılma (gzip, brotli) və HTTP/2 nədir?", "gzip brotli sixilma compression http2 http/2 suret protokol",
+         "<p><b>Sıxılma</b> serverin səhifəni göndərməzdən əvvəl kiçiltməsidir (gzip və ya brotli); brauzer onu özü açır. Mətn 3–5 dəfə kiçilir, zəif internetdə fərq dərhal hiss olunur. "
+         "SaytYoxla serverin cavabında sıxılma olub-olmadığına baxır (3 bal); 1400 baytdan kiçik səhifədən bunu tələb etmir.</p>"
+         "<p><b>HTTP/2</b> brauzerlə serverin danışdığı qaydanın yeni versiyasıdır: şəkil, stil və skriptlər bir bağlantı ilə, eyni vaxtda gəlir. Köhnə HTTP/1.1-də onlar növbə gözləyir. "
+         "Əksər hostinqlərdə HTTP/2 paneldən pulsuz açılır (2 bal).</p>"),
+        ("alt-schema", "Şəkil təsviri (alt) və Schema.org nədir?", "alt sekil tesvir img schema json-ld strukturlasdirilmis melumat localbusiness",
+         "<p><b>alt</b> şəklin qısa mətn təsviridir: <i>&lt;img src=\"...\" alt=\"Qırmızı divan\"&gt;</i>. Google şəkli görmür, bu mətni oxuyur; görmə çətinliyi olan insanların proqramı da onu səsləndirir. "
+         "Sırf bəzək olan şəkilə boş <i>alt=\"\"</i> yazılır. Təsviri olmayan şəkil varsa, SaytYoxla tövsiyə verir (2 bal).</p>"
+         "<p><b>Schema.org</b> (JSON-LD) səhifəyə əlavə olunan, insanın görmədiyi kiçik məlumat blokudur: biznesin adı, ünvanı, telefonu, iş saatları. "
+         "Google bunu oxuyub biznesi daha dəqiq tanıyır (1 bal).</p>"),
         ("core-web-vitals", "Core Web Vitals nədir?", "core web vitals lcp cls inp lighthouse pagespeed",
          "<p>Core Web Vitals Google-un səhifə təcrübəsini ölçdüyü üç göstəricidir: əsas məzmunun nə vaxt görünməsi (LCP), səhifənin yüklənərkən «atlanması» (CLS) və toxunuşa cavab verməsi (INP). "
          "Dürüst qeyd: SaytYoxla bunları ölçmür; bunun üçün brauzerin tam yüklənməsi lazımdır. Onları Google-un PageSpeed Insights və ya Lighthouse alətində yoxlaya bilərsiniz.</p>"),
     ]),
     ("6. SaytYoxla necə işləyir", [
         ("bal-hesablanma", "Bal necə hesablanır?", "bal hesablama qiymet a b c d f cap",
-         "<p>SaytYoxla 26 yoxlama aparır; bunlardan 24-ü ballıdır (TLS və DKIM yalnız məlumat üçündür). Hər yoxlamanın çəkisi var: ən ağırları HTTPS (20), sertifikat (15) və SPF (10), sonra 8 baldan başlayaraq daha kiçikləri. Cəmi 143 çəkidir və 100-ə çevrilir. "
+         "<p>SaytYoxla 30 yoxlama aparır; bunlardan 28-i ballıdır (TLS və DKIM yalnız məlumat üçündür). Hər yoxlamanın çəkisi var: ən ağırları HTTPS (20), sertifikat (15) və SPF (10), sonra 8 baldan başlayaraq daha kiçikləri. Cəmi 151 çəkidir və 100-ə çevrilir. "
          "Uğursuz yoxlama bütün çəkisini aparır, xəbərdarlıq yarısını.</p>"
          "<p>Qiymət: 90 və üstü A, 75 və üstü B, 60 və üstü C, 40 və üstü D, ondan aşağı F. Üstəlik həddlər var: HTTPS işləmirsə bal 39-dan, sertifikat etibarsızdırsa 59-dan yuxarı çıxmır. "
          "Beş əsas qoruyucudan (yönləndirmə, HSTS, clickjacking, nosniff, CSP) 4-ü və daha çoxu problemlidirsə, bal 74-dən, 2-si problemlidirsə 89-dan yuxarı çıxmır. Yəni zəif təhlükəsizlik başqa yaxşı nəticələrlə «örtülə» bilməz.</p>"),

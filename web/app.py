@@ -10,6 +10,7 @@ GET  /lugat/   "Sayt haqqında ümumi məlumat": one long text with word search 
 GET  /haqqimizda/, /mexfilik/, /sertler/ and their en/ru versions   about, privacy, terms (web/pages.py)
 GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 GET  /aletler/, /en/tools/, /ru/instrumenty/   the Tools part of the site
+GET  /muqayise/, /en/compare/, /ru/sravnenie/   two to four sites side by side (web/compare.py)
 POST /api/scan    {"url": "example.az", "lang": "az|en|ru"} -> report JSON
 POST /api/tool    {"url": "example.az", "tool": "ssl|email", "lang": "az|en|ru"} -> one narrow check
 POST /api/deep    {"url": "example.az", "module": "surface|mail|tech|tls|reputation|active|crawl|probe"} -> one part of the deep analysis
@@ -44,7 +45,7 @@ from scanner import i18n
 from scanner import monitor as scanner_monitor
 from scanner import tools as scanner_tools
 from scanner.safety import UnsafeTarget, normalize
-from web import glossary, pages, ratelimit, seo, survey
+from web import compare, glossary, pages, ratelimit, seo, survey
 
 log = logging.getLogger("saytyoxla")
 STATIC = Path(__file__).parent / "static"
@@ -205,6 +206,15 @@ def tools_page(request: Request):
     return HTMLResponse(pages.tools_page(home, lang))
 
 
+@app.get("/muqayise/", include_in_schema=False)
+@app.get("/en/compare/", include_in_schema=False)
+@app.get("/ru/sravnenie/", include_in_schema=False)
+def compare_page(request: Request):
+    """Two to four sites side by side. The page asks /api/scan once per site, so the usual limits apply."""
+    lang = next(l for l, p in pages.COMPARE_PATHS.items() if p == request.url.path)
+    return HTMLResponse(compare.page(lang))
+
+
 @app.get("/lugat/", include_in_schema=False)
 def glossary_page():
     """One long Azerbaijani text about websites and their security, with a search box (web/glossary.py)."""
@@ -230,6 +240,9 @@ def info_page(request: Request):
     return HTMLResponse(pages.page(*pages.ROUTES[request.url.path]))
 
 
+@app.get("/muqayise", include_in_schema=False)
+@app.get("/en/compare", include_in_schema=False)
+@app.get("/ru/sravnenie", include_in_schema=False)
 @app.get("/aletler", include_in_schema=False)
 @app.get("/en/tools", include_in_schema=False)
 @app.get("/ru/instrumenty", include_in_schema=False)

@@ -9,8 +9,8 @@ The scanner only looks at what any visitor's browser sees: one page load, the TL
 |---|---|
 | Security | HTTPS, certificate expiry, HTTP to HTTPS redirect, HSTS, clickjacking protection, nosniff, CSP, Referrer-Policy, version disclosure, mixed content |
 | E-mail | SPF, DMARC |
-| Speed | server response time, HTML size |
-| Mobile and Google | viewport, title, meta description |
+| Speed | server response time, HTML size, compression (gzip/brotli), HTTP/2 |
+| Mobile and Google | viewport, title, meta description, H1, language, canonical, social card, image descriptions (alt), structured data (Schema.org), noindex, robots.txt, sitemap |
 
 Each finding has a status, a plain explanation and a fix. The score is 0 to 100 with a grade from A to F.
 
