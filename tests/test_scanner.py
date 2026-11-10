@@ -1,10 +1,12 @@
 """Scanner tests on hand-made pages: no network needed."""
 
+import time
+
 import pytest
 
 import scanner
-from scanner import checks
-from scanner.models import FAIL, OK, WARN, Context
+from scanner import assets, checks
+from scanner.models import FAIL, INFO, OK, WARN, Context
 from scanner.report import build, grade, score
 from scanner.safety import UnsafeTarget, check_host_is_public, is_public_ip, normalize
 
@@ -28,6 +30,9 @@ def ctx(**kw):
             "cert": {"days_left": 80, "issuer": "Let's Encrypt", "expires": "2027-01-01", "error": None, "tls": "TLSv1.3",
                      "alpn": "h2"},
             "robots": "User-agent: *\nAllow: /\n", "sitemap": True, "dkim": ["google"],
+            "assets": {"items": [{"kind": kind, "url": f"https://example.az/{kind}{n}", "bytes": 30_000, "cached": True, "own": True}
+                                 for kind in ("style", "script", "image") for n in range(2)],
+                       "found": 6, "blocking": 0, "images": 2, "lazy": 1},
             "headers": {"strict-transport-security": "max-age=31536000", "x-content-type-options": "nosniff",
                         "referrer-policy": "strict-origin", "x-frame-options": "SAMEORIGIN",
                         "content-security-policy": "default-src 'self'", "server": "nginx"},
@@ -415,7 +420,7 @@ def test_no_note_when_the_cap_changes_nothing():
     r = _report()
     assert r.score == 100 and r.score_note == ""
     low = _report(final_url="http://example.az/", cert=None, http_to_https=False, headers={}, html=BAD_HTML,
-                  html_bytes=2_000_000, elapsed_ms=6000, txt_records={"spf": [], "dmarc": []}, sitemap=False)
+                  html_bytes=2_000_000, elapsed_ms=6000, txt_records={"spf": [], "dmarc": []}, sitemap=False, assets=None)
     assert low.score < 39 and low.score_note == ""
 
 
@@ -445,3 +450,70 @@ def test_scan_reports_unreachable_site(monkeypatch):
 @pytest.mark.parametrize("error", ["SSLError", "ConnectTimeout", "ReadTimeout", "ConnectionError", "ChunkedEncodingError"])
 def test_error_messages_never_show_exception_names(error):
     assert error not in scanner.error_message(error) and "açılmadı" in scanner.error_message(error)
+
+
+# --------------------------------------------------------------- what the page downloads
+ASSET_HTML = """<html><head><link rel="stylesheet" href="/a.css"><script src="/a.js"></script><script src="/b.js" defer></script>
+<script type="module" src="/m.js"></script><script type="application/ld+json">{}</script><script src="/a.js"></script>
+</head><body><img src="img/p.jpg" loading="lazy"><img src="data:image/png;base64,AAAA"><img src="https://cdn.example.com/q.png">
+<script src="/late.js"></script></body></html>"""
+
+
+def test_assets_are_listed_once_with_blocking_scripts_counted():
+    files, page = assets.listed(ASSET_HTML, "https://example.az/shop/")
+    assert files == [("style", "https://example.az/a.css"), ("script", "https://example.az/a.js"), ("script", "https://example.az/b.js"),
+                     ("script", "https://example.az/m.js"), ("script", "https://example.az/late.js"),
+                     ("image", "https://example.az/shop/img/p.jpg"), ("image", "https://cdn.example.com/q.png")]
+    assert page.blocking == 2 and page.lazy == 1      # a.js twice in <head>; defer, module and the body script do not block
+
+
+def test_assets_collect_keeps_unanswered_files_unknown():
+    sizes = {"https://example.az/a.css": {"bytes": 5000, "cached": True, "type": "text/css"}}
+    got = assets.collect(ASSET_HTML, "https://example.az/", measure=lambda url, verify, deadline: sizes.get(url))
+    by_url = {i["url"]: i for i in got["items"]}
+    assert by_url["https://example.az/a.css"] == {"kind": "style", "url": "https://example.az/a.css", "bytes": 5000, "cached": True, "own": True}
+    assert by_url["https://example.az/a.js"]["bytes"] is None
+    assert by_url["https://cdn.example.com/q.png"]["own"] is False
+    assert got["found"] == 7 and got["blocking"] == 2
+
+
+def test_asset_request_refuses_internal_addresses():
+    """A page can name any address as its picture; it must not make the scanner call an internal one."""
+    internal = lambda host: (_ for _ in ()).throw(UnsafeTarget("internal"))
+    assert assets.measure("https://intranet.example.az/x.png", True, time.monotonic() + 5, resolve=internal) is None
+    assert assets.measure("http://example.az:8080/x.png", True, time.monotonic() + 5) is None
+    assert assets.measure("file:///etc/passwd", True, time.monotonic() + 5) is None
+
+
+@pytest.mark.parametrize(("headers", "cached"), [
+    ({"cache-control": "public, max-age=31536000"}, True), ({"cache-control": "max-age=0"}, False),
+    ({"cache-control": "no-cache"}, False), ({"expires": "Thu, 01 Jan 2099 00:00:00 GMT"}, True), ({}, False),
+    ({"cache-control": "immutable"}, True), ({"cache-control": "no-store, max-age=600"}, False)])
+def test_asset_caching_header(headers, cached):
+    assert assets._cached(headers) is cached
+
+
+def _with_assets(items, **kw):
+    return ctx(assets={"items": items, "found": kw.pop("found", len(items)), "blocking": kw.pop("blocking", 0), "images": 0, "lazy": 0}, **kw)
+
+
+def test_heavy_page_and_images_are_reported():
+    big = [{"kind": "image", "url": f"https://example.az/foto{n}.jpg", "bytes": 2_400_000, "cached": False, "own": True} for n in range(3)]
+    f = by_id(checks.run_checks(_with_assets(big, blocking=5)))
+    assert f["weight"].status == FAIL and "7.2 MB" in f["weight"].detail
+    assert f["img_weight"].status == FAIL and "foto0.jpg" in f["img_weight"].detail
+    assert f["blocking"].status == WARN and f["asset_cache"].status == WARN
+
+
+def test_unmeasured_assets_cost_no_points():
+    unknown = [{"kind": "script", "url": "https://example.az/a.js", "bytes": None, "cached": False, "own": True}]
+    for c in (ctx(assets=None), _with_assets(unknown)):
+        f = by_id(checks.run_checks(c))
+        assert f["weight"].status == INFO and f["asset_cache"].status == INFO
+    assert "ən azı" in by_id(checks.run_checks(_with_assets(
+        [{"kind": "script", "url": "https://example.az/a.js", "bytes": 1000, "cached": True, "own": True}], found=80)))["weight"].detail
+
+
+def test_other_companies_files_do_not_count_against_caching():
+    cdn = [{"kind": "script", "url": f"https://cdn.example.com/{n}.js", "bytes": 1000, "cached": False, "own": False} for n in range(6)]
+    assert by_id(checks.run_checks(_with_assets(cdn)))["asset_cache"].status == INFO

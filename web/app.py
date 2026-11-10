@@ -21,7 +21,9 @@ GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (
 
 from __future__ import annotations
 
+import hashlib
 import hmac
+import json
 import logging
 import os
 import threading
@@ -31,6 +33,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import quote
 
+import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
@@ -122,21 +125,47 @@ def client_ip(request: Request) -> str:
     return ratelimit.client_ip(request.headers, request.client.host if request.client else None)
 
 
-def cache_get(key: str) -> dict | None:
-    with _lock:
-        hit = _cache.get(key)
-        if hit and time.time() - hit[0] < CACHE_SECONDS:
-            return hit[1]
-        _cache.pop(key, None)
-        return None
+def _shared_key(key: str) -> str:
+    return "saytyoxla:cache:" + hashlib.sha256(key.encode()).hexdigest()[:32]
 
 
-def cache_put(key: str, report: dict) -> None:
+def _remember(key: str, report: dict) -> None:
     with _lock:
         _cache[key] = (time.time(), report)
         _cache.move_to_end(key)
         while len(_cache) > CACHE_MAX:
             _cache.popitem(last=False)
+
+
+def cache_get(key: str) -> dict | None:
+    """This instance's memory first, then Redis. On Vercel each request may reach a different instance, so
+    without the shared copy a repeat check (or a shared report link) would scan the site again almost every time."""
+    with _lock:
+        hit = _cache.get(key)
+        if hit and time.time() - hit[0] < CACHE_SECONDS:
+            return hit[1]
+        _cache.pop(key, None)
+    if limiter.redis:
+        try:
+            raw = limiter.redis.command("GET", _shared_key(key))
+            report = json.loads(raw) if raw else None
+        except (ratelimit.RedisError, requests.RequestException, ValueError, TypeError) as e:
+            log.warning("Shared cache unavailable (%s)", type(e).__name__)
+            return None
+        if isinstance(report, dict):
+            _remember(key, report)
+            return report
+    return None
+
+
+def cache_put(key: str, report: dict) -> None:
+    _remember(key, report)
+    if limiter.redis:
+        try:
+            limiter.redis.command("SET", _shared_key(key), json.dumps(report, ensure_ascii=False, separators=(",", ":")),
+                                  "EX", str(CACHE_SECONDS))
+        except (ratelimit.RedisError, requests.RequestException, ValueError, TypeError) as e:
+            log.warning("Shared cache unavailable (%s)", type(e).__name__)
 
 
 def cache_control(path: str, method: str) -> str | None:
@@ -306,7 +335,8 @@ def llms():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    """`limits` tells the owner whether the scan limits really hold across instances (web/ratelimit.py)."""
+    return {"status": "ok", "limits": limiter.state()}
 
 
 @app.post("/api/scan")

@@ -169,7 +169,7 @@ def test_google_verification_only_for_listed_file(monkeypatch):
 
 
 def test_health_still_works_after_catch_all():
-    assert client.get("/health").json() == {"status": "ok"}
+    assert client.get("/health").json()["status"] == "ok"
 
 
 def test_home_page_has_seo_tags():

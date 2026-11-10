@@ -74,12 +74,12 @@ def llms_txt() -> str:
 ## Nəyi yoxlayır
 - Təhlükəsizlik: HTTPS, sertifikatın bitmə tarixi, TLS versiyası, HTTP→HTTPS yönləndirmə, HSTS, clickjacking qorunması, nosniff, CSP-nin keyfiyyəti, Referrer-Policy, cookie qoruması, server versiyasının açıqlanması, qarışıq məzmun
 - E-poçt: SPF, DMARC və geniş yayılmış adlarda DKIM qeydləri (saxta məktublara qarşı)
-- Sürət: serverin cavab vaxtı, HTML həcmi, sıxılma (gzip/brotli), HTTP/2
+- Sürət: serverin cavab vaxtı, səhifənin tam çəkisi (HTML, skript, üslub, şəkil), ağır şəkillər, səhifəni gözlədən skriptlər, faylların keşlənməsi, sıxılma (gzip/brotli), HTTP/2
 - Telefon və Google: viewport, başlıq (title), təsvir, H1, səhifənin dili, canonical, sosial şəbəkə kartı, şəkillərin alt təsviri, Schema.org məlumatı, noindex, robots.txt, sitemap
 
 ## Necə işləyir
 - Nəticə 0–100 bal və A–F qiyməti ilə verilir; hər problemin altında necə düzəldiləcəyi yazılır
-- Yalnız açıq məlumatlara baxılır: əsas səhifə, robots.txt və sitemap.xml bir dəfə açılır, sertifikat və açıq DNS qeydləri oxunur. Sahiblik təsdiqi olmadan gizli yollar yoxlanılmır, heç nə sındırılmağa çalışılmır
+- Yalnız açıq məlumatlara baxılır: əsas səhifə, onun yüklədiyi fayllar (skript, üslub, şəkil), robots.txt və sitemap.xml bir dəfə açılır, sertifikat və açıq DNS qeydləri oxunur. Sahiblik təsdiqi olmadan gizli yollar yoxlanılmır, heç nə sındırılmağa çalışılmır
 - Hesabatı PDF kimi saxlamaq və WhatsApp ilə göndərmək olar
 
 ## Kim üçündür

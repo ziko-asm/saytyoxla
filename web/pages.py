@@ -55,7 +55,7 @@ CONTENT = {
         "az": ("SaytYoxla haqqında", "SaytYoxla kiçik bizneslər üçün saytın təhlükəsizliyini, e-poçt qorumasını və sürətini pulsuz yoxlayan alətdir.", f"""
 <p>SaytYoxla kiçik biznes sahibləri və sayt quranlar üçün pulsuz alətdir. Saytın ünvanını yazırsınız, biz təhlükəsizlik, e-poçt qoruması, sürət və telefona uyğunluq ayarlarını yoxlayıb nəticəni sadə dildə izah edirik.</p>
 <h2>Necə işləyir?</h2>
-<p>Yalnız hər kəsə açıq olan məlumata baxırıq: əsas səhifəni, robots.txt və sitemap.xml fayllarını bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Saytı sındırmağa çalışmırıq və heç nəyi dəyişmirik. Açıq fayl və portlara yalnız saytın sahibi bunu təsdiq etdikdən sonra baxırıq. Bu, tam təhlükəsizlik auditi deyil: kənardan görünməyən problemləri aşkar edə bilmir.</p>
+<p>Yalnız hər kəsə açıq olan məlumata baxırıq: əsas səhifəni, onun yüklədiyi faylları (skript, üslub, şəkil), robots.txt və sitemap.xml fayllarını bir dəfə açırıq, sertifikatı və açıq DNS qeydlərini oxuyuruq. Saytı sındırmağa çalışmırıq və heç nəyi dəyişmirik. Açıq fayl və portlara yalnız saytın sahibi bunu təsdiq etdikdən sonra baxırıq. Bu, tam təhlükəsizlik auditi deyil: kənardan görünməyən problemləri aşkar edə bilmir.</p>
 <h2>Müəllif</h2>
 <p>SaytYoxla-nı Ziya Azizov hazırlayıb.</p>
 <h2>Əlaqə</h2>
@@ -63,7 +63,7 @@ CONTENT = {
         "en": ("About SaytYoxla", "SaytYoxla is a free tool that checks a website's security, e-mail protection and speed for small businesses.", f"""
 <p>SaytYoxla is a free tool for small business owners and the people who build their websites. You enter a site's address, and we check its security, e-mail protection, speed and mobile settings, then explain the result in plain words.</p>
 <h2>How it works</h2>
-<p>We only look at information that is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the certificate and public DNS records. We do not try to break into the site and we change nothing. Exposed files and ports are looked at only after the site's owner has confirmed it. This is not a full security audit: it cannot find problems that are not visible from outside.</p>
+<p>We only look at information that is open to everyone: we open the home page, the files it loads (scripts, styles, images), robots.txt and sitemap.xml once and read the certificate and public DNS records. We do not try to break into the site and we change nothing. Exposed files and ports are looked at only after the site's owner has confirmed it. This is not a full security audit: it cannot find problems that are not visible from outside.</p>
 <h2>Author</h2>
 <p>SaytYoxla was made by Ziya Azizov.</p>
 <h2>Contact</h2>
@@ -71,7 +71,7 @@ CONTENT = {
         "ru": ("О сервисе SaytYoxla", "SaytYoxla — бесплатный инструмент для малого бизнеса: проверка безопасности сайта, защиты почты и скорости.", f"""
 <p>SaytYoxla — бесплатный инструмент для владельцев малого бизнеса и тех, кто делает им сайты. Вы вводите адрес сайта, а мы проверяем безопасность, защиту почты, скорость и адаптацию под телефон и объясняем результат простыми словами.</p>
 <h2>Как это работает</h2>
-<p>Мы смотрим только на открытую информацию: один раз открываем главную страницу, robots.txt и sitemap.xml, читаем сертификат и открытые DNS-записи. Мы не пытаемся взломать сайт и ничего не меняем. Открытые файлы и порты мы смотрим только после подтверждения владельцем сайта. Это не полный аудит безопасности: проблемы, которые не видны снаружи, он найти не может.</p>
+<p>Мы смотрим только на открытую информацию: один раз открываем главную страницу, файлы, которые она загружает (скрипты, стили, изображения), robots.txt и sitemap.xml, читаем сертификат и открытые DNS-записи. Мы не пытаемся взломать сайт и ничего не меняем. Открытые файлы и порты мы смотрим только после подтверждения владельцем сайта. Это не полный аудит безопасности: проблемы, которые не видны снаружи, он найти не может.</p>
 <h2>Автор</h2>
 <p>SaytYoxla создал Ziya Azizov.</p>
 <h2>Контакты</h2>
@@ -89,7 +89,7 @@ CONTENT = {
 <h2>Nə istifadə olunmur?</h2>
 <p>Saytda reklam, izləmə skriptləri və kuki faylları yoxdur. Şriftlər də öz serverimizdən yüklənir.</p>
 <h2>Yoxlanılan sayt nə görür?</h2>
-<p>Yoxlama zamanı saytın əsas səhifəsi, robots.txt və sitemap.xml faylları serverimizdən bir dəfə açılır. Sayt sizin IP ünvanınızı yox, serverimizin ünvanını görür.</p>
+<p>Yoxlama zamanı saytın əsas səhifəsi, onun yüklədiyi fayllar (skript, üslub, şəkil), robots.txt və sitemap.xml faylları serverimizdən bir dəfə açılır. Sayt sizin IP ünvanınızı yox, serverimizin ünvanını görür.</p>
 <h2>Dərin analiz</h2>
 <p>Dərin analiz domen adını sertifikat qeydlərinə (Cert Spotter, crt.sh), qeydiyyat bazasına (rdap.org, IP ünvanı ilə birlikdə) və DNS qara siyahılarına, saytda görünən kitabxananın adı və versiyasını isə zəiflik bazasına (OSV) göndərir. Server proqramının versiyası NVD-yə (nvd.nist.gov), plaginlərin adı wordpress.org-a gedir, açarlar qoşulubsa WPScan, Spamhaus və Google Safe Browsing də sorğulanır. Sayt tərəfdən əsas səhifə, onun öz skriptləri (ən çox 6), robots.txt və security.txt oxunur və TLS bağlantısı sınanır. Əvvəlki yoxlama ilə müqayisə yalnız sizin brauzerinizdə (localStorage) saxlanılır, serverə getmir.</p>
 <p>Dərin yoxlama (açıq fayllar, qovluqlar, portlar, DNS zonası və saytın 30 səhifəyə qədər oxunması, həmçinin ünvan parametrlərinin SQL injection və reflected XSS üçün yalnız oxuyan, dağıdıcı olmayan sorğularla sınağı) yalnız saytın sizin olduğunu DNS qeydi və ya fayl ilə sübut etdikdən sonra işləyir. Fayl və ya açar tapılsa, yalnız yolu və növü göstərilir, məzmunu nə göstərilir, nə də saxlanılır.</p>\n<h2>İzləmə</h2>\n<p>Daimi izləməni özünüz başlatsanız, e-poçt ünvanınız, saytın adı və son yoxlamanın nəticəsi Upstash Redis-də saxlanılır, məktublar Brevo ilə göndərilir. Ünvan yalnız linkə basıb təsdiqlədikdən sonra saxlanılır və hər məktubdakı linklə silinir.</p>
@@ -108,7 +108,7 @@ CONTENT = {
 <h2>What is not used</h2>
 <p>The site has no ads, no tracking scripts and no cookies. Fonts are loaded from our own server too.</p>
 <h2>What the checked site sees</h2>
-<p>During a check, the site's home page, robots.txt and sitemap.xml are opened once from our server. The site sees our server's address, not your IP address.</p>
+<p>During a check, the site's home page, the files it loads (scripts, styles, images), robots.txt and sitemap.xml are opened once from our server. The site sees our server's address, not your IP address.</p>
 <h2>Deep analysis</h2>
 <p>The deep analysis sends the domain name to certificate logs (Cert Spotter, crt.sh), a registration database (rdap.org, along with the IP address) and DNS blocklists, and the name and version of a library visible on the site to a vulnerability database (OSV). A server program's version goes to NVD (nvd.nist.gov) and plugin names to wordpress.org, and when keys are set WPScan, Spamhaus and Google Safe Browsing are asked too. On the site itself the home page, its own scripts (6 at most), robots.txt and security.txt are read, and TLS connections are tried. The comparison with an earlier check is kept only in your browser (localStorage) and does not reach the server.</p>
 <p>The deep check (exposed files, folders, ports, the DNS zone and reading up to 30 pages of the site, and testing address parameters for SQL injection and reflected XSS with read-only, non-destructive requests) runs only after you prove the site is yours with a DNS record or a file. If a file or key is found, only its path and kind are shown; its content is neither shown nor stored.</p>\n<h2>Watching</h2>\n<p>If you start ongoing watching yourself, your e-mail address, the site's name and the last check's result are kept in Upstash Redis, and messages are sent through Brevo. The address is kept only after you confirm by its link, and the link in each message deletes it.</p>
@@ -127,7 +127,7 @@ CONTENT = {
 <h2>Что не используется</h2>
 <p>На сайте нет рекламы, скриптов отслеживания и cookie. Шрифты тоже загружаются с нашего сервера.</p>
 <h2>Что видит проверяемый сайт</h2>
-<p>При проверке главная страница сайта, robots.txt и sitemap.xml один раз открываются с нашего сервера. Сайт видит адрес нашего сервера, а не ваш IP-адрес.</p>
+<p>При проверке главная страница сайта, файлы, которые она загружает (скрипты, стили, изображения), robots.txt и sitemap.xml один раз открываются с нашего сервера. Сайт видит адрес нашего сервера, а не ваш IP-адрес.</p>
 <h2>Глубокий анализ</h2>
 <p>Глубокий анализ отправляет имя домена в журналы сертификатов (Cert Spotter, crt.sh), базу регистрации (rdap.org, вместе с IP-адресом) и чёрные списки DNS, а название и версию библиотеки, видимой на сайте, в базу уязвимостей (OSV). Версия серверной программы уходит в NVD (nvd.nist.gov), названия плагинов на wordpress.org, а при наличии ключей запрашиваются также WPScan, Spamhaus и Google Safe Browsing. На самом сайте читаются главная страница, её собственные скрипты (не более 6), robots.txt и security.txt и проверяются соединения TLS. Сравнение с прошлой проверкой хранится только в вашем браузере (localStorage) и на сервер не передаётся.</p>
 <p>Глубокая проверка (открытые файлы, папки, порты, зона DNS и чтение до 30 страниц сайта, а также проверка параметров адреса на SQL-инъекции и отражённую XSS только читающими, неразрушающими запросами) работает только после того, как вы докажете записью DNS или файлом, что сайт ваш. Если найден файл или ключ, показываются только путь и вид, а содержимое не показывается и не хранится.</p>\n<h2>Наблюдение</h2>\n<p>Если вы сами запустите постоянное наблюдение, ваш e-mail, имя сайта и результат последней проверки хранятся в Upstash Redis, а письма отправляются через Brevo. Адрес сохраняется только после подтверждения по ссылке и удаляется ссылкой из любого письма.</p>

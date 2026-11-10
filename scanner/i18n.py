@@ -325,6 +325,43 @@ EXACT: dict[str, tuple[str, str]] = {
         ("Страница строится на JavaScript, поэтому эти данные могут добавляться в браузере и здесь не проверялись. "
         "Эта проверка не влияет на балл.")),
 
+    # what the page downloads: weight, images, blocking scripts, caching
+    "Səhifənin tam çəkisi": ("Full page weight", "Полный вес страницы"),
+    "Ağır şəkillər": ("Heavy images", "Тяжёлые изображения"),
+    "Səhifəni gözlədən skriptlər": ("Scripts that hold the page back", "Скрипты, задерживающие страницу"),
+    "Faylların brauzerdə saxlanması (keş)": ("Files kept by the browser (cache)", "Хранение файлов в браузере (кэш)"),
+    "Səhifənin faylları (skript, üslub, şəkil) vaxtında ölçülmədi.": (
+        "The page's files (scripts, styles, images) could not be measured in time.",
+        "Файлы страницы (скрипты, стили, изображения) не удалось измерить вовремя."),
+    "Səhifə əlavə skript, üslub və ya şəkil faylı yükləmir.": (
+        "The page loads no extra script, style or image files.",
+        "Страница не загружает дополнительных файлов скриптов, стилей или изображений."),
+    "Ən ağır faylları kiçildin: şəkilləri sıxın, istifadə olunmayan skript və plaginləri silin.": (
+        "Make the heaviest files smaller: compress images and remove scripts and plugins you do not use.",
+        "Уменьшите самые тяжёлые файлы: сожмите изображения, удалите неиспользуемые скрипты и плагины."),
+    "Şəkillərin həcmi vaxtında ölçülmədi.": (
+        "The images could not be measured in time.", "Размер изображений не удалось измерить вовремя."),
+    "Əsas səhifədə ölçülən şəkil faylı yoxdur.": (
+        "The home page has no image files to measure.", "На главной странице нет файлов изображений для измерения."),
+    "Şəkilləri saytda göstərildiyi ölçüyə kiçildin və WebP formatında saxlayın; adətən 200 KB-dan az kifayətdir.": (
+        "Resize images to the size they are shown at and save them as WebP; under 200 KB is usually enough.",
+        "Уменьшите изображения до размера, в котором они показаны, и сохраните в WebP; обычно хватает менее 200 КБ."),
+    "Skriptlər vaxtında yoxlanılmadı.": ("The scripts could not be checked in time.", "Скрипты не удалось проверить вовремя."),
+    "Səhifənin göstərilməsini gözlədən skript yoxdur.": (
+        "No script holds back the display of the page.", "Нет скриптов, задерживающих показ страницы."),
+    "Bu skriptlərə defer və ya async əlavə edin, ya da onları səhifənin sonuna köçürün.": (
+        "Add defer or async to these scripts, or move them to the end of the page.",
+        "Добавьте этим скриптам defer или async либо перенесите их в конец страницы."),
+    "Yoxlamaq üçün saytın öz faylları azdır və ya ölçülmədi.": (
+        "The site has too few files of its own to check, or they could not be measured.",
+        "У сайта слишком мало собственных файлов для проверки, или их не удалось измерить."),
+    "Saytın faylları brauzerdə saxlanılır, təkrar gələn ziyarətçi üçün səhifə daha tez açılır.": (
+        "The browser keeps the site's files, so the page opens faster for a returning visitor.",
+        "Браузер сохраняет файлы сайта, поэтому при повторном визите страница открывается быстрее."),
+    "Şəkil, skript və üslub faylları üçün Cache-Control: max-age başlığı qoyun (məsələn, 1 ay).": (
+        "Set a Cache-Control: max-age header for image, script and style files (for example, 1 month).",
+        "Задайте заголовок Cache-Control: max-age для изображений, скриптов и стилей (например, на 1 месяц)."),
+
     # compression, HTTP/2, image descriptions, structured data
     "Səhifənin sıxılması (gzip)": ("Page compression (gzip)", "Сжатие страницы (gzip)"),
     "Sürətli protokol (HTTP/2)": ("Fast protocol (HTTP/2)", "Быстрый протокол (HTTP/2)"),
@@ -429,6 +466,27 @@ EXACT: dict[str, tuple[str, str]] = {
 
 # (pattern, English template, Russian template); groups are reused by number.
 PATTERNS: list[tuple[re.Pattern, str, str]] = [(re.compile(p, re.DOTALL), en, ru) for p, en, ru in [
+    (r"Səhifə (\d+) faylla birlikdə təxminən ([\d.]+ (?:KB|MB))-dır: skriptlər ([\d.]+ (?:KB|MB)), üslublar ([\d.]+ (?:KB|MB)), şəkillər ([\d.]+ (?:KB|MB))\.",
+     r"With its \1 file(s) the page is about \2: scripts \3, styles \4, images \5.",
+     r"Вместе с файлами (\1) страница весит около \2: скрипты \3, стили \4, изображения \5."),
+    (r"Səhifə (\d+) faylla birlikdə ən azı ([\d.]+ (?:KB|MB))-dır: skriptlər ([\d.]+ (?:KB|MB)), üslublar ([\d.]+ (?:KB|MB)), şəkillər ([\d.]+ (?:KB|MB))\.",
+     r"With the \1 file(s) measured the page is at least \2: scripts \3, styles \4, images \5.",
+     r"Вместе с измеренными файлами (\1) страница весит не менее \2: скрипты \3, стили \4, изображения \5."),
+    (r"Ağır şəkil yoxdur: ən böyüyü ([\d.]+ (?:KB|MB))\.",
+     r"No heavy images: the largest is \1.",
+     r"Тяжёлых изображений нет: самое большое — \1."),
+    (r"(\d+) şəkil 500 KB-dan ağırdır; ən ağırı ([\d.]+ (?:KB|MB)) \((.+)\)\. Telefonda və zəif internetdə səhifə gec açılır\.",
+     r"\1 image(s) are heavier than 500 KB; the heaviest is \2 (\3). The page opens slowly on phones and weak connections.",
+     r"Изображений тяжелее 500 КБ: \1; самое тяжёлое — \2 (\3). На телефоне и при слабом интернете страница открывается медленно."),
+    (r"Səhifənin göstərilməsini gözlədən skriptlərin sayı azdır \((\d+)\)\.",
+     r"Few scripts hold back the display of the page (\1).",
+     r"Скриптов, задерживающих показ страницы, мало (\1)."),
+    (r"Səhifənin başında (\d+) skript var və brauzer onlar yüklənənə qədər heç nə göstərmir\.",
+     r"The top of the page has \1 scripts, and the browser shows nothing until they have loaded.",
+     r"В начале страницы скриптов: \1, и браузер ничего не показывает, пока они не загрузятся."),
+    (r"Saytın (\d+) faylından (\d+) ədədi brauzerdə saxlanılmır; ziyarətçi hər dəfə onları yenidən yükləyir\.",
+     r"\2 of the site's \1 files are not kept by the browser; a visitor downloads them again every time.",
+     r"Из файлов сайта (\1) браузер не сохраняет \2; посетитель каждый раз загружает их заново."),
     (r"Sertifikatın vaxtı (-?\d+) gün sonra bitir\.",
      r"The certificate expires in \1 days.",
      r"Срок действия сертификата истекает через \1 дн."),

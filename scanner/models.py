@@ -42,6 +42,7 @@ class Context:
     robots: str | None = None                       # robots.txt text; "" if there is none, None if not checked
     sitemap: bool | None = None                     # does the site publish a sitemap? None if not checked
     dkim: list | None = None                        # common DKIM selectors that answered; None if not checked
+    assets: dict | None = None                      # the page's scripts, styles and images (scanner/assets.py); None if not measured
     error: str | None = None
 
 

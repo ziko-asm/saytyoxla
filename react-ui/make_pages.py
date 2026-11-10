@@ -114,9 +114,9 @@ T = [
      "Whether others can send fake e-mails in your name.",
      "Могут ли другие отправлять поддельные письма от вашего имени."),
     ("<h3>Sürət</h3>", "<h3>Speed</h3>", "<h3>Скорость</h3>"),
-    ("Serverin ABŞ-dan ölçülən cavab vaxtı və səhifənin HTML həcmi. Şəkil və skriptlərin sürəti ölçülmür.",
-     "The server's response time, measured from the USA, and the size of the page's HTML. Images and scripts are not timed.",
-     "Время ответа сервера, измеренное из США, и размер HTML страницы. Скорость изображений и скриптов не измеряется."),
+    ("Serverin ABŞ-dan ölçülən cavab vaxtı, səhifənin skript və şəkillərlə birlikdə tam çəkisi, ağır şəkillər və keşləmə.",
+     "The server's response time, measured from the USA, the full weight of the page with its scripts and images, heavy images and caching.",
+     "Время ответа сервера, измеренное из США, полный вес страницы со скриптами и изображениями, тяжёлые изображения и кэширование."),
     ("<h3>Telefon və Google</h3>", "<h3>Mobile and Google</h3>", "<h3>Телефон и Google</h3>"),
     ("Saytın telefonda düzgün görünməsi və Google axtarışında necə göstərildiyi.",
      "Whether the site looks right on a phone and how it shows up in Google search.",
@@ -184,11 +184,11 @@ T = [
      ("Чаще всего на странице нет тега «viewport» — тогда телефон открывает сайт в размере компьютера и уменьшает его. "
      "SaytYoxla проверяет это в разделе «Мобильные и Google» и показывает, какой тег добавить.")),
     ("Yoxlama saytıma zərər verə bilər?", "Can the check harm my website?", "Может ли проверка навредить сайту?"),
-    (("Xeyr. Biz yalnız hər kəsə açıq olana baxırıq: əsas səhifəni, robots.txt və sitemap.xml fayllarını bir dəfə açırıq, "
+    (("Xeyr. Biz yalnız hər kəsə açıq olana baxırıq: əsas səhifəni, onun yüklədiyi faylları (skript, üslub, şəkil), robots.txt və sitemap.xml fayllarını bir dəfə açırıq, "
      "sertifikatı və açıq DNS qeydlərini oxuyuruq. Heç nəyi dəyişmirik və heç nəyi sındırmağa çalışmırıq. Açıq fayl və portlara yalnız sayt sahibi təsdiq etdikdən sonra, dərin yoxlamada baxılır."),
-     ("No. We only look at what is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the "
+     ("No. We only look at what is open to everyone: we open the home page, the files it loads (scripts, styles, images), robots.txt and sitemap.xml once and read the "
      "certificate and public DNS records. We change nothing and try to break nothing. Exposed files and ports are looked at only in the deep check, after the site's owner has confirmed it."),
-     ("Нет. Мы смотрим только на то, что открыто всем: один раз открываем главную страницу, robots.txt и sitemap.xml, "
+     ("Нет. Мы смотрим только на то, что открыто всем: один раз открываем главную страницу, файлы, которые она загружает (скрипты, стили, изображения), robots.txt и sitemap.xml, "
      "читаем сертификат и открытые DNS-записи. Ничего не меняем и ничего не пытаемся взломать. Открытые файлы и порты смотрим только в глубокой проверке, после подтверждения владельцем сайта.")),
     ("Məlumatlarım saxlanılır?", "Is my data stored?", "Сохраняются ли мои данные?"),
     (("Adınızı və telefonunuzu soruşmuruq, kuki və izləmə skriptləri də yoxdur. E-poçt yalnız saytınızın daimi "

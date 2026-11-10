@@ -430,6 +430,89 @@ def http2(ctx: Context, page) -> Finding:
                    "" if ok else "Hostinq panelində və ya serverdə HTTP/2-ni açın; əksər hostinqlərdə bu pulsuzdur.", 2)
 
 
+def _size(n: float) -> str:
+    return f"{n / 1_000_000:.1f} MB" if n >= 1_000_000 else f"{max(1, round(n / 1000)) if n else 0} KB"
+
+
+def _measured(ctx: Context, kind: str | None = None) -> list:
+    return [i for i in (ctx.assets or {}).get("items", []) if i["bytes"] is not None and kind in (None, i["kind"])]
+
+
+HEAVY_PAGE, VERY_HEAVY_PAGE = 2_000_000, 5_000_000
+
+
+def page_weight(ctx: Context, page) -> Finding:
+    """HTML plus the scripts, styles and images it names: what a first visit downloads."""
+    title = "Səhifənin tam çəkisi"
+    if ctx.assets is None:
+        return Finding("weight", SPEED, title, INFO, "Səhifənin faylları (skript, üslub, şəkil) vaxtında ölçülmədi.")
+    items = _measured(ctx)
+    if not ctx.assets["items"]:
+        return Finding("weight", SPEED, title, OK, "Səhifə əlavə skript, üslub və ya şəkil faylı yükləmir.", "", 5)
+    if not items:
+        return Finding("weight", SPEED, title, INFO, "Səhifənin faylları (skript, üslub, şəkil) vaxtında ölçülmədi.")
+    part = lambda kind: _size(sum(i["bytes"] for i in items if i["kind"] == kind))
+    total = ctx.html_bytes + sum(i["bytes"] for i in items)
+    partial = ctx.assets["found"] > len(items)          # more files than were asked for, or some did not answer
+    st = OK if total < HEAVY_PAGE else WARN if total < VERY_HEAVY_PAGE else FAIL
+    detail = (f"Səhifə {len(items)} faylla birlikdə {'ən azı' if partial else 'təxminən'} {_size(total)}-dır: "
+              f"skriptlər {part('script')}, üslublar {part('style')}, şəkillər {part('image')}.")
+    return Finding("weight", SPEED, title, st, detail,
+                   "" if st == OK else "Ən ağır faylları kiçildin: şəkilləri sıxın, istifadə olunmayan skript və plaginləri silin.", 5)
+
+
+HEAVY_IMAGE = 500_000
+
+
+def heavy_images(ctx: Context, page) -> Finding:
+    title = "Ağır şəkillər"
+    if ctx.assets is None:
+        return Finding("img_weight", SPEED, title, INFO, "Şəkillərin həcmi vaxtında ölçülmədi.")
+    images = sorted(_measured(ctx, "image"), key=lambda i: -i["bytes"])
+    if not images:
+        return Finding("img_weight", SPEED, title, OK, "Əsas səhifədə ölçülən şəkil faylı yoxdur.", "", 3)
+    heavy = [i for i in images if i["bytes"] >= HEAVY_IMAGE]
+    name = (urlsplit(images[0]["url"]).path.rsplit("/", 1)[-1] or "şəkil")[:40]
+    if not heavy:
+        return Finding("img_weight", SPEED, title, OK, f"Ağır şəkil yoxdur: ən böyüyü {_size(images[0]['bytes'])}.", "", 3)
+    return Finding("img_weight", SPEED, title, FAIL if images[0]["bytes"] >= 4 * HEAVY_IMAGE else WARN,
+                   f"{len(heavy)} şəkil 500 KB-dan ağırdır; ən ağırı {_size(images[0]['bytes'])} ({name}). "
+                   "Telefonda və zəif internetdə səhifə gec açılır.",
+                   "Şəkilləri saytda göstərildiyi ölçüyə kiçildin və WebP formatında saxlayın; adətən 200 KB-dan az kifayətdir.", 3)
+
+
+MANY_BLOCKING = 4
+
+
+def blocking_scripts(ctx: Context, page) -> Finding:
+    title = "Səhifəni gözlədən skriptlər"
+    if ctx.assets is None:
+        return Finding("blocking", SPEED, title, INFO, "Skriptlər vaxtında yoxlanılmadı.")
+    n = ctx.assets["blocking"]
+    if n < MANY_BLOCKING:
+        return Finding("blocking", SPEED, title, OK,
+                       "Səhifənin göstərilməsini gözlədən skript yoxdur." if not n else
+                       f"Səhifənin göstərilməsini gözlədən skriptlərin sayı azdır ({n}).", "", 2)
+    return Finding("blocking", SPEED, title, WARN,
+                   f"Səhifənin başında {n} skript var və brauzer onlar yüklənənə qədər heç nə göstərmir.",
+                   "Bu skriptlərə defer və ya async əlavə edin, ya da onları səhifənin sonuna köçürün.", 2)
+
+
+def asset_caching(ctx: Context, page) -> Finding:
+    """Only the site's own files: what another company's server sends is not the owner's to fix."""
+    title = "Faylların brauzerdə saxlanması (keş)"
+    own = [i for i in _measured(ctx) if i["own"]]
+    if ctx.assets is None or len(own) < 3:
+        return Finding("asset_cache", SPEED, title, INFO, "Yoxlamaq üçün saytın öz faylları azdır və ya ölçülmədi.")
+    uncached = sum(not i["cached"] for i in own)
+    if uncached * 2 <= len(own):
+        return Finding("asset_cache", SPEED, title, OK,
+                       "Saytın faylları brauzerdə saxlanılır, təkrar gələn ziyarətçi üçün səhifə daha tez açılır.", "", 2)
+    return Finding("asset_cache", SPEED, title, WARN,
+                   f"Saytın {len(own)} faylından {uncached} ədədi brauzerdə saxlanılmır; ziyarətçi hər dəfə onları yenidən yükləyir.",
+                   "Şəkil, skript və üslub faylları üçün Cache-Control: max-age başlığı qoyun (məsələn, 1 ay).", 2)
+
+
 # ---------------------------------------------------------------- mobile & search
 def viewport(ctx: Context, page) -> Finding:
     ok = "width=device-width" in page.meta.get("viewport", "").replace(" ", "")
@@ -552,7 +635,8 @@ def sitemap(ctx: Context, page) -> Finding:
 
 
 ALL_CHECKS = [https_used, certificate, tls_version, http_redirect, hsts, framing, nosniff, csp, referrer, cookies,
-              disclosure, mixed_content, spf, dmarc, dkim, response_time, html_size, compression, http2, viewport,
+              disclosure, mixed_content, spf, dmarc, dkim, response_time, html_size, page_weight, heavy_images,
+              blocking_scripts, asset_caching, compression, http2, viewport,
               title_tag, description, heading, language, canonical, open_graph, image_alt, structured_data,
               indexing, sitemap]
 
