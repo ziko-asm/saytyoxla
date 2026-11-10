@@ -191,13 +191,16 @@ T = [
      ("Нет. Мы смотрим только на то, что открыто всем: один раз открываем главную страницу, robots.txt и sitemap.xml, "
      "читаем сертификат и открытые DNS-записи. Ничего не меняем и ничего не пытаемся взломать. Открытые файлы и порты смотрим только в глубокой проверке, после подтверждения владельцем сайта.")),
     ("Məlumatlarım saxlanılır?", "Is my data stored?", "Сохраняются ли мои данные?"),
-    (("Ad, telefon və ya e-poçt soruşmuruq, kuki və izləmə skriptləri də yoxdur. Yoxlanılan ünvan və nəticə təkrar "
+    (("Adınızı və telefonunuzu soruşmuruq, kuki və izləmə skriptləri də yoxdur. E-poçt yalnız saytınızın daimi "
+     "izlənməsini özünüz seçsəniz lazımdır və izləməni dayandıranda silinir. Yoxlanılan ünvan və nəticə təkrar "
      "yoxlamanı sürətləndirmək üçün 10 dəqiqəyə qədər, IP ünvanınız isə sui-istifadəni məhdudlaşdıran sayğacda ən çox "
      "1 gün qalır."),
-     ("We do not ask for your name, phone or e-mail, and there are no cookies or tracking scripts. The checked address "
-     "and its result stay for up to 10 minutes to speed up a repeat check, and your IP address stays for up to 1 day "
-     "in the counter that limits abuse."),
-     ("Мы не спрашиваем имя, телефон или e-mail, cookie и скриптов отслеживания нет. Проверенный адрес и результат "
+     ("We do not ask for your name or phone, and there are no cookies or tracking scripts. An e-mail address is needed "
+     "only if you choose ongoing watching of your site yourself, and it is deleted when you stop the watching. The "
+     "checked address and its result stay for up to 10 minutes to speed up a repeat check, and your IP address stays "
+     "for up to 1 day in the counter that limits abuse."),
+     ("Мы не спрашиваем имя и телефон, cookie и скриптов отслеживания нет. E-mail нужен, только если вы сами выберете "
+     "постоянное наблюдение за сайтом, и удаляется, когда вы его останавливаете. Проверенный адрес и результат "
      "хранятся до 10 минут, чтобы ускорить повторную проверку, а ваш IP-адрес — до 1 дня в счётчике, ограничивающем "
      "злоупотребления.")),
     ("Bal nə deməkdir?", "What does the score mean?", "Что означает балл?"),

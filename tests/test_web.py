@@ -350,3 +350,20 @@ def test_head_is_answered_like_get():
         r = client.head(path)
         assert r.status_code == 200 and r.content == b"", path
     assert client.head("/no-such-page").status_code == 404
+
+
+def test_api_schema_is_not_published():
+    assert client.get("/openapi.json").status_code == 404
+
+
+def test_tools_page_does_not_repeat_the_home_page_questions():
+    home, tools = client.get("/").text, client.get("/aletler/").text
+    assert '"FAQPage"' in home and 'id="faq"' in home
+    assert '"FAQPage"' not in tools and 'id="faq"' not in tools and 'id="what"' not in tools
+    assert '"WebApplication"' in tools and '<footer' in tools and 'id="root"' in tools
+
+
+def test_glossary_has_a_share_card():
+    page = client.get("/lugat/").text
+    assert 'property="og:image"' in page and 'property="og:title"' in page
+    assert page.count('rel="canonical"') == 1 and "hreflang" not in page.split("</head>")[0]

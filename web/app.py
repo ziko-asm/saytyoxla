@@ -29,6 +29,7 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
@@ -53,7 +54,7 @@ REACT = Path(__file__).parent / "react"      # built by react-ui (npm run build)
 CACHE_SECONDS = 600
 CACHE_MAX = 500                              # finished reports kept per instance (oldest dropped first)
 
-app = FastAPI(title="SaytYoxla", version="0.3.0", docs_url=None, redoc_url=None)
+app = FastAPI(title="SaytYoxla", version="0.3.0", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 app.mount("/react", StaticFiles(directory=REACT), name="react")
 
@@ -141,7 +142,7 @@ def cache_put(key: str, report: dict) -> None:
 def cache_control(path: str, method: str) -> str | None:
     """Hashed React assets never change; other files and pages may be served from Vercel's edge for a
     while, so most visits never start the Python function. The scan API is never cached."""
-    if path.startswith("/api/"):
+    if path.startswith(("/api/", "/monitor/")):      # a signed link's page is for one person
         return "no-store"
     if method not in ("GET", "HEAD"):
         return None
@@ -432,17 +433,39 @@ def monitor_subscribe(req: MonitorRequest, request: Request):
     return {"sent": True}
 
 
-def _monitor_answer(lang: str | None, word: str) -> PlainTextResponse:
+def _monitor_answer(lang: str | None, word: str) -> HTMLResponse:
     words = scanner_monitor.words(lang or "az")
-    return PlainTextResponse(words[word] if lang else words["bad_link"], status_code=200 if lang else 400)
+    return HTMLResponse(pages.notice(lang or "az", words[word] if lang else words["bad_link"]), status_code=200 if lang else 400)
+
+
+def _monitor_ask(action: str, token: str) -> HTMLResponse:
+    """Opening the link only shows a button. Mail scanners open every link in a message, so a link that acted
+    on a GET would confirm or stop the watching without the person; the button sends a POST, which they do not."""
+    found = scanner_monitor.read_token(token, action)
+    if not found:
+        return _monitor_answer(None, "bad_link")
+    host, _, lang = found
+    words = scanner_monitor.words(lang)
+    return HTMLResponse(pages.notice(lang, words[f"{action}_ask"].format(host=host), button=words[f"{action}_button"],
+                                     post_to=f"/monitor/{action}?t={quote(token, safe='')}"))
 
 
 @app.get("/monitor/confirm", include_in_schema=False)
+def monitor_confirm_page(t: str = ""):
+    return _monitor_ask("confirm", t)
+
+
+@app.post("/monitor/confirm", include_in_schema=False)
 def monitor_confirm(t: str = ""):
     return _monitor_answer(scanner_monitor.confirm(t), "confirmed")
 
 
 @app.get("/monitor/stop", include_in_schema=False)
+def monitor_stop_page(t: str = ""):
+    return _monitor_ask("stop", t)
+
+
+@app.post("/monitor/stop", include_in_schema=False)
 def monitor_stop(t: str = ""):
     return _monitor_answer(scanner_monitor.stop(t), "stopped")
 

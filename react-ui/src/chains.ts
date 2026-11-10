@@ -19,7 +19,8 @@ export function findChains({ items, csp, hsts }: Evidence): Chain[] {
   if (takeovers.length && mailOpen.length) add('brand_phish', 'critical', takeovers[0].params, [takeovers[0], ...mailOpen])
   else {
     takeovers.forEach((x) => add('subdomain_takeover', 'high', x.params, [x]))
-    if (mailOpen.length) add('fake_mail', 'high', {}, mailOpen)
+    // A DMARC record that only watches (p=none) is advice in the short check, so it is not "high" here either
+    if (mailOpen.length) add('fake_mail', mailOpen.some((x) => x.status === 'fail') ? 'high' : 'medium', {}, mailOpen)
   }
   all('safe_browsing_listed').forEach((x) => add('browser_warning', 'critical', x.params, [x]))
   all('js_secret').forEach((x) => add('leaked_key', 'critical', x.params, [x]))

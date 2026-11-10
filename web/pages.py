@@ -7,7 +7,9 @@ the rate-limit counters in web/ratelimit.py (up to a day) and the absence of coo
 
 from __future__ import annotations
 
+import json
 import re
+from html import escape
 
 from web.seo import SITE_URL
 
@@ -214,6 +216,8 @@ li{margin:0 0 8px}
 .btn{display:inline-block;background:#f59e0b;color:#231500;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:12px;margin-top:8px}
 footer{color:var(--muted);font-size:14px;padding:32px 0 40px}
 footer a{display:inline-block;padding:13px 4px}
+@media (pointer:coarse){main p a,main li a{display:inline-block;padding:11px 2px}}
+.btn-plain{border:0;cursor:pointer;font:700 16px/1.2 var(--font)}
 .skip{position:absolute;left:12px;top:-80px;background:#1d4ed8;color:#fff;padding:12px 16px;border-radius:10px;font-weight:700;text-decoration:none}
 .skip:focus{top:8px}
 @media (max-width:640px){.langs a{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:44px;padding:0 4px}}
@@ -259,7 +263,7 @@ def _shell(lang: str, title: str, desc: str, body: str, paths: dict[str, str], r
 <title>{title} | SaytYoxla</title>
 <meta name="description" content="{desc}">
 <meta name="robots" content="{robots}">
-{alt}<link rel="icon" href="{ICON}">
+{alt}<link rel="icon" type="image/svg+xml" href="{ICON}">
 {ICON_LINKS}
 <link rel="preload" href="/static/fonts/inter-4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts.css">
@@ -293,7 +297,28 @@ def tools_page(home_html: str, lang: str) -> str:
     for code in LANGS:
         html = html.replace(f'hreflang="{code}" href="{SITE_URL}{HOMES[code]}"', f'hreflang="{code}" href="{SITE_URL}{TOOLS_PATHS[code]}"')
     html = html.replace(f'hreflang="x-default" href="{SITE_URL}/"', f'hreflang="x-default" href="{SITE_URL}{TOOLS_PATHS["az"]}"')
-    return re.sub(r"<h1>.*?</h1>", f"<h1>{heading}</h1>", html, count=1, flags=re.DOTALL)
+    html = re.sub(r"<h1>.*?</h1>", f"<h1>{heading}</h1>", html, count=1, flags=re.DOTALL)
+    # The questions and the "what we check" cards belong to the home page: repeated here they are duplicate
+    # content, and a second FAQPage with the same questions is ignored or penalised by search engines
+    html = re.sub(r"<!-- Static content stays.*?(?=<footer)", "", html, count=1, flags=re.DOTALL)
+    return re.sub(r'(<script type="application/ld\+json">)(.*?)(</script>)', _without_faq, html, count=1, flags=re.DOTALL)
+
+
+def _without_faq(m: re.Match) -> str:
+    try:
+        data = json.loads(m.group(2))
+    except ValueError:
+        return m.group(0)
+    data["@graph"] = [node for node in data.get("@graph", []) if node.get("@type") != "FAQPage"]
+    return m.group(1) + "\n" + json.dumps(data, ensure_ascii=False, indent=1) + "\n" + m.group(3)
+
+
+def notice(lang: str, text: str, button: str = "", post_to: str = "") -> str:
+    """A one-sentence page, with a button that POSTs when the visitor has to agree to something (web/app.py)."""
+    body = f"<h1>SaytYoxla</h1>\n<p>{escape(text)}</p>"
+    if button:
+        body += f'\n<form method="post" action="{escape(post_to)}"><button class="btn btn-plain" type="submit">{escape(button)}</button></form>'
+    return _shell(lang, "SaytYoxla", escape(text), body, HOMES, robots="noindex")
 
 
 def page(key: str, lang: str) -> str:

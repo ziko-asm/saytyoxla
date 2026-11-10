@@ -187,7 +187,8 @@ def run_mail(monkeypatch, spf, dmarc, parent=None, mx=("none", []), dkim=None):
 
 def test_without_dmarc_policy_mail_can_be_faked(monkeypatch):
     got = run_mail(monkeypatch, ["v=spf1 -all"], ["v=DMARC1; p=none"])
-    assert got["spoof_open"]["status"] == "fail"
+    assert got["spoof_open"]["status"] == "warn"      # a record exists, it only watches
+    assert run_mail(monkeypatch, ["v=spf1 -all"], [])["spoof_open"]["status"] == "fail"
     assert got["spf_ok"]["status"] == "ok"
 
 
@@ -614,6 +615,7 @@ def watching(monkeypatch):
     monkeypatch.setattr(monitor, "_redis", redis)
     mails = []
     monkeypatch.setattr(monitor, "send_mail", lambda to, subject, text: mails.append((to, subject, text)) or True)
+    monkeypatch.setattr(deep, "is_owner", lambda h: True)
     return store, mails
 
 
@@ -694,6 +696,39 @@ def test_timer_needs_its_secret(watching, monkeypatch):
     assert client.post("/api/cron/monitor").status_code == 401
     assert client.post("/api/cron/monitor", headers={"Authorization": "Bearer wrong"}).status_code == 401
     assert client.post("/api/cron/monitor", headers={"Authorization": "Bearer c"}).status_code == 200
+
+
+def test_opening_a_link_changes_nothing_until_the_button_is_pressed(watching):
+    """Mail scanners open every link in a message: a GET must neither start nor stop the watching."""
+    store, _ = watching
+    client = TestClient(app_module.app)
+    confirm = monitor.sign("confirm", "a.az", "x@a.az", "en")
+    page = client.get(f"/monitor/confirm?t={confirm}")
+    assert page.status_code == 200 and 'method="post"' in page.text and "a.az" in page.text
+    assert page.headers["cache-control"] == "no-store"
+    assert not store["keys"]
+    assert client.post(f"/monitor/confirm?t={confirm}").status_code == 200
+    assert len(store["keys"]) == 1
+    stop = monitor.sign("stop", "a.az", "x@a.az", "en")
+    assert client.get(f"/monitor/stop?t={stop}").status_code == 200
+    assert len(store["keys"]) == 1
+    assert client.post(f"/monitor/stop?t={stop}").status_code == 200
+    assert not store["keys"]
+
+
+def test_link_page_escapes_what_it_echoes(watching):
+    token = monitor.sign("stop", "a.az", "x@a.az", "az")
+    page = TestClient(app_module.app).get("/monitor/stop", params={"t": token + '"><script>'})
+    assert "<script>" not in page.text.split("</head>")[1].replace('<script type', '')
+
+
+def test_a_site_no_longer_proven_is_not_reported_on(watching, monkeypatch):
+    _, mails = watching
+    monitor.confirm(monitor.sign("confirm", "s.az", "x@a.az", "az"))
+    monkeypatch.setattr(monitor, "snapshot", lambda h: {"hosts": ["new.az"], "problems": [], "days": 5})
+    monkeypatch.setattr(deep, "is_owner", lambda h: False)
+    assert monitor.run("https://s", now=1000000) == {"checked": 0, "sent": 0}
+    assert not mails
 
 
 def test_bad_links_say_so():

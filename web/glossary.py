@@ -274,5 +274,12 @@ mark{background:#7a5d00;color:#fff}
 
 def page() -> str:
     html = _shell("az", TITLE, DESC, body(), {"az": PATH, "en": HOMES["en"], "ru": HOMES["ru"]})
-    html = html.replace('<link rel="icon"', f'<link rel="canonical" href="{SITE_URL}{PATH}">\n<link rel="icon"', 1)
+    # The card a shared link shows in WhatsApp, Telegram and Facebook
+    head = (f'<link rel="canonical" href="{SITE_URL}{PATH}">\n<meta property="og:type" content="article">\n'
+            f'<meta property="og:site_name" content="SaytYoxla">\n<meta property="og:locale" content="az_AZ">\n'
+            f'<meta property="og:url" content="{SITE_URL}{PATH}">\n<meta property="og:title" content="{escape(TITLE)}">\n'
+            f'<meta property="og:description" content="{escape(DESC)}">\n<meta property="og:image" content="{SITE_URL}/static/og-image.png">\n'
+            f'<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n'
+            f'<meta name="twitter:card" content="summary_large_image">\n')
+    html = html.replace('<link rel="icon"', head + '<link rel="icon"', 1)
     return html.replace("</style>", STYLE_EXTRA + "</style>", 1)

@@ -42,7 +42,7 @@ export type PdfWords = {
 const AZ: Words = {
   items: {
     surface_unavailable: ['Sertifikat qeydləri cavab vermədi', 'İctimai sertifikat qeydlərinə çatmaq alınmadı, ona görə subdomenlər haqqında heç nə demək olmur.', 'Bir az sonra yenidən yoxlayın.'],
-    surface_count: ['Tapılan subdomen sayı: {total}', 'Sertifikat qeydlərində bu domenə aid {total} ad var, baxılanlardan {live} ədədi hazırda DNS-də işləyir. Bu siyahını hər kəs görə bilər.'],
+    surface_count: ['Tapılan subdomen sayı: {total}', 'Sertifikat qeydlərində əsas domen və www-dən başqa {total} subdomen adı var, baxılanlardan {live} ədədi hazırda DNS-də işləyir. Bu siyahını hər kəs görə bilər.'],
     takeover_risk: ['{host} ələ keçirilə bilər', '{host} ünvanı {target} xidmətinə yönəlir, amma o xidmət bu adı artıq tanımır. Belə hallarda başqası həmin adı öz hesabında götürüb sizin subdomeninizdə öz səhifəsini aça bilər.', 'Xidmətdən istifadə etmirsinizsə, bu CNAME qeydini DNS-dən silin. İstifadə edirsinizsə, adı xidmətdə yenidən bağlayın.'],
     dangling_cname: ['{host} mövcud olmayan ünvana yönəlir', '{host} ünvanının CNAME qeydi {target} ünvanına gedir, amma o ad DNS-də yoxdur. Həmin domen boşdursa, başqası onu qeydiyyatdan keçirə bilər.', 'Qeyd lazım deyilsə, DNS-dən silin.'],
     sensitive_hosts: ['Diqqət tələb edən {count} subdomen', 'Bu adlar işləyir və adlarına görə sınaq, köhnə və ya idarəetmə xidmətinə oxşayır: {hosts}. Belə xidmətlər çox vaxt əsas saytdan zəif qorunur. Ad təkbaşına problem demək deyil.', 'Hər birinə baxın: lazım deyilsə söndürün, lazımdırsa parol və ya VPN arxasına alın.'],
@@ -298,7 +298,7 @@ const AZ: Words = {
 const EN: Words = {
   items: {
     surface_unavailable: ['Certificate logs did not answer', 'The public certificate logs could not be reached, so nothing can be said about subdomains.', 'Check again a little later.'],
-    surface_count: ['Subdomains found: {total}', 'Certificate logs list {total} names under this domain, and {live} of those checked work in DNS now. Anyone can see this list.'],
+    surface_count: ['Subdomains found: {total}', 'Besides the main domain and www, certificate logs list {total} subdomain names, and {live} of those checked work in DNS now. Anyone can see this list.'],
     takeover_risk: ['{host} could be taken over', '{host} points to {target}, but that service no longer recognises the name. In such cases someone else can claim the name in their own account and serve their page on your subdomain.', 'If you no longer use the service, delete this CNAME from DNS. If you do, connect the name to the service again.'],
     dangling_cname: ['{host} points to a name that does not exist', 'The CNAME of {host} goes to {target}, which is not in DNS. If that domain is free, someone else could register it.', 'Delete the record if it is not needed.'],
     sensitive_hosts: ['{count} subdomains need a look', 'These names work and look like test, old or admin services: {hosts}. Such services are often less protected than the main site. A name alone is not a problem.', 'Look at each one: switch it off if unused, otherwise put it behind a password or VPN.'],
@@ -554,7 +554,7 @@ const EN: Words = {
 const RU: Words = {
   items: {
     surface_unavailable: ['Журналы сертификатов не ответили', 'Публичные журналы сертификатов недоступны, поэтому о поддоменах сказать нечего.', 'Проверьте немного позже.'],
-    surface_count: ['Найдено поддоменов: {total}', 'В журналах сертификатов {total} имён этого домена, из проверенных {live} сейчас работают в DNS. Этот список может увидеть любой.'],
+    surface_count: ['Найдено поддоменов: {total}', 'Кроме основного домена и www, в журналах сертификатов {total} имён поддоменов, из проверенных {live} сейчас работают в DNS. Этот список может увидеть любой.'],
     takeover_risk: ['{host} может быть захвачен', '{host} указывает на {target}, но этот сервис больше не знает такое имя. В таких случаях другой человек может занять имя в своём аккаунте и показывать свою страницу на вашем поддомене.', 'Если сервис не используется, удалите эту CNAME из DNS. Если используется, снова привяжите имя в сервисе.'],
     dangling_cname: ['{host} указывает на несуществующее имя', 'CNAME для {host} ведёт на {target}, которого нет в DNS. Если тот домен свободен, его может зарегистрировать другой человек.', 'Удалите запись, если она не нужна.'],
     sensitive_hosts: ['Поддомены, требующие внимания: {count}', 'Эти имена работают и похожи на тестовые, старые или служебные сервисы: {hosts}. Такие сервисы часто защищены хуже основного сайта. Само имя ещё не проблема.', 'Проверьте каждый: отключите ненужные, остальные закройте паролем или VPN.'],
