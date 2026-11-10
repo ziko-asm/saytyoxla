@@ -1,7 +1,8 @@
 // Builds the report as a PDF file in the visitor's browser and downloads it. Nothing goes through the
 // system print dialog (phones need a "printer" chosen there) and nothing is sent to a server.
-// Each page is drawn on a canvas and stored as a JPEG, so every letter (ə, ş, я) looks as it does on screen
-// and no font has to be embedded.
+// Each page is drawn on a canvas and stored as a JPEG, so every letter (ə, ş, я) looks as it does on screen.
+// Over the picture lies the same text, invisible: it is what makes the report searchable, selectable and
+// readable by a screen reader. Its font has no shapes (nothing is ever drawn with it), so it is 620 bytes.
 
 import type { Finding, Report, Status } from './types'
 import { LANG, t } from './i18n'
@@ -72,6 +73,29 @@ function statusIcon(c: Ctx, status: Status, cx: number, cy: number) {
   c.stroke()
 }
 
+// One string as it was drawn: where (canvas pixels, left end of the baseline), how tall and how wide
+export type TextRun = { text: string; x: number; y: number; size: number; width: number }
+const RUNS = new WeakMap<HTMLCanvasElement, TextRun[]>()
+export const runsOf = (canvas: HTMLCanvasElement) => RUNS.get(canvas) || []
+const BASELINE: Record<string, number> = { top: 0.8, hanging: 0.8, middle: 0.3, alphabetic: 0, ideographic: -0.1, bottom: -0.2 }
+
+// Every fillText on this canvas is also written down. getContext returns the same object each time,
+// so text added later (page numbers, the table of contents) is recorded too.
+function recordText(canvas: HTMLCanvasElement, c: Ctx) {
+  const runs: TextRun[] = []
+  RUNS.set(canvas, runs)
+  const draw = c.fillText.bind(c)
+  c.fillText = (text: string, x: number, y: number, maxWidth?: number) => {
+    if (maxWidth === undefined) draw(text, x, y)
+    else draw(text, x, y, maxWidth)
+    const size = parseFloat(/(\d+(?:\.\d+)?)px/.exec(c.font)?.[1] || '0')
+    const width = c.measureText(text).width
+    if (!text.trim() || !size || !width) return
+    const left = c.textAlign === 'center' ? x - width / 2 : c.textAlign === 'right' || c.textAlign === 'end' ? x - width : x
+    runs.push({ text, x: left, y: y + size * (BASELINE[c.textBaseline] ?? 0), size, width })
+  }
+}
+
 export class Pages {
   canvases: HTMLCanvasElement[] = []
   c!: Ctx
@@ -88,6 +112,7 @@ export class Pages {
     c.fillStyle = '#fff'
     c.fillRect(0, 0, W, H)
     c.textBaseline = 'top'
+    recordText(canvas, c)
     this.canvases.push(canvas)
     this.c = c
     this.y = M
@@ -231,8 +256,29 @@ function jpegOf(canvas: HTMLCanvasElement): Promise<Uint8Array> {
   })
 }
 
-// A minimal PDF: one page per image (objects: 1 catalog, 2 page list, then page + content + image for each)
-export function buildPdf(images: Uint8Array[], width = W, height = H): Uint8Array {
+// A font with no shapes: two empty glyphs, every character 500 units wide (react-ui/README.md says how it was made)
+const BLANK_FONT = 'AAEAAAAKAIAAAwAgT1MvMkUAQ7AAAAEoAAAAYGNtYXAADABzAAABkAAAADRnbHlmAAAAAAAAAcwAAAABaGVhZC1IbloAAACsAAAANmhoZWEDIgEuAAAA5AAAACRobXR4AfQAAAAAAYgAAAAGbG9jYQAAAAAAAAHEAAAABm1heHAAAwACAAABCAAAACBuYW1lItMETgAAAdAAAABycG9zdAAHAAAAAAJEAAAAJgABAAAAAQAAcQktBl8PPPUAAwPoAAAAAOcZFr0AAAAA5xkWvQAAAAAAAAAAAAAAAwACAAAAAAAAAAEAAAMg/zgAAAH0AAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAEAAAACAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAwH0AZAABQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAPz8/PwAAACAAIAMg/zgAAAMgAMgAAAAAAAAAAAAAAAAAAAAgAAAB9AAAAAAAAAAAAAIAAAADAAAAFAADAAEAAAAUAAQAIAAAAAQABAABAAAAIP//AAAAIP///+EAAQAAAAAAAAAAAAAAAAAAAAAAAAAEADYAAQAAAAAAAQANAAAAAQAAAAAAAgAHAA0AAwABBAkAAQAaABQAAwABBAkAAgAOAC5TYXl0WW94bGFUZXh0UmVndWxhcgBTAGEAeQB0AFkAbwB4AGwAYQBUAGUAeAB0AFIAZQBnAHUAbABhAHIAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAADAAA='
+const TEXT_WIDTH = 0.5      // of the font size, per UTF-16 unit: what the blank font says
+
+const hex16 = (text: string) => [...text].flatMap((ch) => [...Array(ch.length)].map((_, i) => ch.charCodeAt(i).toString(16).padStart(4, '0'))).join('').toUpperCase()
+const num = (n: number) => String(Math.round(n * 100) / 100)
+
+// The invisible text of one page, in PDF units (points, y upwards). Each run is stretched to the width it has in the picture.
+export function textLayer(runs: TextRun[], scale: number, pageHeight: number) {
+  if (!runs.length) return ''
+  const lines = runs.map((r) => {
+    const size = r.size * scale
+    const stretch = 100 * r.width * scale / (r.text.length * TEXT_WIDTH * size)
+    return `/F0 ${num(size)} Tf ${num(stretch)} Tz 1 0 0 1 ${num(r.x * scale)} ${num(pageHeight - r.y * scale)} Tm <${hex16(r.text)}> Tj`
+  })
+  return `\nBT 3 Tr\n${lines.join('\n')}\nET`
+}
+
+export type PdfInfo = { title?: string; lang?: string }
+
+// A minimal PDF: one page per image (objects: 1 catalog, 2 page list, then page + content + image for each).
+// With `texts` (the strings drawn on each page) five more objects follow: the blank font and its tables.
+export function buildPdf(images: Uint8Array[], width = W, height = H, texts: TextRun[][] = [], info: PdfInfo = {}): Uint8Array {
   const parts: Uint8Array[] = []
   const offsets: number[] = []
   const encoder = new TextEncoder()
@@ -248,30 +294,50 @@ export function buildPdf(images: Uint8Array[], width = W, height = H): Uint8Arra
     write()
     put('\nendobj\n')
   }
+  const stream = (dict: string, body: string | Uint8Array) => {
+    put(`<< ${dict}/Length ${typeof body === 'string' ? encoder.encode(body).length : body.length} >>\nstream\n`)
+    put(body)
+    put('\nendstream')
+  }
 
+  const hasText = texts.some((runs) => runs.length)
+  const font = 3 + images.length * 3          // first of the font's five objects
+  const infoAt = font + (hasText ? 5 : 0)
+  const hasInfo = !!info.title
   put('%PDF-1.4\n')
   const kids = images.map((_, i) => `${3 + i * 3} 0 R`).join(' ')
-  object(1, () => put('<< /Type /Catalog /Pages 2 0 R >>'))
+  object(1, () => put(`<< /Type /Catalog /Pages 2 0 R${info.lang ? ` /Lang (${info.lang.replace(/[^A-Za-z-]/g, '')})` : ''} >>`))
   object(2, () => put(`<< /Type /Pages /Kids [${kids}] /Count ${images.length} >>`))
   images.forEach((image, i) => {
     const page = 3 + i * 3
-    const content = `q ${PT_W} 0 0 ${PT_H} 0 0 cm /Im0 Do Q`
+    const content = `q ${PT_W} 0 0 ${PT_H} 0 0 cm /Im0 Do Q` + textLayer(texts[i] || [], PT_W / width, PT_H)
     object(page, () => put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PT_W} ${PT_H}] `
-      + `/Resources << /XObject << /Im0 ${page + 2} 0 R >> >> /Contents ${page + 1} 0 R >>`))
-    object(page + 1, () => put(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`))
-    object(page + 2, () => {
-      put(`<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB `
-        + `/BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n`)
-      put(image)
-      put('\nendstream')
-    })
+      + `/Resources << /XObject << /Im0 ${page + 2} 0 R >>${hasText ? ` /Font << /F0 ${font} 0 R >>` : ''} >> /Contents ${page + 1} 0 R >>`))
+    object(page + 1, () => stream('', content))
+    object(page + 2, () => stream(`/Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB `
+      + '/BitsPerComponent 8 /Filter /DCTDecode ', image))
   })
+  if (hasText) {
+    const file = Uint8Array.from(atob(BLANK_FONT), (ch) => ch.charCodeAt(0))
+    // Codes are UTF-16 units, so the map back to characters is one range: each code means itself
+    const toUnicode = '/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n'
+      + '/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n'
+      + '1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend'
+    object(font, () => put(`<< /Type /Font /Subtype /Type0 /BaseFont /SaytYoxlaText /Encoding /Identity-H /DescendantFonts [${font + 1} 0 R] /ToUnicode ${font + 4} 0 R >>`))
+    object(font + 1, () => put('<< /Type /Font /Subtype /CIDFontType2 /BaseFont /SaytYoxlaText /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> '
+      + `/FontDescriptor ${font + 2} 0 R /DW ${TEXT_WIDTH * 1000} /CIDToGIDMap /Identity >>`))
+    object(font + 2, () => put('<< /Type /FontDescriptor /FontName /SaytYoxlaText /Flags 4 /FontBBox [0 -200 500 800] /ItalicAngle 0 /Ascent 800 /Descent -200 '
+      + `/CapHeight 700 /StemV 80 /FontFile2 ${font + 3} 0 R >>`))
+    object(font + 3, () => stream(`/Length1 ${file.length} `, file))
+    object(font + 4, () => stream('', toUnicode))
+  }
+  if (hasInfo) object(infoAt, () => put(`<< /Title <FEFF${hex16(info.title || '')}> /Producer (SaytYoxla) >>`))
 
-  const count = 3 + images.length * 3
+  const count = infoAt + (hasInfo ? 1 : 0)
   const xref = size
   put(`xref\n0 ${count}\n0000000000 65535 f \n`)
   for (let n = 1; n < count; n++) put(`${String(offsets[n]).padStart(10, '0')} 00000 n \n`)
-  put(`trailer\n<< /Size ${count} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`)
+  put(`trailer\n<< /Size ${count} /Root 1 0 R${hasInfo ? ` /Info ${infoAt} 0 R` : ''} >>\nstartxref\n${xref}\n%%EOF\n`)
 
   const out = new Uint8Array(size)
   let at = 0
@@ -312,7 +378,8 @@ export async function downloadReportPdf(report: Report, host: string, color: str
 
 export async function deliverPdf(canvases: HTMLCanvasElement[], name: string) {
   const images = await Promise.all(canvases.map(jpegOf))
-  const file = new File([buildPdf(images) as BlobPart], name, { type: 'application/pdf' })
+  const info = { title: name.replace(/\.pdf$/, ''), lang: LANG }
+  const file = new File([buildPdf(images, W, H, canvases.map(runsOf), info) as BlobPart], name, { type: 'application/pdf' })
 
   // Browsers inside apps (Instagram, Facebook) ignore downloads but can pass a file to the share sheet
   const inApp = /; wv\)|Instagram|FBAN|FBAV/.test(navigator.userAgent)

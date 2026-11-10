@@ -35,3 +35,22 @@ On Windows PowerShell, if `npm` is blocked, use `npm.cmd`. **After changing anyt
 2. Keep the last 5 checked sites in `localStorage` and list them under the form.
 3. Add a "Copy link" button that copies `https://saytyoxla.vercel.app/?url=<site>`.
 4. Write a test for `ReportView` with Vitest and React Testing Library.
+
+## PDF reports
+`src/pdf.ts` draws each page on a canvas and stores it as a JPEG, then lays the same text over it invisibly (PDF text
+mode 3), so the file can be searched, copied from and read by a screen reader. That text uses a 620-byte font with no
+shapes (`BLANK_FONT`): nothing is ever drawn with it, it only gives the characters a width. It was made once with fontTools:
+
+```python
+from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.ttGlyphPen import TTGlyphPen
+fb = FontBuilder(1000, isTTF=True)
+fb.setupGlyphOrder([".notdef", "space"]); fb.setupCharacterMap({32: "space"})
+fb.setupGlyf({".notdef": TTGlyphPen(None).glyph(), "space": TTGlyphPen(None).glyph()})
+fb.setupHorizontalMetrics({".notdef": (500, 0), "space": (500, 0)})
+fb.setupHorizontalHeader(ascent=800, descent=-200)
+fb.setupNameTable({"familyName": "SaytYoxlaText", "styleName": "Regular"})
+fb.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=800, usWinDescent=200); fb.setupPost()
+fb.save("blank.ttf")      # base64 of this file is BLANK_FONT
+```
+

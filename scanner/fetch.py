@@ -337,8 +337,11 @@ def collect(url: str) -> Context:
 
     # Side by side, so a slow DNS server or a missing file cannot use up the time of the whole scan.
     # Whatever is not back in time stays unknown and the report says it was not checked.
-    pool = ThreadPoolExecutor(max_workers=6)
+    from scanner import assets  # here, not at the top: assets builds on this module
+
+    pool = ThreadPoolExecutor(max_workers=7)
     jobs = {
+        "assets": pool.submit(assets.collect, ctx.html, final, verified),
         "http": pool.submit(http_redirects),
         "spf": pool.submit(txt_records, domain),
         "dmarc": pool.submit(dmarc_records, domain),
@@ -363,4 +366,5 @@ def collect(url: str) -> Context:
     ctx.txt_records = {"spf": result("spf"), "dmarc": dmarc, "dmarc_parent": dmarc_parent}
     ctx.dkim = result("dkim")
     ctx.robots, ctx.sitemap = result("files", (None, None))
+    ctx.assets = result("assets")
     return ctx

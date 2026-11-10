@@ -143,7 +143,7 @@
      "name": "Can the check harm my website?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "No. We only look at what is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the certificate and public DNS records. We change nothing and try to break nothing. Exposed files and ports are looked at only in the deep check, after the site's owner has confirmed it."
+      "text": "No. We only look at what is open to everyone: we open the home page, the files it loads (scripts, styles, images), robots.txt and sitemap.xml once and read the certificate and public DNS records. We change nothing and try to break nothing. Exposed files and ports are looked at only in the deep check, after the site's owner has confirmed it."
      }
     },
     {
@@ -151,7 +151,7 @@
      "name": "Is my data stored?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "We do not ask for your name, phone or e-mail, and there are no cookies or tracking scripts. The checked address and its result stay for up to 10 minutes to speed up a repeat check, and your IP address stays for up to 1 day in the counter that limits abuse."
+      "text": "We do not ask for your name or phone, and there are no cookies or tracking scripts. An e-mail address is needed only if you choose ongoing watching of your site yourself, and it is deleted when you stop the watching. The checked address and its result stay for up to 10 minutes to speed up a repeat check, and your IP address stays for up to 1 day in the counter that limits abuse."
      }
     },
     {
@@ -176,10 +176,10 @@
 }
 </script>
 <meta name="theme-color" content="#0f2a4a">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a4a'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='%2334d399' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a4a'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='%2334d399' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preload" href="/static/fonts/inter-4-latin.woff2" as="font" type="font/woff2" crossorigin >
 <link rel="stylesheet" href="/static/fonts.css" >
-  <script type="module" crossorigin src="/react/assets/main-CjFi4nPG.js"></script>
+  <script type="module" crossorigin src="/react/assets/main-yFSLzCmR.js"></script>
   <link rel="stylesheet" crossorigin href="/react/assets/main-Ib848YBR.css">
 </head>
 <body>
@@ -258,7 +258,7 @@
       <div class="cats">
         <div class="cat"><span class="ci sec"><svg class="ico"><use href="#i-lock"/></svg></span><h3>Security</h3><p>The encrypted connection, the certificate's expiry and settings that protect against attacks.</p></div>
         <div class="cat"><span class="ci mail"><svg class="ico"><use href="#i-mail"/></svg></span><h3>E-mail</h3><p>Whether others can send fake e-mails in your name.</p></div>
-        <div class="cat"><span class="ci speed"><svg class="ico"><use href="#i-bolt"/></svg></span><h3>Speed</h3><p>The server's response time, measured from the USA, and the size of the page's HTML. Images and scripts are not timed.</p></div>
+        <div class="cat"><span class="ci speed"><svg class="ico"><use href="#i-bolt"/></svg></span><h3>Speed</h3><p>The server's response time, measured from the USA, the full weight of the page with its scripts and images, heavy images and caching.</p></div>
         <div class="cat"><span class="ci mob"><svg class="ico"><use href="#i-phone"/></svg></span><h3>Mobile and Google</h3><p>Whether the site looks right on a phone and how it shows up in Google search.</p></div>
       </div>
       <p class="survey-link"><a href="/en/report/">Report: how secure are Azerbaijani websites? Banks, universities, government →</a></p>
@@ -275,8 +275,8 @@
       <details><summary>What are SPF and DMARC, and why do they matter?<svg class="ico"><use href="#i-down"/></svg></summary><p>SPF and DMARC are records in your domain's DNS settings. They say which servers may send e-mail in your name. Without them, scammers can write fake e-mails that look like they came from your domain. SaytYoxla checks both; if they are missing, ask your DNS or hosting provider to add them.</p></details>
       <details><summary>Why doesn't my website show up on Google?<svg class="ico"><use href="#i-down"/></svg></summary><p>The most common reasons: the page title and meta description are missing or weak, the site is not mobile-friendly, or the site was never submitted to Google. SaytYoxla checks the title, the description and mobile-friendliness. A new site should also be added to Google Search Console with a sitemap.</p></details>
       <details><summary>Why does my website look wrong on a phone?<svg class="ico"><use href="#i-down"/></svg></summary><p>Usually the page has no “viewport” tag, so the phone opens the site at desktop size and shrinks it. SaytYoxla checks this in the “Mobile and Google” section and shows the tag to add.</p></details>
-      <details><summary>Can the check harm my website?<svg class="ico"><use href="#i-down"/></svg></summary><p>No. We only look at what is open to everyone: we open the home page, robots.txt and sitemap.xml once and read the certificate and public DNS records. We change nothing and try to break nothing. Exposed files and ports are looked at only in the deep check, after the site's owner has confirmed it.</p></details>
-      <details><summary>Is my data stored?<svg class="ico"><use href="#i-down"/></svg></summary><p>We do not ask for your name, phone or e-mail, and there are no cookies or tracking scripts. The checked address and its result stay for up to 10 minutes to speed up a repeat check, and your IP address stays for up to 1 day in the counter that limits abuse.</p></details>
+      <details><summary>Can the check harm my website?<svg class="ico"><use href="#i-down"/></svg></summary><p>No. We only look at what is open to everyone: we open the home page, the files it loads (scripts, styles, images), robots.txt and sitemap.xml once and read the certificate and public DNS records. We change nothing and try to break nothing. Exposed files and ports are looked at only in the deep check, after the site's owner has confirmed it.</p></details>
+      <details><summary>Is my data stored?<svg class="ico"><use href="#i-down"/></svg></summary><p>We do not ask for your name or phone, and there are no cookies or tracking scripts. An e-mail address is needed only if you choose ongoing watching of your site yourself, and it is deleted when you stop the watching. The checked address and its result stay for up to 10 minutes to speed up a repeat check, and your IP address stays for up to 1 day in the counter that limits abuse.</p></details>
       <details><summary>What does the score mean?<svg class="ico"><use href="#i-down"/></svg></summary><p>100 is the best result. 90+ is excellent (A), 75+ good (B), 60+ fair (C), 40+ weak (D), below 40 needs serious attention (F). Red problems lower the score the most. Missing basic protection limits the score: no more than 39 without trusted HTTPS, 59 if the certificate expires in under 7 days, 74 with 4–5 basic settings missing and 89 with 2–3 missing.</p></details>
       <details><summary>Who should fix the problems?<svg class="ico"><use href="#i-down"/></svg></summary><p>Show the report to the developer who built your site or to your hosting company — every problem says what to do. If you like, message us on WhatsApp and we will help.</p></details>
     </div>

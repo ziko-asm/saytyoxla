@@ -21,7 +21,9 @@ GET  /robots.txt, /sitemap.xml, /llms.txt   for search engines and AI crawlers (
 
 from __future__ import annotations
 
+import hashlib
 import hmac
+import json
 import logging
 import os
 import threading
@@ -29,7 +31,9 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
+import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
@@ -53,7 +57,7 @@ REACT = Path(__file__).parent / "react"      # built by react-ui (npm run build)
 CACHE_SECONDS = 600
 CACHE_MAX = 500                              # finished reports kept per instance (oldest dropped first)
 
-app = FastAPI(title="SaytYoxla", version="0.3.0", docs_url=None, redoc_url=None)
+app = FastAPI(title="SaytYoxla", version="0.3.0", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 app.mount("/react", StaticFiles(directory=REACT), name="react")
 
@@ -121,16 +125,11 @@ def client_ip(request: Request) -> str:
     return ratelimit.client_ip(request.headers, request.client.host if request.client else None)
 
 
-def cache_get(key: str) -> dict | None:
-    with _lock:
-        hit = _cache.get(key)
-        if hit and time.time() - hit[0] < CACHE_SECONDS:
-            return hit[1]
-        _cache.pop(key, None)
-        return None
+def _shared_key(key: str) -> str:
+    return "saytyoxla:cache:" + hashlib.sha256(key.encode()).hexdigest()[:32]
 
 
-def cache_put(key: str, report: dict) -> None:
+def _remember(key: str, report: dict) -> None:
     with _lock:
         _cache[key] = (time.time(), report)
         _cache.move_to_end(key)
@@ -138,10 +137,41 @@ def cache_put(key: str, report: dict) -> None:
             _cache.popitem(last=False)
 
 
+def cache_get(key: str) -> dict | None:
+    """This instance's memory first, then Redis. On Vercel each request may reach a different instance, so
+    without the shared copy a repeat check (or a shared report link) would scan the site again almost every time."""
+    with _lock:
+        hit = _cache.get(key)
+        if hit and time.time() - hit[0] < CACHE_SECONDS:
+            return hit[1]
+        _cache.pop(key, None)
+    if limiter.redis:
+        try:
+            raw = limiter.redis.command("GET", _shared_key(key))
+            report = json.loads(raw) if raw else None
+        except (ratelimit.RedisError, requests.RequestException, ValueError, TypeError) as e:
+            log.warning("Shared cache unavailable (%s)", type(e).__name__)
+            return None
+        if isinstance(report, dict):
+            _remember(key, report)
+            return report
+    return None
+
+
+def cache_put(key: str, report: dict) -> None:
+    _remember(key, report)
+    if limiter.redis:
+        try:
+            limiter.redis.command("SET", _shared_key(key), json.dumps(report, ensure_ascii=False, separators=(",", ":")),
+                                  "EX", str(CACHE_SECONDS))
+        except (ratelimit.RedisError, requests.RequestException, ValueError, TypeError) as e:
+            log.warning("Shared cache unavailable (%s)", type(e).__name__)
+
+
 def cache_control(path: str, method: str) -> str | None:
     """Hashed React assets never change; other files and pages may be served from Vercel's edge for a
     while, so most visits never start the Python function. The scan API is never cached."""
-    if path.startswith("/api/"):
+    if path.startswith(("/api/", "/monitor/")):      # a signed link's page is for one person
         return "no-store"
     if method not in ("GET", "HEAD"):
         return None
@@ -305,7 +335,8 @@ def llms():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    """`limits` tells the owner whether the scan limits really hold across instances (web/ratelimit.py)."""
+    return {"status": "ok", "limits": limiter.state()}
 
 
 @app.post("/api/scan")
@@ -432,17 +463,39 @@ def monitor_subscribe(req: MonitorRequest, request: Request):
     return {"sent": True}
 
 
-def _monitor_answer(lang: str | None, word: str) -> PlainTextResponse:
+def _monitor_answer(lang: str | None, word: str) -> HTMLResponse:
     words = scanner_monitor.words(lang or "az")
-    return PlainTextResponse(words[word] if lang else words["bad_link"], status_code=200 if lang else 400)
+    return HTMLResponse(pages.notice(lang or "az", words[word] if lang else words["bad_link"]), status_code=200 if lang else 400)
+
+
+def _monitor_ask(action: str, token: str) -> HTMLResponse:
+    """Opening the link only shows a button. Mail scanners open every link in a message, so a link that acted
+    on a GET would confirm or stop the watching without the person; the button sends a POST, which they do not."""
+    found = scanner_monitor.read_token(token, action)
+    if not found:
+        return _monitor_answer(None, "bad_link")
+    host, _, lang = found
+    words = scanner_monitor.words(lang)
+    return HTMLResponse(pages.notice(lang, words[f"{action}_ask"].format(host=host), button=words[f"{action}_button"],
+                                     post_to=f"/monitor/{action}?t={quote(token, safe='')}"))
 
 
 @app.get("/monitor/confirm", include_in_schema=False)
+def monitor_confirm_page(t: str = ""):
+    return _monitor_ask("confirm", t)
+
+
+@app.post("/monitor/confirm", include_in_schema=False)
 def monitor_confirm(t: str = ""):
     return _monitor_answer(scanner_monitor.confirm(t), "confirmed")
 
 
 @app.get("/monitor/stop", include_in_schema=False)
+def monitor_stop_page(t: str = ""):
+    return _monitor_ask("stop", t)
+
+
+@app.post("/monitor/stop", include_in_schema=False)
 def monitor_stop(t: str = ""):
     return _monitor_answer(scanner_monitor.stop(t), "stopped")
 

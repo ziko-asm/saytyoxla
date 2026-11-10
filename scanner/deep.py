@@ -359,7 +359,8 @@ def mail(raw: str) -> dict:
     elif enforced:
         items.append(_item("spoof_partial", WARN, percent=percent))
     else:
-        items.append(_item("spoof_open", FAIL, state="none" if rec else "missing"))
+        # As in the short check: no record at all is the serious case, a record that only watches (p=none) is advice
+        items.append(_item("spoof_open", WARN if rec else FAIL, state="none" if rec else "missing"))
     if rec and "rua" not in tags:
         items.append(_item("dmarc_no_reports", INFO))
 

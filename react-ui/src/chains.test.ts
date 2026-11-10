@@ -24,6 +24,11 @@ describe('attack scenarios', () => {
     expect(chains[0].level).toBe('critical')
   })
 
+  it('rates fake mail by the finding: a record that only watches is not high', () => {
+    expect(findChains({ items: [item('spoof_open', 'fail')] })[0].level).toBe('high')
+    expect(findChains({ items: [item('spoof_open', 'warn')] })[0].level).toBe('medium')
+  })
+
   it('keeps them apart when only one is true', () => {
     expect(ids([item('spoof_open', 'fail')])).toEqual(['fake_mail'])
     expect(ids([item('takeover_risk', 'fail', { host: 'h', target: 't' })])).toEqual(['subdomain_takeover'])
@@ -161,6 +166,13 @@ describe('ready-made fixes', () => {
     expect(code({})).toBe('v=DMARC1; p=none; rua=mailto:dmarc@a.az')
     expect(code({ p: 'none' })).toBe('v=DMARC1; p=none; rua=mailto:dmarc@a.az')
     expect(code({ p: 'none', rua: 'mailto:me@a.az' })).toBe('v=DMARC1; p=quarantine; rua=mailto:me@a.az')
+  })
+
+  it('sends TLS reports to the box that already gets DMARC reports', () => {
+    const code = (tags: object) => fixes({ mail: result('mail', [item('tls_rpt_missing', 'info')], { dmarc_tags: tags }) })[0].code
+    expect(code({})).toBe('v=TLSRPTv1; rua=mailto:tlsrpt@a.az')
+    expect(code({ rua: 'mailto:me@a.az, mailto:other@b.az' })).toBe('v=TLSRPTv1; rua=mailto:me@a.az')
+    expect(code({ rua: 'https://reports.example/x' })).toBe('v=TLSRPTv1; rua=mailto:tlsrpt@a.az')
   })
 
   it('adds reports without weakening a policy that already blocks', () => {

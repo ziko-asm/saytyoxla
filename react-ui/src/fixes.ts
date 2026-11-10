@@ -38,6 +38,18 @@ const FIXES: Record<string, Snippet[]> = {
   canonical: [{ platform: 'HTML', code: '<link rel="canonical" href="https://example.az/">' }],
   og: [{ platform: 'HTML', code: '<meta property="og:title" content="...">\n<meta property="og:image" content="https://example.az/image.png">' }],
   sitemap: [{ platform: 'robots.txt', code: 'Sitemap: https://example.az/sitemap.xml' }],
+  asset_cache: [
+    { platform: 'Nginx', code: 'location ~* \\.(css|js|png|jpe?g|webp|avif|svg|woff2?)$ {\n  add_header Cache-Control "public, max-age=2592000";\n}' },
+    { platform: 'Apache (.htaccess)', code: '<FilesMatch "\\.(css|js|png|jpe?g|webp|avif|svg|woff2?)$">\n  Header set Cache-Control "public, max-age=2592000"\n</FilesMatch>' },
+    { platform: 'Vercel (vercel.json)', code: '{ "headers": [{ "source": "/(.*)\\\\.(css|js|png|jpg|webp|svg|woff2)", "headers": [\n  { "key": "Cache-Control", "value": "public, max-age=2592000" }\n] }] }' },
+    { platform: 'Netlify (_headers)', code: '/assets/*\n  Cache-Control: public, max-age=2592000' },
+  ],
+  blocking: [{ platform: 'HTML', code: '<script src="/app.js" defer></script>' }],
+  img_weight: [{ platform: 'HTML', code: '<img src="/foto.webp" width="800" height="600" loading="lazy" alt="...">' }],
+  compression: [
+    { platform: 'Nginx', code: 'gzip on;\ngzip_types text/css application/javascript application/json image/svg+xml;' },
+    { platform: 'Apache (.htaccess)', code: 'AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml' },
+  ],
 }
 
 export const snippetsFor = (id: string): Snippet[] => FIXES[id] ?? []

@@ -27,7 +27,7 @@ const TOOLS: { id: ToolId; source: Source; findings: string[] }[] = [
   { id: 'headers', source: 'scan', findings: ['http_redirect', 'hsts', 'framing', 'nosniff', 'csp', 'referrer', 'disclosure', 'mixed'] },
   { id: 'cookies', source: 'scan', findings: ['cookies'] },
   { id: 'google', source: 'scan', findings: ['indexing', 'title', 'description', 'h1', 'lang', 'canonical', 'og', 'sitemap', 'viewport'] },
-  { id: 'speed', source: 'scan', findings: ['speed', 'size'] },
+  { id: 'speed', source: 'scan', findings: ['speed', 'size', 'weight', 'img_weight', 'blocking', 'asset_cache', 'compression', 'http2'] },
 ]
 const ORDER: Record<string, number> = { fail: 0, warn: 1, ok: 2, info: 3 }
 

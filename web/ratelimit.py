@@ -101,6 +101,13 @@ class RedisCounter:
             raise RedisError(str(first.get("error", first))[:200])
         return int(first["result"]) <= limit
 
+    def command(self, *parts):
+        """One Redis command; its result. Used for the report cache that every instance shares (web/app.py)."""
+        r = self.session.post(self.url, headers=self.headers, timeout=REDIS_TIMEOUT, json=list(parts))
+        if r.status_code != 200:
+            raise RedisError(f"HTTP {r.status_code}: {_error_text(r)}")
+        return r.json().get("result")
+
 
 def _error_text(r) -> str:
     try:
@@ -113,6 +120,14 @@ class Limiter:
     def __init__(self, redis: RedisCounter | None = None):
         self.redis = redis
         self.memory = MemoryCounter()
+        self.failed_at = 0.0        # when Redis last refused a count: /health shows it, so a broken setup is visible
+
+    def state(self, now: float | None = None) -> str:
+        """"shared": counted in Redis, so the limits hold across instances. "per-instance": no Redis configured.
+        "shared-failing": Redis is configured but refused within the last 10 minutes, so this instance fell back."""
+        if not self.redis:
+            return "per-instance"
+        return "shared-failing" if (time.time() if now is None else now) - self.failed_at < 600 else "shared"
 
     @classmethod
     def from_env(cls) -> Limiter:
@@ -143,6 +158,7 @@ class Limiter:
             except (RedisError, requests.RequestException, ValueError, KeyError, IndexError, TypeError) as e:
                 # the message explains the cause (e.g. "HTTP 401: WRONGPASS" for a wrong token); it never
                 # contains the token, which is only sent in a header
+                self.failed_at = time.time()
                 log.warning("Redis rate limit unavailable (%s: %s); counting in memory",
                             type(e).__name__, str(e)[:200])
         return self.memory.hit(key, limit, window, now)

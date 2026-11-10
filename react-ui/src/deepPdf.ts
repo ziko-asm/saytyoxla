@@ -87,6 +87,9 @@ const HEADER_FIX: Record<string, string> = {
   'permissions-policy': 'Permissions-Policy: camera=(), microphone=(), geolocation=()',
 }
 
+// The owner's DMARC reports already go to a box that exists; an invented address may not
+const reportBox = (rua: unknown) => String(rua || '').split(',').map((x) => x.trim()).find((x) => /^mailto:[^\s@!]+@[^\s@!]+$/i.test(x)) || ''
+
 export function readyFixes(parts: DeepParts): ReadyFix[] {
   const fixes: ReadyFix[] = []
   const mail = parts.mail?.result
@@ -104,7 +107,7 @@ export function readyFixes(parts: DeepParts): ReadyFix[] {
     const spf = mail.data.records?.spf?.[0]
     if (spf && (has(mail, 'spf_pass_all') || has(mail, 'spf_neutral'))) fixes.push({ id: 'spf', where: fill(d.pdf.x.dnsTxt, { name: domain }), code: spf.replace(/\S+$/, '~all') })
     else if (mail.items.some((x) => x.id === 'spf_missing' && x.status === 'fail')) fixes.push({ id: 'spf', where: fill(d.pdf.x.dnsTxt, { name: domain }), code: 'v=spf1 mx ~all' })
-    if (has(mail, 'tls_rpt_missing')) fixes.push({ id: 'tlsRpt', where: fill(d.pdf.x.dnsTxt, { name: `_smtp._tls.${domain}` }), code: `v=TLSRPTv1; rua=mailto:tlsrpt@${domain}` })
+    if (has(mail, 'tls_rpt_missing')) fixes.push({ id: 'tlsRpt', where: fill(d.pdf.x.dnsTxt, { name: `_smtp._tls.${domain}` }), code: `v=TLSRPTv1; rua=${reportBox(tags.rua) || `mailto:tlsrpt@${domain}`}` })
   }
   const tls = parts.tls?.result
   if (tls && has(tls, 'caa_missing')) {

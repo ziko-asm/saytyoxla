@@ -137,3 +137,56 @@ def test_redis_errors_are_logged_with_their_cause_and_fall_back(rules, caplog, r
     limiter = ratelimit.Limiter(ratelimit.RedisCounter("https://r.test", "secret-token", session=Refusing(response)))
     assert [limiter.allow("1.2.3.4", now=5) for _ in range(4)] == [True, True, True, False]
     assert cause in caplog.text and "secret-token" not in caplog.text
+
+
+# --------------------------------------------------------------- shared report cache and /health
+class FakeRedis:
+    def __init__(self):
+        self.data, self.fail = {}, False
+
+    def command(self, *parts):
+        if self.fail:
+            raise ratelimit.RedisError("down")
+        if parts[0] == "SET":
+            self.data[parts[1]] = parts[2]
+            assert parts[3:] == ("EX", "600")
+            return "OK"
+        return self.data.get(parts[1])
+
+    def hit(self, key, limit, window, now=None):
+        if self.fail:
+            raise ratelimit.RedisError("down")
+        return True
+
+
+def test_report_cache_is_shared_between_instances(monkeypatch):
+    from web import app as webapp
+    redis = FakeRedis()
+    monkeypatch.setattr(webapp, "limiter", ratelimit.Limiter(redis))
+    webapp._cache.clear()
+    webapp.cache_put("https://a.az/", {"score": 90, "summary": "Əla"})
+    webapp._cache.clear()                               # another instance: its memory is empty
+    assert webapp.cache_get("https://a.az/") == {"score": 90, "summary": "Əla"}
+    assert all(k.startswith("saytyoxla:cache:") and "a.az" not in k for k in redis.data)
+    webapp._cache.clear()
+    redis.fail = True                                   # Redis down: no cache, but no error either
+    assert webapp.cache_get("https://a.az/") is None
+    webapp.cache_put("https://b.az/", {"score": 1})
+    assert webapp.cache_get("https://b.az/") == {"score": 1}
+    webapp._cache.clear()
+
+
+def test_health_says_whether_limits_are_shared(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from web import app as webapp
+    client = TestClient(webapp.app)
+    monkeypatch.setattr(webapp, "limiter", ratelimit.Limiter())
+    assert client.get("/health").json() == {"status": "ok", "limits": "per-instance"}
+    redis = FakeRedis()
+    limiter = ratelimit.Limiter(redis)
+    monkeypatch.setattr(webapp, "limiter", limiter)
+    assert client.get("/health").json()["limits"] == "shared"
+    redis.fail = True
+    assert limiter.allow("1.2.3.4")                     # falls back to memory
+    assert client.get("/health").json()["limits"] == "shared-failing"

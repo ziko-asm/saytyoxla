@@ -31,14 +31,17 @@ WORDS = {
     "az": {"confirm_subject": "SaytYoxla: {host} izləməsini təsdiqləyin", "confirm_body": "{host} saytını izləmək üçün bu ünvan yazılıb. Təsdiqləmək üçün linkə basın:\n\n{link}\n\nSiz yazılmamısınızsa, bu məktuba məhəl qoymayın.",
            "alert_subject": "SaytYoxla: {host} saytında dəyişiklik", "new_hosts": "Yeni subdomenlər: {items}", "new_problems": "Yeni problem sayı: {count}", "solved": "Həll olunan problem sayı: {count}",
            "cert": "Sertifikatın bitməsinə {days} gün qalıb.", "see": "Ətraflı: {link}", "stop": "İzləməni dayandırmaq: {link}",
+           "confirm_ask": "{host} saytının izlənməsini təsdiqləmək üçün düyməni basın.", "confirm_button": "İzləməni təsdiqlə", "stop_ask": "{host} saytının izlənməsini dayandırmaq üçün düyməni basın.", "stop_button": "İzləməni dayandır",
            "confirmed": "İzləmə başladı. Dəyişiklik olanda məktub alacaqsınız.", "stopped": "İzləmə dayandırıldı. Ünvanınız silindi.", "bad_link": "Bu linkin vaxtı bitib və ya link düzgün deyil."},
     "en": {"confirm_subject": "SaytYoxla: confirm watching {host}", "confirm_body": "This address was entered to watch {host}. Open the link to confirm:\n\n{link}\n\nIf this was not you, ignore this message.",
            "alert_subject": "SaytYoxla: something changed on {host}", "new_hosts": "New subdomains: {items}", "new_problems": "New problems: {count}", "solved": "Problems solved: {count}",
            "cert": "The certificate expires in {days} days.", "see": "Details: {link}", "stop": "Stop watching: {link}",
+           "confirm_ask": "Press the button to confirm watching {host}.", "confirm_button": "Confirm watching", "stop_ask": "Press the button to stop watching {host}.", "stop_button": "Stop watching",
            "confirmed": "Watching has started. You will get a message when something changes.", "stopped": "Watching has stopped. Your address was deleted.", "bad_link": "This link has expired or is not valid."},
     "ru": {"confirm_subject": "SaytYoxla: подтвердите наблюдение за {host}", "confirm_body": "Этот адрес указан для наблюдения за {host}. Для подтверждения откройте ссылку:\n\n{link}\n\nЕсли это были не вы, не обращайте внимания на письмо.",
            "alert_subject": "SaytYoxla: изменения на {host}", "new_hosts": "Новые поддомены: {items}", "new_problems": "Новых проблем: {count}", "solved": "Решено проблем: {count}",
            "cert": "До окончания сертификата осталось дней: {days}.", "see": "Подробнее: {link}", "stop": "Остановить наблюдение: {link}",
+           "confirm_ask": "Нажмите кнопку, чтобы подтвердить наблюдение за {host}.", "confirm_button": "Подтвердить наблюдение", "stop_ask": "Нажмите кнопку, чтобы остановить наблюдение за {host}.", "stop_button": "Остановить наблюдение",
            "confirmed": "Наблюдение началось. При изменениях вы получите письмо.", "stopped": "Наблюдение остановлено. Ваш адрес удалён.", "bad_link": "Срок действия ссылки истёк, или она неверна."},
 }
 
@@ -189,7 +192,8 @@ def run(site: str, now: float | None = None) -> dict:
     due = sorted((s for s in subs if now - s[1]["last"] >= CHECK_EVERY), key=lambda s: s[1]["last"])[:PER_RUN]
     checked = sent = 0
     for sub, record in due:
-        seen = snapshot(record["host"])
+        # Ownership can end (the site was sold, the proof removed): then nothing about the site is sent
+        seen = snapshot(record["host"]) if deep.is_owner(record["host"]) else None
         record["last"] = now
         if seen is not None:
             checked += 1

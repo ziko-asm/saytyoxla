@@ -52,6 +52,16 @@ VARIANTS = [
     {"html_bytes": 60_000, "cert": {"days_left": 80, "expires": "2027-01-01", "error": None, "alpn": "http/1.1"}},
     {"html_bytes": 60_000, "headers": {"content-encoding": "gzip"},
      "html": "<html><body><p>" + "söz " * 100 + "</p><img src='a.jpg'></body></html>"},
+    {"assets": None},
+    {"assets": {"items": [], "found": 0, "blocking": 0, "images": 0, "lazy": 0}},
+    {"assets": {"items": [{"kind": "script", "url": "https://example.az/a.js", "bytes": None, "cached": False, "own": True}],
+                "found": 1, "blocking": 2, "images": 0, "lazy": 0}},
+    {"assets": {"items": [{"kind": k, "url": f"https://example.az/{k}{n}.x", "bytes": 40_000, "cached": True, "own": True}
+                          for k in ("script", "style", "image") for n in range(2)], "found": 6, "blocking": 0, "images": 2, "lazy": 0}},
+    {"assets": {"items": [{"kind": "image", "url": f"https://example.az/img/photo{n}.jpg", "bytes": 2_600_000, "cached": False, "own": True}
+                          for n in range(3)], "found": 90, "blocking": 6, "images": 3, "lazy": 0}},
+    {"assets": {"items": [{"kind": "image", "url": "https://example.az/big.png", "bytes": 700_000, "cached": False, "own": False}],
+                "found": 1, "blocking": 0, "images": 1, "lazy": 0}},
 ]
 
 ERRORS = [
@@ -83,7 +93,7 @@ def test_variants_reach_every_status():
         c = ctx(**v)
         seen.update((f.id, f.status) for f in checks.run_checks(c))
     for fid in ("https", "cert", "http_redirect", "hsts", "dmarc", "speed", "size", "title", "description",
-                "compression", "http2", "img_alt", "schema"):
+                "compression", "http2", "img_alt", "schema", "weight", "img_weight", "blocking", "asset_cache"):
         assert len({s for i, s in seen if i == fid}) >= 2, fid
 
 
