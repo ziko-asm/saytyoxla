@@ -420,3 +420,17 @@ def test_survey_script_counts_sites_without_naming_them(monkeypatch, tmp_path):
         assert "<table>" in survey.page(lang)
     assert "Full page weight" in survey.page("en")
     survey.stats.cache_clear()
+
+
+def test_scan_answer_says_how_many_sites_the_benchmarks_cover(monkeypatch):
+    from scanner import checks
+    from scanner.report import build
+    from tests.test_scanner import ctx
+    from web import survey
+    webapp._cache.clear()
+    monkeypatch.setattr(webapp, "limiter", webapp.ratelimit.Limiter())
+    c = ctx()
+    monkeypatch.setattr(webapp.scanner, "scan", lambda url: build(c, checks.run_checks(c)))
+    got = client.post("/api/scan", json={"url": "example.az"}).json()
+    assert got["benchmark_sites"] == survey.stats()["all"]["n"] > 0
+    webapp._cache.clear()

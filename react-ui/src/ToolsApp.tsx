@@ -17,7 +17,7 @@ import type { Finding } from './types'
 type ToolId = 'ssl' | 'dmarc' | 'spf' | 'dkim' | 'headers' | 'cookies' | 'google' | 'speed'
 type Source = 'ssl' | 'email' | 'scan'
 type Facts = { issuer?: string; expires?: string; days_left?: number | null; tls?: string; spf?: string[]; dmarc?: string[]; dmarc_parent?: string; dkim?: string[] }
-type Result = { findings: Finding[]; facts?: Facts; benchmarks?: Record<string, number>; host?: string; final_url?: string }
+type Result = { findings: Finding[]; facts?: Facts; benchmarks?: Record<string, number>; benchmark_sites?: number; host?: string; final_url?: string }
 
 const TOOLS: { id: ToolId; source: Source; findings: string[] }[] = [
   { id: 'ssl', source: 'ssl', findings: ['cert', 'tls'] },
@@ -234,7 +234,7 @@ export default function ToolsApp() {
                   <span>{g.reminderHint}</span>
                 </p>
               )}
-              {findings.map((f) => <FindingItem key={f.id} f={f} benchmark={result.benchmarks?.[f.id]} />)}
+              {findings.map((f) => <FindingItem key={f.id} f={f} benchmark={result.benchmarks?.[f.id]} sites={result.benchmark_sites} />)}
               <p className="tool-more"><a href={`${window.location.pathname.replace(/[^/]+\/$/, '')}?url=${encodeURIComponent(checked)}`}>{t.toolsFull}</a></p>
               <p className="clear-row"><button className="btn btn-ghost" type="button" onClick={clearResults}>{t.clearResults}</button></p>
             </>

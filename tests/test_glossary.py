@@ -93,3 +93,12 @@ def test_points_quoted_in_the_text_match_the_scanner_in_every_language():
         speed = terms["cavab-vaxti"]
         for n in (1500, 4000, 300, 1000, 500):
             assert str(n) in speed, (lang, n)
+
+
+def test_survey_numbers_in_the_text_come_from_the_published_statistics():
+    from web import survey
+    everyone = survey.stats()["all"]
+    for lang, path in LANGS.items():
+        text = client.get(path).text
+        assert "[[survey" not in text, lang
+        assert str(everyone["n"]) in text and f'{everyone["pass"]["csp"]}%' in text and f'{everyone["pass"]["dmarc"]}%' in text, lang

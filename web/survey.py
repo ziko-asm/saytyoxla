@@ -70,6 +70,11 @@ def benchmarks() -> dict:
     return stats()["all"]["pass"] if DATA.exists() else {}
 
 
+def sample_size() -> int:
+    """How many sites the benchmarks are measured on."""
+    return stats()["all"]["n"] if DATA.exists() else 0
+
+
 def date_text(iso: str, lang: str) -> str:
     y, m, d = (int(x) for x in iso.split("-"))
     return f"{d} {MONTHS[lang][m - 1]} {y}"
@@ -188,22 +193,28 @@ def page(lang: str) -> str:
          f"<b>Сферы сильно различаются.</b> Самый высокий средний балл — {sname(best).lower()} ({bm['avg']}), самый низкий — {sname(worst).lower()} ({wm['avg']}). В сфере «{sname(worst)}» DMARC, блокирующий поддельные письма, есть лишь у {wm['pass']['dmarc']}% сайтов.",
          f"<b>Описание для Google.</b> Только у {p['description']}% есть meta description подходящей длины."],
     )
+    if {"weight", "img_weight", "asset_cache"} <= set(p):       # measured since the page-weight checks; older statistics have no such numbers
+        findings.append(L(
+            lang,
+            f"<b>Sürət.</b> Saytların {p['weight']}%-nin əsas səhifəsi faylları ilə birlikdə 2 MB-dan yüngüldür, {p['img_weight']}%-ində 500 KB-dan ağır şəkil yoxdur, {p['asset_cache']}%-i öz fayllarını brauzerdə keşləyir.",
+            f"<b>Speed.</b> For {p['weight']}% of the sites the home page with its files weighs under 2 MB, {p['img_weight']}% have no image over 500 KB, and {p['asset_cache']}% let the browser cache their own files.",
+            f"<b>Скорость.</b> У {p['weight']}% сайтов главная страница вместе с файлами легче 2 МБ, у {p['img_weight']}% нет изображений тяжелее 500 КБ, {p['asset_cache']}% кэшируют свои файлы в браузере."))
     findings_html = "".join(f"<li>{x}</li>" for x in findings)
 
     method = L(
         lang,
         f"{when} tarixində {s['scanned']} açıq Azərbaycan saytı ({sectors}) SaytYoxla ilə yoxlanıldı. "
-        f"Hər saytın yalnız əsas səhifəsi bir dəfə açıldı, sertifikat və iki açıq DNS qeydi (SPF, DMARC) oxundu, "
+        f"Hər saytın əsas səhifəsi və onun yüklədiyi fayllar bir dəfə açıldı, sertifikat və açıq DNS qeydləri (SPF, DMARC) oxundu, "
         f"heç nə sındırılmağa çalışılmadı. Avtomatik yoxlamaları bloklayan {blocked} sayt və açılmayan {unreach} sayt "
         f"(onlardan {tls}-i TLS/sertifikat xətası ilə) nəticəyə daxil edilmədi; qalan {a['n']} saytın nəticəsi göstərilir. Bu, tam təhlükəsizlik auditi deyil: "
         f"yalnız kənardan görünən ayarlar yoxlanılır. Ayrı-ayrı saytların adları dərc olunmur.",
         f"On {when}, {s['scanned']} public Azerbaijani websites ({sectors}) were checked with SaytYoxla. "
-        f"For each site only the home page was opened once and the certificate and two public DNS records "
+        f"For each site the home page and the files it loads were opened once, and the certificate and public DNS records "
         f"(SPF, DMARC) were read; nothing was probed or attacked. {blocked} sites that block automated checks and "
         f"{unreach} that did not open ({tls} of them with a TLS/certificate error) were left out; the results cover the remaining {a['n']}. This is not a full "
         f"security audit: it only covers settings visible from outside. Individual sites are not named.",
         f"{when} с помощью SaytYoxla проверено {s['scanned']} открытых сайтов Азербайджана ({sectors}). "
-        f"У каждого сайта один раз открывалась только главная страница, читались сертификат и две открытые "
+        f"У каждого сайта один раз открывались главная страница и файлы, которые она загружает, читались сертификат и открытые "
         f"DNS-записи (SPF, DMARC); ничего не взламывалось. {blocked} сайтов, блокирующих автоматические проверки, "
         f"и {unreach} неоткрывшихся (из них {tls} — с ошибкой TLS/сертификата) в итог не вошли; результаты — по остальным {a['n']}. Это не полный аудит "
         f"безопасности: проверяются только настройки, видимые снаружи. Названия отдельных сайтов не публикуются.",
