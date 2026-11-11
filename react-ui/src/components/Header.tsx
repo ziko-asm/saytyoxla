@@ -1,5 +1,5 @@
 import { Icon } from '../Icon'
-import { HOME, LANG, TOOLS_PATH, t, type Lang } from '../i18n'
+import { GLOSSARY, HOME, LANG, TOOLS_PATH, t, type Lang } from '../i18n'
 
 const NAMES: [Lang, string, string][] = [['az', 'AZ', 'Azərbaycanca'], ['en', 'EN', 'English'], ['ru', 'RU', 'Русский']]
 
@@ -37,7 +37,7 @@ export function Header({ onHelp, checked = '', tools = '' }: Props) {
               <a href={HOME[LANG] + query} aria-current={tools ? undefined : 'page'}>{t.partScan}</a>
               <a href={TOOLS_PATH[LANG] + query} aria-current={tools ? 'page' : undefined}>{t.partTools}</a>
             </nav>
-            {LANG === 'az' && <a className="glos-btn" href="/lugat/">Sayt haqqında ümumi məlumat</a>}
+            <a className="glos-btn" href={GLOSSARY[LANG][0]}>{GLOSSARY[LANG][1]}</a>
           </div>
         </div>
       </header>

@@ -58,11 +58,11 @@ def _info_urls() -> str:
     from web.pages import COMPARE_PATHS, TOOLS_PATHS
     from web.pages import PATHS as INFO
     out = ""
-    for by_lang in [TOOLS_PATHS, COMPARE_PATHS, *INFO.values()]:
+    from web.glossary import PATHS as GLOSSARY
+    for by_lang in [TOOLS_PATHS, COMPARE_PATHS, *INFO.values(), GLOSSARY]:
         alts = "".join(f'    <xhtml:link rel="alternate" hreflang="{l}" href="{SITE_URL}{p}"/>\n' for l, p in by_lang.items())
         out += "".join(f"  <url>\n    <loc>{SITE_URL}{p}</loc>\n    <lastmod>{LASTMOD}</lastmod>\n{alts}  </url>\n"
                        for p in by_lang.values())
-    out += f"  <url>\n    <loc>{SITE_URL}/lugat/</loc>\n    <lastmod>{LASTMOD}</lastmod>\n  </url>\n"   # Azerbaijani only
     return out
 
 
@@ -94,6 +94,7 @@ Ziya Azizov — https://www.linkedin.com/in/ziyaazizov
 - [Dərin analiz]({SITE_URL}/aletler/?tool=deep): subdomenlər və ələ keçirilmə riski, saxta e-poçt testi, bilinən zəifliklər, TLS və DNS, qara siyahılar, hücum ssenariləri; açıq fayl və port yoxlaması yalnız sahiblik təsdiqindən sonra
 - [Alətlər]({SITE_URL}/aletler/): SSL, DMARC, SPF, DKIM, başlıqlar və cookie-ləri ayrıca yoxlamaq; DMARC, SPF, CSP, başlıqlar, robots.txt, meta teqlər, sitemap, security.txt və yönləndirmə generatorları
 - [Müqayisə]({SITE_URL}/muqayise/): iki–dörd saytın balını və hər yoxlamanın nəticəsini yan-yana göstərir (məsələn, öz saytınız və rəqibiniz)
+- [Sayt haqqında ümumi məlumat]({SITE_URL}/lugat/): HTTPS, DNS, SPF, DMARC, XSS, SQL injection və digər 50 anlayış sadə dillə; [English]({SITE_URL}/en/glossary/), [русский]({SITE_URL}/ru/slovar/)
 - [Haqqımızda]({SITE_URL}/haqqimizda/), [Məxfilik]({SITE_URL}/mexfilik/), [Şərtlər]({SITE_URL}/sertler/)
 - [SaytYoxla in English]({SITE_URL}/en/): the same free website check in English
 - [SaytYoxla на русском]({SITE_URL}/ru/): та же бесплатная проверка сайта на русском

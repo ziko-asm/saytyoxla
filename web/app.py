@@ -6,7 +6,7 @@ SaytYoxla web service.
 GET  /            the Azerbaijani front page (React, built from react-ui/ into web/react/)
 GET  /en/, /ru/   the same page in English and Russian
 GET  /hesabat/, /en/report/, /ru/otchet/   survey of Azerbaijani websites (web/survey.py)
-GET  /lugat/   "Sayt haqqında ümumi məlumat": one long text with word search (web/glossary.py)
+GET  /lugat/, /en/glossary/, /ru/slovar/   websites explained in plain words, with word search (web/glossary.py)
 GET  /haqqimizda/, /mexfilik/, /sertler/ and their en/ru versions   about, privacy, terms (web/pages.py)
 GET  /classic     the previous plain-JavaScript page (web/static/index.html)
 GET  /aletler/, /en/tools/, /ru/instrumenty/   the Tools part of the site
@@ -246,14 +246,12 @@ def compare_page(request: Request):
 
 
 @app.get("/lugat/", include_in_schema=False)
-def glossary_page():
-    """One long Azerbaijani text about websites and their security, with a search box (web/glossary.py)."""
-    return HTMLResponse(glossary.page())
-
-
-@app.get("/lugat", include_in_schema=False)
-def glossary_slash():
-    return RedirectResponse("/lugat/", status_code=301)
+@app.get("/en/glossary/", include_in_schema=False)
+@app.get("/ru/slovar/", include_in_schema=False)
+def glossary_page(request: Request):
+    """One long text about websites and their security, with a search box, in three languages (web/glossary.py)."""
+    lang = next(l for l, p in glossary.PATHS.items() if p == request.url.path)
+    return HTMLResponse(glossary.page(lang))
 
 
 @app.get("/haqqimizda/", include_in_schema=False)
@@ -285,6 +283,9 @@ def info_page(request: Request):
 @app.get("/sertler", include_in_schema=False)
 @app.get("/en/terms", include_in_schema=False)
 @app.get("/ru/usloviya", include_in_schema=False)
+@app.get("/lugat", include_in_schema=False)
+@app.get("/en/glossary", include_in_schema=False)
+@app.get("/ru/slovar", include_in_schema=False)
 @app.get("/hesabat", include_in_schema=False)
 @app.get("/en/report", include_in_schema=False)
 @app.get("/ru/otchet", include_in_schema=False)

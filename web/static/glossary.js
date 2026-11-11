@@ -1,13 +1,15 @@
-/* Search for the "Sayt haqqında ümumi məlumat" page: finds terms by word and jumps to the place in the text. */
+/* Search for the glossary page (az, en, ru): finds terms by word and jumps to the place in the text. */
 (function () {
   var box = document.getElementById('gl-search'), q = document.getElementById('gl-q');
   var list = document.getElementById('gl-results'), status = document.getElementById('gl-status');
   var text = document.getElementById('gl-text');
   if (!box || !q || !list || !text) return;
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var MAP = { 'ə': 'e', 'ı': 'i', 'ö': 'o', 'ü': 'u', 'ş': 's', 'ç': 'c', 'ğ': 'g' };
+  // the sentences shown under the box come from the page, in its language (web/glossary.py)
+  function say(name, mark, value) { var t = box.getAttribute('data-' + name) || ''; return mark ? t.split(mark).join(String(value)) : t; }
+  var MAP = { 'ə': 'e', 'ı': 'i', 'ö': 'o', 'ü': 'u', 'ş': 's', 'ç': 'c', 'ğ': 'g', 'ё': 'е' };
   // every replaced letter is one character, so positions in the normalized text match the original
-  function norm(s) { return String(s).toLowerCase().replace(/[əıöüşçğ]/g, function (c) { return MAP[c]; }); }
+  function norm(s) { return String(s).toLowerCase().replace(/[əıöüşçğё]/g, function (c) { return MAP[c]; }); }
   var terms = [].slice.call(text.querySelectorAll('.term')).map(function (el) {
     var h = el.querySelector('h2,h3');
     return { el: el, title: h ? h.textContent : '', t: norm(h ? h.textContent : ''), k: norm(el.getAttribute('data-k') || ''), b: norm(el.textContent) };
@@ -70,7 +72,7 @@
     });
     list.hidden = !shown.length;
     q.setAttribute('aria-expanded', String(!list.hidden));
-    status.textContent = shown.length ? shown.length + ' nəticə. Birinə basın, mətndə həmin yerə keçəcəksiniz.' : 'Heç nə tapılmadı. Başqa söz yazın (məsələn: DMARC).';
+    status.textContent = shown.length ? say('found', '{n}', shown.length) : say('none');
   }
   function go(i) {
     var r = shown[i]; if (!r) return;
@@ -80,7 +82,7 @@
     r.t.el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
     r.t.el.classList.remove('flash'); void r.t.el.offsetWidth; r.t.el.classList.add('flash');
     try { history.replaceState(null, '', '#' + r.t.el.id); } catch (e) {}
-    status.textContent = '«' + r.t.title + '» bölməsinə keçildi.';
+    status.textContent = say('jumped', '{title}', r.t.title);
   }
   function setActive(n) {
     var bs = list.querySelectorAll('button'); if (!bs.length) return;

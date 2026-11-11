@@ -1,11 +1,12 @@
 """
-"Sayt haqqında ümumi məlumat": one long plain-text page (Azerbaijani only) with a search box.
+"Sayt haqqında ümumi məlumat": one long plain-text page with a search box, in Azerbaijani (this file),
+English (web/glossary_en.py) and Russian (web/glossary_ru.py). The term ids are the same in all three.
 
 The page is ordinary HTML, so it reads fine without JavaScript. web/static/glossary.js adds the search: it
 builds its index from the .term blocks below and jumps to the chosen one.
 
 What it says about scoring must stay true of scanner/checks.py and scanner/report.py (tests/test_glossary.py
-checks the numbers that are easy to drift).
+checks the numbers that are easy to drift, in every language).
 """
 # ruff: noqa: ISC004  (long paragraphs are written as adjacent string pieces on purpose)
 
@@ -13,10 +14,11 @@ from __future__ import annotations
 
 from html import escape
 
+from web import glossary_en, glossary_ru
 from web.pages import CONTACT, HOMES, _shell
-from web.seo import SITE_URL
+from web.pages import GLOSSARY_PATHS as PATHS
 
-PATH = "/lugat/"
+PATH = PATHS["az"]
 TITLE = "Sayt haqqında ümumi məlumat"
 DESC = ("Sayt nədir, nə üçün lazımdır? HTTPS, DNS, SPF, DMARC, SSL, XSS, SQL injection və digər anlayışlar sadə dillə izah olunur. "
         "Axtarış xanası ilə lazım olan sözə keçin.")
@@ -166,9 +168,12 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
         ("lang-og", "Səhifənin dili və sosial şəbəkə kartı (Open Graph) nədir?", "lang dil og open graph sosial kart paylasim whatsapp",
          "<p><b>lang</b> teqi səhifənin dilini bildirir (az, en, ru); brauzer tərcümə təklifi və ekran oxuyucuları ondan istifadə edir. "
          "<b>Open Graph (og)</b> teqləri linki WhatsApp, Instagram və ya LinkedIn-də paylaşanda çıxan şəkil və başlığı müəyyən edir. Onlar olmasa, link boş və etibarsız görünür. Hər biri 2 bal.</p>"),
-        ("cavab-vaxti", "Serverin cavab vaxtı və səhifənin həcmi nədir?", "surət speed cavab vaxti ms html olcu size yavas",
+        ("cavab-vaxti", "Serverin cavab vaxtı və səhifənin çəkisi nədir?", "surət speed cavab vaxti ms html olcu size cəki ceki yavas sekil kes skript",
          "<p>İnsanlar yavaş saytı tərk edir. SaytYoxla serverin cavab vaxtını ölçür: 1500 ms-dən az yaxşı, 4000 ms-ə qədər xəbərdarlıq, ondan çox pisdir (8 bal). "
-         "HTML həcmi də ölçülür: 300 KB-dan azı yaxşı, 1000 KB-a qədər xəbərdarlıq (4 bal). Bunlar saytın tam yüklənməsi deyil, yalnız serverin cavab sürətidir.</p>"),
+         "HTML həcmi də ölçülür: 300 KB-dan azı yaxşı, 1000 KB-a qədər xəbərdarlıq (4 bal).</p>"
+         "<p>Sonra səhifənin adını çəkdiyi fayllar bir dəfə istənilir: skriptlər, üslublar və şəkillər. HTML ilə birlikdə bu, <b>səhifənin tam çəkisidir</b>: 2 MB-dan az yaxşı, 5 MB-a qədər xəbərdarlıq, ondan çox pisdir (5 bal). "
+         "500 KB-dan ağır şəkil ağır sayılır (3 bal); səhifənin başında ilk göstərilməni gözlədən dörd və daha çox skript xəbərdarlıq verir (2 bal); saytın öz fayllarının çoxu brauzer keşi olmadan göndəriləndə də belədir (2 bal). "
+         "Skriptin sonradan əlavə etdiyi fayllar görünmür, çünki səhifə brauzerdə işə salınmır.</p>"),
         ("sixilma-http2", "Sıxılma (gzip, brotli) və HTTP/2 nədir?", "gzip brotli sixilma compression http2 http/2 suret protokol",
          "<p><b>Sıxılma</b> serverin səhifəni göndərməzdən əvvəl kiçiltməsidir (gzip və ya brotli); brauzer onu özü açır. Mətn 3–5 dəfə kiçilir, zəif internetdə fərq dərhal hiss olunur. "
          "SaytYoxla serverin cavabında sıxılma olub-olmadığına baxır (3 bal); 1400 baytdan kiçik səhifədən bunu tələb etmir.</p>"
@@ -185,12 +190,12 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
     ]),
     ("6. SaytYoxla necə işləyir", [
         ("bal-hesablanma", "Bal necə hesablanır?", "bal hesablama qiymet a b c d f cap",
-         "<p>SaytYoxla 30 yoxlama aparır; bunlardan 28-i ballıdır (TLS və DKIM yalnız məlumat üçündür). Hər yoxlamanın çəkisi var: ən ağırları HTTPS (20), sertifikat (15) və SPF (10), sonra 8 baldan başlayaraq daha kiçikləri. Cəmi 151 çəkidir və 100-ə çevrilir. "
-         "Uğursuz yoxlama bütün çəkisini aparır, xəbərdarlıq yarısını.</p>"
+         "<p>SaytYoxla 34 yoxlama aparır; bunlardan 32-si ballıdır (TLS və DKIM yalnız məlumat üçündür). Hər yoxlamanın çəkisi var: ən ağırları HTTPS (20), sertifikat (15) və SPF (10), sonra 8 baldan başlayaraq daha kiçikləri. Cəmi 163 çəkidir və 100-ə çevrilir. "
+         "Uğursuz yoxlama bütün çəkisini aparır, xəbərdarlıq yarısını. Aparıla bilməyən yoxlama hesaba qatılmır və bal aparmır.</p>"
          "<p>Qiymət: 90 və üstü A, 75 və üstü B, 60 və üstü C, 40 və üstü D, ondan aşağı F. Üstəlik həddlər var: HTTPS işləmirsə bal 39-dan, sertifikat etibarsızdırsa 59-dan yuxarı çıxmır. "
          "Beş əsas qoruyucudan (yönləndirmə, HSTS, clickjacking, nosniff, CSP) 4-ü və daha çoxu problemlidirsə, bal 74-dən, 2-si problemlidirsə 89-dan yuxarı çıxmır. Yəni zəif təhlükəsizlik başqa yaxşı nəticələrlə «örtülə» bilməz.</p>"),
         ("nezaman-yoxlayir", "SaytYoxla nəyi yoxlayır, nəyi yoxlamır?", "yoxlayir yoxlamir hedd mehdudiyyet audit",
-         "<p><b>Yoxlayır:</b> HTTPS, sertifikat, başlıqlar, kuki bayraqları, SPF/DMARC/DKIM, sürət, telefona uyğunluq və Google üçün əsas teqləri, yəni kənardan hər kəsin görə biləcəyi hər şeyi. Hamısı sayta zərər vermədən: əsas səhifə, robots.txt və sitemap.xml bir dəfə açılır.</p>"
+         "<p><b>Yoxlayır:</b> HTTPS, sertifikat, başlıqlar, kuki bayraqları, SPF/DMARC/DKIM, sürət və səhifənin çəkisi, telefona uyğunluq və Google üçün əsas teqləri, yəni kənardan hər kəsin görə biləcəyi hər şeyi. Hamısı sayta zərər vermədən: əsas səhifə, onun yüklədiyi fayllar (skript, üslub, şəkil), robots.txt və sitemap.xml bir dəfə açılır.</p>"
          "<p><b>Yoxlamır:</b> saytın daxili kodunu, serverin içini, parolları, bazanı, proqramın məntiqini. Bu tam təhlükəsizlik auditi deyil. Yüksək bal «sayt tam təhlükəsizdir» demək deyil, aşağı bal da «sayt sındırılıb» demək deyil.</p>"),
         ("deep-scan", "Dərin analiz və sahiblik təsdiqi nədir?", "deep scan derin analiz sahiblik tesdiq dns fayl port sql xss yoxlama",
          "<p>Dərin analiz saytın xarici səthinə baxır: subdomenlər, DNS, köhnə proqram versiyaları, açıq fayl və portlar. Bəzi hissələri yalnız sayt sizindir deyə sübut etdikdən sonra (DNS qeydi və ya fayl ilə) işləyir; başqasının saytında açıq fayl axtarmaq düzgün olmazdı. "
@@ -199,7 +204,7 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
          "<p>Hesabatda hər yoxlama üç rəngdən birini alır: yaşıl (qaydasındadır), sarı (xəbərdarlıq) və qırmızı (problem). Əvvəlcə qırmızılara baxın: onlar balı ən çox azaldır. "
          "Hər problemin altında nə edilməli olduğu yazılıb; bunu saytı quran proqramçıya göstərmək kifayətdir. Nəticə yalnız o anın şəklidir: sayt dəyişəndə təkrar yoxlayın.</p>"),
         ("mexfilik-xulase", "SaytYoxla hansı məlumatı saxlayır?", "mexfilik gizlilik kuki izleme saxlanir ip",
-         "<p>Ad, telefon və ya e-poçt soruşmur, kuki və izləmə skripti yoxdur. Yoxlanılan ünvan və nəticə təkrar yoxlamanı sürətləndirmək üçün 10 dəqiqəyə qədər serverin yaddaşında qalır, IP ünvanı isə sui-istifadəni məhdudlaşdıran sayğacda ən çox 1 gün. "
+         "<p>Ad və telefon soruşmur, kuki və izləmə skripti yoxdur. E-poçt yalnız saytınızın daimi izlənməsini özünüz seçsəniz lazımdır. Yoxlanılan ünvan və nəticə təkrar yoxlamanı sürətləndirmək üçün 10 dəqiqəyə qədər saxlanılır, IP ünvanı isə sui-istifadəni məhdudlaşdıran sayğacda ən çox 1 gün. "
          "Ətraflı: <a href=\"/mexfilik/\">Məxfilik</a>.</p>"),
     ]),
     ("7. Saytın qorunması üçün praktik məsləhətlər", [
@@ -216,30 +221,42 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
     ]),
 ]
 
-# one reading of the page: what a term title looks like in the search results and how the index is read
-SEARCH_LABEL = "Sözə görə axtarın (məsələn: DMARC, HTTPS, SQL)"
+# What the page says around the text, per language. English and Russian keep theirs next to their text.
+UI = {
+    "az": {"title": TITLE, "desc": DESC, "lead": "Saytınız necə işləyir və necə qorunur? Sadə dillə.",
+           "search": "Sözə görə axtarın (məsələn: DMARC, HTTPS, SQL)", "placeholder": "Axtar…", "results": "Nəticələr",
+           "found": "{n} nəticə. Birinə basın, mətndə həmin yerə keçəcəksiniz.",
+           "none": "Heç nə tapılmadı. Başqa söz yazın (məsələn: DMARC).", "jumped": "«{title}» bölməsinə keçildi.",
+           "contact": "Sual və ya təklif:", "button": "Saytı yoxla", "intro": INTRO, "sections": SECTIONS},
+    **{lang: {"title": m.TITLE, "desc": m.DESC, "lead": m.LEAD, "search": m.SEARCH_LABEL, "placeholder": m.SEARCH_PLACEHOLDER,
+              "results": m.RESULTS_LABEL, "found": m.FOUND, "none": m.NOT_FOUND, "jumped": m.JUMPED, "contact": m.CONTACT_LABEL,
+              "button": m.BUTTON, "intro": m.INTRO, "sections": m.SECTIONS}
+       for lang, m in (("en", glossary_en), ("ru", glossary_ru))},
+}
 
 
 def _term(id_: str, title: str, keys: str, body: str) -> str:
     return f'<section class="term" id="{id_}" data-k="{escape(keys)}">\n<h3>{title}</h3>\n{body}\n</section>'
 
 
-def body() -> str:
-    parts = [f'<h1>{TITLE}</h1>',
-             '<p class="meta">Saytınız necə işləyir və necə qorunur? Sadə dillə.</p>',
-             f'''<div class="gl-search" id="gl-search" hidden>
-<label for="gl-q">{SEARCH_LABEL}</label>
-<input id="gl-q" type="search" autocomplete="off" spellcheck="false" placeholder="Axtar…">
-<ul id="gl-results" role="listbox" aria-label="Nəticələr" hidden></ul>
+def body(lang: str = "az") -> str:
+    ui = UI[lang]
+    # The search script reads its three sentences from here, so it needs no language of its own
+    parts = [f'<h1>{ui["title"]}</h1>',
+             f'<p class="meta">{ui["lead"]}</p>',
+             f'''<div class="gl-search" id="gl-search" hidden data-found="{escape(ui["found"])}" data-none="{escape(ui["none"])}" data-jumped="{escape(ui["jumped"])}">
+<label for="gl-q">{ui["search"]}</label>
+<input id="gl-q" type="search" autocomplete="off" spellcheck="false" placeholder="{ui["placeholder"]}">
+<ul id="gl-results" role="listbox" aria-label="{ui["results"]}" hidden></ul>
 <p id="gl-status" class="meta" role="status" aria-live="polite"></p>
 </div>''',
-             f'<div id="gl-text">{INTRO}']
-    for title, terms in SECTIONS:
+             f'<div id="gl-text">{ui["intro"]}']
+    for title, terms in ui["sections"]:
         parts.append(f'<h2 class="sec">{title}</h2>')
         parts.extend(_term(*t) for t in terms)
     parts.append('</div>')
-    parts.append(f'<p class="meta">Sual və ya təklif: {CONTACT}</p>')
-    parts.append(f'<p><a class="btn" href="{HOMES["az"]}">Saytı yoxla</a></p>')
+    parts.append(f'<p class="meta">{ui["contact"]} {CONTACT}</p>')
+    parts.append(f'<p><a class="btn" href="{HOMES[lang]}">{ui["button"]}</a></p>')
     parts.append('<script src="/static/glossary.js" defer></script>')
     return "\n".join(parts)
 
@@ -272,14 +289,7 @@ mark{background:#7a5d00;color:#fff}
 """
 
 
-def page() -> str:
-    html = _shell("az", TITLE, DESC, body(), {"az": PATH, "en": HOMES["en"], "ru": HOMES["ru"]})
-    # The card a shared link shows in WhatsApp, Telegram and Facebook
-    head = (f'<link rel="canonical" href="{SITE_URL}{PATH}">\n<meta property="og:type" content="article">\n'
-            f'<meta property="og:site_name" content="SaytYoxla">\n<meta property="og:locale" content="az_AZ">\n'
-            f'<meta property="og:url" content="{SITE_URL}{PATH}">\n<meta property="og:title" content="{escape(TITLE)}">\n'
-            f'<meta property="og:description" content="{escape(DESC)}">\n<meta property="og:image" content="{SITE_URL}/static/og-image.png">\n'
-            f'<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n'
-            f'<meta name="twitter:card" content="summary_large_image">\n')
-    html = html.replace('<link rel="icon"', head + '<link rel="icon"', 1)
+def page(lang: str = "az") -> str:
+    ui = UI[lang]
+    html = _shell(lang, ui["title"], ui["desc"], body(lang), PATHS, canonical=PATHS[lang])
     return html.replace("</style>", STYLE_EXTRA + "</style>", 1)

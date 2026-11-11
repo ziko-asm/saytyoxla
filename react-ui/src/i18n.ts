@@ -8,6 +8,9 @@ export const LANG: Lang = htmlLang === 'en' || htmlLang === 'ru' ? htmlLang : 'a
 
 export const HOME: Record<Lang, string> = { az: '/', en: '/en/', ru: '/ru/' }
 export const TOOLS_PATH: Record<Lang, string> = { az: '/aletler/', en: '/en/tools/', ru: '/ru/instrumenty/' }
+export const GLOSSARY: Record<Lang, [string, string]> = {
+  az: ['/lugat/', 'Sayt haqqında ümumi məlumat'], en: ['/en/glossary/', 'Websites in plain words'], ru: ['/ru/slovar/', 'О сайтах простыми словами'],
+}
 export const LOCALE: Record<Lang, string> = { az: 'az-AZ', en: 'en-GB', ru: 'ru-RU' }
 
 const az = {
