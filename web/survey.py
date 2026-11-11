@@ -41,6 +41,10 @@ CHECKS = {
     "mixed": "Qarışıq məzmun", "spf": "E-poçt göndərən icazəsi (SPF)",
     "dmarc": "Saxta məktuba qarşı qoruma (DMARC)", "speed": "Serverin cavab sürəti",
     "viewport": "Telefona uyğunluq", "title": "Səhifə başlığı", "description": "Google üçün təsvir",
+    # measured since the page-weight checks (scanner/assets.py); statistics gathered before them have no such rows
+    "weight": "Səhifənin tam çəkisi", "img_weight": "Ağır şəkillər", "blocking": "Səhifəni gözlədən skriptlər",
+    "asset_cache": "Faylların brauzerdə saxlanması (keş)", "compression": "Səhifənin sıxılması (gzip)",
+    "http2": "Sürətli protokol (HTTP/2)",
 }
 
 MONTHS = {

@@ -367,3 +367,56 @@ def test_glossary_has_a_share_card():
     page = client.get("/lugat/").text
     assert 'property="og:image"' in page and 'property="og:title"' in page
     assert page.count('rel="canonical"') == 1 and page.count('property="og:image"') == 1
+
+
+# --------------------------------------------------------------- scripts/survey.py
+def _survey_script():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("survey_script", Path(__file__).parent.parent / "scripts" / "survey.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _site_report(score, grade, **status):
+    base = {"https": "ok", "cert": "ok", "dmarc": "ok", "spf": "ok", "disclosure": "ok", "csp": "warn", "weight": "ok",
+            "hsts": "ok", "framing": "ok", "viewport": "ok", "description": "warn", "http_redirect": "ok"}
+    return {"score": score, "grade": grade, "findings": [{"id": k, "status": v} for k, v in {**base, **status}.items()]}
+
+
+def test_survey_script_counts_sites_without_naming_them(monkeypatch, tmp_path):
+    import json
+
+    from web import survey
+    script = _survey_script()
+    assert script.read_sites("# banks\nbank a.az\n\nuni b.az  # note\n") == [("bank", "a.az"), ("uni", "b.az")]
+    assert script.reason_of("Bu ünvan tapılmadı. Yazılışı yoxlayın.") == "not_in_dns"
+    assert script.reason_of("Sayt avtomatik yoxlamaları bloklayır (kod 403).") == "blocked"
+    assert script.reason_of("Sayt açılmadı: təhlükəsiz bağlantı (SSL) qurula bilmədi.") == "tls"
+    assert script.reason_of("Sayt açılmadı: server vaxtında cavab vermədi.") == "unreachable"
+
+    results = [("bank", _site_report(96, "A")), ("bank", _site_report(80, "B", dmarc="warn", weight="info")),
+               ("uni", _site_report(60, "C", dmarc="fail", spf="fail", disclosure="warn", cert="warn", weight="fail")),
+               ("uni", "blocked"), ("gov", "not_in_dns"), ("gov", "tls"), ("news", "unreachable")]
+    stats = script.build(results, "2026-11-11")
+    assert (stats["scanned"], stats["analysed"]) == (6, 3)
+    assert stats["skipped"] == {"blocked": 1, "not_in_dns": 1, "tls": 1, "unreachable": 2}     # TLS failures did not open either
+    assert stats["sector_sizes"] == {"bank": 2, "uni": 2, "gov": 2, "news": 1}
+    a = stats["all"]
+    assert (a["n"], a["avg"], a["median"], a["grades"]) == (3, 79, 80, {"A": 1, "B": 1, "C": 1})
+    assert a["pass"]["dmarc"] == 33 and a["pass"]["csp"] == 0
+    assert a["pass"]["weight"] == 50                      # measured on two sites, passed on one: "info" is left out
+    assert (a["dmarc_missing"], a["dmarc_none"], a["spf_missing"], a["version_leak"], a["cert_soon"]) == (33, 33, 33, 33, 33)
+    assert set(stats["sectors"]) == {"bank", "uni"} and stats["sectors"]["bank"]["avg"] == 88
+    assert ".az" not in json.dumps(stats)
+
+    # the page can show what the script wrote, new checks included
+    data = tmp_path / "stats.json"
+    data.write_text(json.dumps(stats), encoding="utf-8")
+    monkeypatch.setattr(survey, "DATA", data)
+    survey.stats.cache_clear()
+    for lang in ("az", "en", "ru"):
+        assert "<table>" in survey.page(lang)
+    assert "Full page weight" in survey.page("en")
+    survey.stats.cache_clear()
