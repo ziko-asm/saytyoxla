@@ -82,7 +82,7 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
          "Beləcə şəbəkədə kimsə əlaqəni HTTP-yə endirməyə (downgrade) çalışsa, alınmır. Düzgün bitiş: <i>max-age</i> ən azı 6 ay olmalıdır. SaytYoxla-da 6 bal.</p>"),
         ("csp", "CSP (Content-Security-Policy) nədir?", "content security policy basliq csp xss script",
          "<p>CSP saytın brauzerə verdiyi siyahıdır: «skriptləri, şəkilləri və şriftləri yalnız bu ünvanlardan yüklə». Hücumçu saytın içinə zərərli skript yerləşdirə bilsə belə, brauzer onu siyahıda olmadığı üçün işlətmir. "
-         "Beləliklə CSP XSS hücumlarına qarşı ən güclü təbəqədir. Amma ən çox buraxılan başlıqdır: SaytYoxla-nın 106 saytlıq araşdırmasında yalnız 14%-də CSP var idi. "
+         "Beləliklə CSP XSS hücumlarına qarşı ən güclü təbəqədir. Amma ən çox buraxılan başlıqdır: SaytYoxla-nın [[survey_n]] saytlıq araşdırmasında yalnız [[survey_csp]]%-də CSP var idi. "
          "Yazmaq çətindir, çünki yanlış yazanda sayt sınır. Ona görə də SaytYoxla yalnız CSP-nin olub-olmadığına yox, keyfiyyətinə də baxır («unsafe-inline» kimi zəif qaydalar xəbərdarlıq verir). 4 bal.</p>"),
         ("x-frame-options", "Clickjacking, X-Frame-Options və frame-ancestors nədir?", "clickjacking framing iframe x-frame-options frame-ancestors",
          "<p>Clickjacking hücumunda hücumçu sizin saytınızı görünməz şəkildə öz səhifəsinin içinə qoyur (iframe). İnsan «mükafat al» düyməsinə basdığını düşünür, əslində sizin saytdakı «ödə» və ya «sil» düyməsinə basır. "
@@ -113,7 +113,7 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
         ("dmarc", "DMARC nədir?", "dmarc p=none quarantine reject eposta rua",
          "<p>DMARC SPF və DKIM-in üstündə qərardır: «yoxlamadan keçməyən məktubla nə etmək lazımdır?» Üç seçim var: <b>p=none</b> (heç nə etmə, yalnız hesabat göndər), <b>p=quarantine</b> (spam qovluğuna at) və <b>p=reject</b> (heç göstərmə). "
          "Düzgün yol belədir: əvvəlcə <i>p=none</i> yazıb hesabatlara baxırsınız, hər şey qaydasındadırsa, <i>quarantine</i>, sonra <i>reject</i> edirsiniz. Yoxsa öz qanuni məktublarınız da itə bilər. "
-         "SaytYoxla-nın 106 saytlıq araşdırmasında DMARC-ı tətbiq edən (quarantine/reject) saytlar 58% idi. 8 bal; <i>p=none</i> yarım bal verir.</p>"),
+         "SaytYoxla-nın [[survey_n]] saytlıq araşdırmasında DMARC-ı tətbiq edən (quarantine/reject) saytlar [[survey_dmarc]]% idi. 8 bal; <i>p=none</i> yarım bal verir.</p>"),
         ("mx", "MX qeydi nədir?", "mx mail exchange eposta server dns",
          "<p>MX qeydi domenin e-poçtunu hansı serverin qəbul edəcəyini göstərir. Məsələn Google Workspace istifadə edirsinizsə, MX qeydləri Google serverlərinə baxır.</p>"),
     ]),
@@ -258,7 +258,17 @@ def body(lang: str = "az") -> str:
     parts.append(f'<p class="meta">{ui["contact"]} {CONTACT}</p>')
     parts.append(f'<p><a class="btn" href="{HOMES[lang]}">{ui["button"]}</a></p>')
     parts.append('<script src="/static/glossary.js" defer></script>')
-    return "\n".join(parts)
+    return _with_survey_numbers("\n".join(parts))
+
+
+def _with_survey_numbers(html: str) -> str:
+    """The text quotes the survey (web/survey_stats.json); the numbers are filled in here so a new survey
+    cannot leave old figures behind."""
+    from web import survey  # here, not at the top: survey builds on web.pages too
+    everyone = survey.stats()["all"] if survey.DATA.exists() else {"n": 0, "pass": {}}
+    for mark, value in (("n", everyone["n"]), ("csp", survey.has_csp(everyone) if everyone["n"] else 0), ("dmarc", everyone["pass"].get("dmarc", 0))):
+        html = html.replace(f"[[survey_{mark}]]", str(value))
+    return html
 
 
 STYLE_EXTRA = """

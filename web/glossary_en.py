@@ -75,7 +75,7 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
          "So if someone on the network tries to push the connection down to HTTP (a downgrade), it fails. Done right, <i>max-age</i> is at least 6 months. 6 points in SaytYoxla.</p>"),
         ("csp", "What is CSP (Content-Security-Policy)?", "content security policy header csp xss script",
          "<p>CSP is a list the site gives the browser: “load scripts, images and fonts only from these addresses”. Even if an attacker manages to place a harmful script inside the site, the browser does not run it, because it is not on the list. "
-         "That makes CSP the strongest layer against XSS attacks. It is also the header most often left out: in SaytYoxla's survey of 106 sites only 14% had a CSP. "
+         "That makes CSP the strongest layer against XSS attacks. It is also the header most often left out: in SaytYoxla's survey of [[survey_n]] sites only [[survey_csp]]% had a CSP. "
          "It is hard to write, because a mistake breaks the site. So SaytYoxla looks not only at whether a CSP exists but also at its quality (weak rules such as “unsafe-inline” give a warning). 4 points.</p>"),
         ("x-frame-options", "What are clickjacking, X-Frame-Options and frame-ancestors?", "clickjacking framing iframe x-frame-options frame-ancestors",
          "<p>In a clickjacking attack, the attacker places your site invisibly inside their own page (an iframe). The person thinks they are pressing “claim your prize”, but they are really pressing “pay” or “delete” on your site. "
@@ -106,7 +106,7 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str, str]]]] = [
         ("dmarc", "What is DMARC?", "dmarc p=none quarantine reject email rua",
          "<p>DMARC is the decision that sits on top of SPF and DKIM: “what should be done with a message that fails the check?” There are three choices: <b>p=none</b> (do nothing, only send a report), <b>p=quarantine</b> (put it in the spam folder) and <b>p=reject</b> (do not show it at all). "
          "The right way is this: first you write <i>p=none</i> and read the reports; if everything is in order, you move to <i>quarantine</i> and then <i>reject</i>. Otherwise your own legitimate mail can get lost too. "
-         "In SaytYoxla's survey of 106 sites, 58% enforced DMARC (quarantine/reject). 8 points; <i>p=none</i> gives half.</p>"),
+         "In SaytYoxla's survey of [[survey_n]] sites, [[survey_dmarc]]% enforced DMARC (quarantine/reject). 8 points; <i>p=none</i> gives half.</p>"),
         ("mx", "What is an MX record?", "mx mail exchange email server dns",
          "<p>An MX record says which server receives the domain's e-mail. If you use Google Workspace, for example, the MX records point to Google's servers.</p>"),
     ]),

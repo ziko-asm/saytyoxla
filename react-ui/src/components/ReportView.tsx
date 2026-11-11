@@ -119,7 +119,7 @@ export function ReportView({ report, onAgain, onRescan }: { report: Report; onAg
           return (
             <div className="group" key={cat}>
               <h3>{cat} <small>{bad.length ? t.issues(bad.length) : rest.every((f) => f.status === 'info') ? t.infoOnly : t.allGood}</small></h3>
-              {bad.map((f) => <FindingItem key={f.id} f={f} benchmark={report.benchmarks?.[f.id]} />)}
+              {bad.map((f) => <FindingItem key={f.id} f={f} benchmark={report.benchmarks?.[f.id]} sites={report.benchmark_sites} />)}
               {rest.length > 0 && (bad.length ? (
                 <details className="ok-list">
                   <summary>{t.showOk(rest.length)}</summary>

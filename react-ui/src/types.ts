@@ -22,6 +22,7 @@ export type Report = {
   findings: Finding[]
   counts: { fail?: number; warn?: number; ok?: number }
   benchmarks?: Record<string, number> // check id -> % of surveyed Azerbaijani sites that pass it
+  benchmark_sites?: number // how many sites that survey covers
   scanned_at: string
   cached?: boolean // true when the server answered from its 10-minute result cache
 }

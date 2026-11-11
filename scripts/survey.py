@@ -4,6 +4,7 @@ Scan a private list of websites and write the aggregate numbers the survey page 
     python scripts/survey.py sites.txt                    # scan through the live service, write web/survey_stats.json
     python scripts/survey.py sites.txt --out /tmp/s.json  # write somewhere else (a trial run)
     python scripts/survey.py sites.txt --local            # scan from this machine instead (needs working DNS for TXT)
+    python scripts/survey.py sites.txt --keep run.json    # remember each result privately; run again to resume
 
 sites.txt is one site per line, "<sector> <address>", with the sector keys of web/survey.py (bank, uni, gov, news,
 shop, tel, health). Empty lines and lines starting with # are skipped. The list and the per-site results are
@@ -32,6 +33,7 @@ from web.survey import CHECKS, SECTORS
 
 API = "https://saytyoxla.vercel.app/api/scan"
 # How a refusal is counted, by a word of the Azerbaijani message the scanner gives (scanner/__init__.py, scanner/safety.py)
+NO_CSP = "(CSP) yoxdur"      # scanner/checks.py: the sentence for a site with no policy at all
 REASONS = (("tapılmadı", "not_in_dns"), ("bloklayır", "blocked"), ("SSL", "tls"))
 
 
@@ -97,10 +99,12 @@ def summarise(reports: list[dict]) -> dict:
         if any(check in s for s in status):         # a check the scanner did not have yet gets no row at all
             passed[check] = pct(judged.count("ok"), len(judged))
     n = len(reports)
+    # "no CSP" and "a CSP that restricts little" are both warnings; the page says "no CSP" only of the first
+    no_csp = sum(f["id"] == "csp" and f["status"] != "ok" and NO_CSP in f.get("detail", "") for r in reports for f in r["findings"])
     share = lambda check, *bad: pct(sum(s.get(check) in bad for s in status), n)
     return {"n": n, "avg": round(statistics.mean(scores)), "median": round(statistics.median(scores)), "grades": grades,
             "pass": passed, "dmarc_missing": share("dmarc", "fail"), "dmarc_none": share("dmarc", "warn"),
-            "spf_missing": share("spf", "fail"), "version_leak": share("disclosure", "warn", "fail"),
+            "spf_missing": share("spf", "fail"), "csp_missing": pct(no_csp, n), "version_leak": share("disclosure", "warn", "fail"),
             "cert_soon": share("cert", "warn", "fail"),
             "avg_fails": round(statistics.mean(sum(v == "fail" for v in s.values()) for s in status), 1)}
 
@@ -131,16 +135,24 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=ROOT / "web" / "survey_stats.json")
     ap.add_argument("--api", default=API)
     ap.add_argument("--local", action="store_true", help="scan from this machine instead of through the service")
+    ap.add_argument("--keep", type=Path, help="private file for per-site results, so an interrupted run can resume; keep it out of the repository")
     ap.add_argument("--per-minute", type=float, default=5, help="scans a minute through the service (its limit is 6)")
     args = ap.parse_args()
 
     sites = read_sites(args.sites.read_text(encoding="utf-8"))
     session = requests.Session()
+    kept = json.loads(args.keep.read_text(encoding="utf-8")) if args.keep and args.keep.exists() else {}
     results = []
     for i, (sector, address) in enumerate(sites, 1):
         started = time.monotonic()
+        if address in kept:                 # a run that was cut short goes on where it stopped
+            results.append((sector, kept[address]))
+            continue
         got = scan_local(address) if args.local else scan_api(address, args.api, session)
         results.append((sector, got))
+        if args.keep:
+            kept[address] = got
+            args.keep.write_text(json.dumps(kept, ensure_ascii=False), encoding="utf-8")
         # progress without names: the list is private, and terminal output gets pasted around
         print(f"{i}/{len(sites)} {sector}: {got if isinstance(got, str) else got['score']}", flush=True)
         if not args.local and i < len(sites):

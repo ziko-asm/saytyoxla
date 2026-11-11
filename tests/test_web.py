@@ -410,6 +410,11 @@ def test_survey_script_counts_sites_without_naming_them(monkeypatch, tmp_path):
     assert (a["dmarc_missing"], a["dmarc_none"], a["spf_missing"], a["version_leak"], a["cert_soon"]) == (33, 33, 33, 33, 33)
     assert set(stats["sectors"]) == {"bank", "uni"} and stats["sectors"]["bank"]["avg"] == 88
     assert ".az" not in json.dumps(stats)
+    with_detail = _site_report(70, "C")
+    with_detail["findings"].append({"id": "csp", "status": "warn", "detail": "Saytda kənar skriptlərə nəzarət qaydası (CSP) yoxdur."})
+    weak = _site_report(70, "C")
+    weak["findings"].append({"id": "csp", "status": "warn", "detail": "CSP var, amma skriptləri az məhdudlaşdırır: unsafe-inline."})
+    assert script.summarise([with_detail, weak])["csp_missing"] == 50       # a weak policy is not "no policy"
 
     # the page can show what the script wrote, new checks included
     data = tmp_path / "stats.json"
@@ -419,4 +424,23 @@ def test_survey_script_counts_sites_without_naming_them(monkeypatch, tmp_path):
     for lang in ("az", "en", "ru"):
         assert "<table>" in survey.page(lang)
     assert "Full page weight" in survey.page("en")
+    assert "rests on few sites" not in survey.page("en")
+    stats["sector_sizes"]["uni"] = 5                                         # now one of five listed universities answered
+    data.write_text(json.dumps(stats), encoding="utf-8")
     survey.stats.cache_clear()
+    assert "rests on few sites: universities (1/5)" in survey.page("en")
+    survey.stats.cache_clear()
+
+
+def test_scan_answer_says_how_many_sites_the_benchmarks_cover(monkeypatch):
+    from scanner import checks
+    from scanner.report import build
+    from tests.test_scanner import ctx
+    from web import survey
+    webapp._cache.clear()
+    monkeypatch.setattr(webapp, "limiter", webapp.ratelimit.Limiter())
+    c = ctx()
+    monkeypatch.setattr(webapp.scanner, "scan", lambda url: build(c, checks.run_checks(c)))
+    got = client.post("/api/scan", json={"url": "example.az"}).json()
+    assert got["benchmark_sites"] == survey.stats()["all"]["n"] > 0
+    webapp._cache.clear()

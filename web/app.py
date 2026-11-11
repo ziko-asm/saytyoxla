@@ -350,7 +350,7 @@ def scan(req: ScanRequest, request: Request):
 
     hit = None if req.fresh else cache_get(key)
     if hit:
-        return JSONResponse({**i18n.report(hit, lang), "cached": True, "benchmarks": survey.benchmarks()})
+        return JSONResponse({**i18n.report(hit, lang), "cached": True, "benchmarks": survey.benchmarks(), "benchmark_sites": survey.sample_size()})
 
     if not limiter.allow(client_ip(request)):
         raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
@@ -359,7 +359,7 @@ def scan(req: ScanRequest, request: Request):
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     cache_put(key, report)
-    return JSONResponse({**i18n.report(report, lang), "cached": False, "benchmarks": survey.benchmarks()})
+    return JSONResponse({**i18n.report(report, lang), "cached": False, "benchmarks": survey.benchmarks(), "benchmark_sites": survey.sample_size()})
 
 
 class ToolRequest(BaseModel):
@@ -379,7 +379,7 @@ def tool(req: ToolRequest, request: Request):
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     hit = None if req.fresh else cache_get(key)
     if hit:
-        return JSONResponse({**i18n.report(hit, lang), "cached": True, "benchmarks": survey.benchmarks()})
+        return JSONResponse({**i18n.report(hit, lang), "cached": True, "benchmarks": survey.benchmarks(), "benchmark_sites": survey.sample_size()})
     if not limiter.allow(client_ip(request)):
         raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
     try:
@@ -387,7 +387,7 @@ def tool(req: ToolRequest, request: Request):
     except UnsafeTarget as e:
         raise HTTPException(400, i18n.text(str(e), lang)) from None
     cache_put(key, result)
-    return JSONResponse({**i18n.report(result, lang), "cached": False, "benchmarks": survey.benchmarks()})
+    return JSONResponse({**i18n.report(result, lang), "cached": False, "benchmarks": survey.benchmarks(), "benchmark_sites": survey.sample_size()})
 
 
 class DeepRequest(BaseModel):
