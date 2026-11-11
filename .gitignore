@@ -8,5 +8,9 @@ desktop.ini
 .env
 .vercel
 
+# the survey's site list and per-site results are private (scripts/survey.py)
+*.sites.txt
+survey_sites*
+
 # react-ui build tooling
 react-ui/node_modules/

@@ -62,6 +62,12 @@ The Inter font is served from `web/static/fonts/` (SIL Open Font License 1.1), s
 ## Search engines
 `web/seo.py` serves `/robots.txt`, `/sitemap.xml`, `/llms.txt` and the Google Search Console verification file. The front page carries a canonical URL, Open Graph tags (`web/static/og-image.png`) and JSON-LD (WebSite, WebApplication, Person, FAQPage — keep the FAQ schema in sync with the visible FAQ). If the site moves to its own domain, set `SITE_URL` and update the canonical/OG URLs in `index.html`.
 
+## Survey statistics
+`/hesabat/` shows aggregate numbers only (`web/survey_stats.json`); the list of sites is private and is not in the repository.
+To refresh the numbers, write the list as `<sector> <address>` lines (sectors as in `web/survey.py`) and run
+`python scripts/survey.py my.sites.txt`. It scans through the live service at five sites a minute, prints scores without
+names and rewrites `web/survey_stats.json`. Commit only that file.
+
 ## Deploy
 Vercel: import this repo (`vercel.json` routes every request to `api/index.py`) and set the Redis variables above.
 Or on Render: New → Blueprint → this repo (`render.yaml`).
