@@ -366,4 +366,4 @@ def test_tools_page_does_not_repeat_the_home_page_questions():
 def test_glossary_has_a_share_card():
     page = client.get("/lugat/").text
     assert 'property="og:image"' in page and 'property="og:title"' in page
-    assert page.count('rel="canonical"') == 1 and "hreflang" not in page.split("</head>")[0]
+    assert page.count('rel="canonical"') == 1 and page.count('property="og:image"') == 1

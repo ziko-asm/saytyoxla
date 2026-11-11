@@ -37,6 +37,8 @@ TOOLS_META = {  # short name, <title>, description, heading
 # Two to four sites side by side (web/compare.py, web/static/compare.js)
 COMPARE_PATHS = {"az": "/muqayise/", "en": "/en/compare/", "ru": "/ru/sravnenie/"}
 COMPARE_NAME = {"az": "Müqayisə", "en": "Compare", "ru": "Сравнение"}
+GLOSSARY_PATHS = {"az": "/lugat/", "en": "/en/glossary/", "ru": "/ru/slovar/"}
+GLOSSARY_NAME = {"az": "Lüğət", "en": "Glossary", "ru": "Словарь"}
 LINKS = {
     "about": {"az": "Haqqımızda", "en": "About", "ru": "О сервисе"},
     "privacy": {"az": "Məxfilik", "en": "Privacy", "ru": "Конфиденциальность"},
@@ -236,7 +238,8 @@ ICON_LINKS = ('<link rel="icon" href="/favicon.ico" sizes="32x32">\n<link rel="a
 def footer_links(lang: str) -> str:
     tools = f'<a href="{TOOLS_PATHS[lang]}">{TOOLS_META[lang][0]}</a>'
     compare = f'<a href="{COMPARE_PATHS[lang]}">{COMPARE_NAME[lang]}</a>'
-    return " · ".join([tools, compare] + [f'<a href="{PATHS[k][lang]}">{LINKS[k][lang]}</a>' for k in PATHS])
+    glossary = f'<a href="{GLOSSARY_PATHS[lang]}">{GLOSSARY_NAME[lang]}</a>'
+    return " · ".join([tools, compare, glossary] + [f'<a href="{PATHS[k][lang]}">{LINKS[k][lang]}</a>' for k in PATHS])
 
 
 def _shell(lang: str, title: str, desc: str, body: str, paths: dict[str, str], robots: str = "index, follow",
