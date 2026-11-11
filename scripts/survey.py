@@ -33,6 +33,7 @@ from web.survey import CHECKS, SECTORS
 
 API = "https://saytyoxla.vercel.app/api/scan"
 # How a refusal is counted, by a word of the Azerbaijani message the scanner gives (scanner/__init__.py, scanner/safety.py)
+NO_CSP = "(CSP) yoxdur"      # scanner/checks.py: the sentence for a site with no policy at all
 REASONS = (("tapılmadı", "not_in_dns"), ("bloklayır", "blocked"), ("SSL", "tls"))
 
 
@@ -98,10 +99,12 @@ def summarise(reports: list[dict]) -> dict:
         if any(check in s for s in status):         # a check the scanner did not have yet gets no row at all
             passed[check] = pct(judged.count("ok"), len(judged))
     n = len(reports)
+    # "no CSP" and "a CSP that restricts little" are both warnings; the page says "no CSP" only of the first
+    no_csp = sum(f["id"] == "csp" and f["status"] != "ok" and NO_CSP in f.get("detail", "") for r in reports for f in r["findings"])
     share = lambda check, *bad: pct(sum(s.get(check) in bad for s in status), n)
     return {"n": n, "avg": round(statistics.mean(scores)), "median": round(statistics.median(scores)), "grades": grades,
             "pass": passed, "dmarc_missing": share("dmarc", "fail"), "dmarc_none": share("dmarc", "warn"),
-            "spf_missing": share("spf", "fail"), "version_leak": share("disclosure", "warn", "fail"),
+            "spf_missing": share("spf", "fail"), "csp_missing": pct(no_csp, n), "version_leak": share("disclosure", "warn", "fail"),
             "cert_soon": share("cert", "warn", "fail"),
             "avg_fails": round(statistics.mean(sum(v == "fail" for v in s.values()) for s in status), 1)}
 

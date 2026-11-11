@@ -101,4 +101,4 @@ def test_survey_numbers_in_the_text_come_from_the_published_statistics():
     for lang, path in LANGS.items():
         text = client.get(path).text
         assert "[[survey" not in text, lang
-        assert str(everyone["n"]) in text and f'{everyone["pass"]["csp"]}%' in text and f'{everyone["pass"]["dmarc"]}%' in text, lang
+        assert str(everyone["n"]) in text and f'{survey.has_csp(everyone)}%' in text and f'{everyone["pass"]["dmarc"]}%' in text, lang

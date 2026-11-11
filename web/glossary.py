@@ -266,7 +266,7 @@ def _with_survey_numbers(html: str) -> str:
     cannot leave old figures behind."""
     from web import survey  # here, not at the top: survey builds on web.pages too
     everyone = survey.stats()["all"] if survey.DATA.exists() else {"n": 0, "pass": {}}
-    for mark, value in (("n", everyone["n"]), ("csp", everyone["pass"].get("csp", 0)), ("dmarc", everyone["pass"].get("dmarc", 0))):
+    for mark, value in (("n", everyone["n"]), ("csp", survey.has_csp(everyone) if everyone["n"] else 0), ("dmarc", everyone["pass"].get("dmarc", 0))):
         html = html.replace(f"[[survey_{mark}]]", str(value))
     return html
 
