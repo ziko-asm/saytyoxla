@@ -60,6 +60,30 @@ def test_fresh_is_still_rate_limited(monkeypatch):
     assert codes == [200, 200, 429]
 
 
+def test_rate_limit_says_when_to_retry(monkeypatch):
+    monkeypatch.setattr(ratelimit, "RULES", [("ip-minute", 1, 60)])
+    client.post("/api/scan", json={"url": "example.az", "fresh": True})
+    r = client.post("/api/scan", json={"url": "example.az", "fresh": True})
+    assert r.status_code == 429 and r.headers["retry-after"] == "60"
+
+
+def test_security_txt_follows_rfc_9116():
+    import datetime
+    for path in ("/.well-known/security.txt", "/security.txt"):
+        r = client.get(path)
+        assert r.status_code == 200 and r.headers["content-type"].startswith("text/plain")
+        fields = dict(line.split(": ", 1) for line in r.text.strip().splitlines())
+        assert fields["Contact"].startswith(("https://", "mailto:"))
+        expires = datetime.datetime.strptime(fields["Expires"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.UTC)
+        days = (expires - datetime.datetime.now(datetime.UTC)).days
+        assert 30 < days < 365
+
+
+def test_hsts_covers_subdomains():
+    r = client.get("/", headers={"x-forwarded-proto": "https"})
+    assert "includeSubDomains" in r.headers["strict-transport-security"]
+
+
 def test_fresh_works_in_every_language(reset):
     for lang in ("az", "en", "ru"):
         r = client.post("/api/scan", json={"url": "example.az", "lang": lang, "fresh": True})

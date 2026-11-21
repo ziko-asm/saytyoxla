@@ -90,6 +90,8 @@ class HeadAsGet:
 app.add_middleware(HeadAsGet)
 
 limiter = ratelimit.Limiter.from_env()
+# Private vulnerability reports go to GitHub's advisory form; set SECURITY_CONTACT (mailto: or https:) to change it.
+SECURITY_CONTACT = os.getenv("SECURITY_CONTACT", "https://github.com/ziko-asm/saytyoxla/security/advisories/new")
 _cache: OrderedDict[str, tuple[float, dict]] = OrderedDict()
 _lock = threading.Lock()
 
@@ -119,6 +121,12 @@ async def http_error(request: Request, exc: StarletteHTTPException):
     if exc.status_code == 404 and not path.startswith(("/api/", "/static/", "/react/")):
         return HTMLResponse(pages.not_found(path), status_code=404)
     return await http_exception_handler(request, exc)
+
+
+def too_many_scans(lang: str) -> HTTPException:
+    """429 with Retry-After, so scripts and browsers know when to try again (RFC 9110 section 10.2.3)."""
+    return HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang),
+                         headers={"Retry-After": "60"})
 
 
 def client_ip(request: Request) -> str:
@@ -198,7 +206,7 @@ async def security_headers(request: Request, call_next):
         "font-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
         "base-uri 'self'; form-action 'self'; object-src 'none'")
     if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https":
-        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
 
 
@@ -353,7 +361,7 @@ def scan(req: ScanRequest, request: Request):
         return JSONResponse({**i18n.report(hit, lang), "cached": True, "benchmarks": survey.benchmarks(), "benchmark_sites": survey.sample_size()})
 
     if not limiter.allow(client_ip(request)):
-        raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
+        raise too_many_scans(lang)
     try:
         report = scanner.scan(req.url).to_dict()
     except UnsafeTarget as e:
@@ -381,7 +389,7 @@ def tool(req: ToolRequest, request: Request):
     if hit:
         return JSONResponse({**i18n.report(hit, lang), "cached": True, "benchmarks": survey.benchmarks(), "benchmark_sites": survey.sample_size()})
     if not limiter.allow(client_ip(request)):
-        raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
+        raise too_many_scans(lang)
     try:
         result = scanner_tools.TOOLS[req.tool](req.url)
     except UnsafeTarget as e:
@@ -410,7 +418,7 @@ def deep_scan(req: DeepRequest, request: Request):
     if hit:
         return JSONResponse({**hit, "cached": True})
     if not limiter.allow(client_ip(request), rules=ratelimit.DEEP_RULES):
-        raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
+        raise too_many_scans(lang)
     try:
         result = scanner_deep.MODULES[req.module](req.url)
     except UnsafeTarget as e:
@@ -454,7 +462,7 @@ def monitor_subscribe(req: MonitorRequest, request: Request):
     if not scanner_monitor.enabled():
         raise HTTPException(503, i18n.text("İzləmə hələ aktiv deyil.", lang))
     if not limiter.allow(client_ip(request), rules=ratelimit.DEEP_RULES):
-        raise HTTPException(429, i18n.text("Çox sayda yoxlama etdiniz. Bir dəqiqə gözləyib yenidən cəhd edin.", lang))
+        raise too_many_scans(lang)
     try:
         problem = scanner_monitor.subscribe(req.url, req.email.strip(), lang, seo.SITE_URL)
     except UnsafeTarget as e:
@@ -510,6 +518,20 @@ def monitor_tick(request: Request):
     if not scanner_monitor.enabled():
         return {"checked": 0, "sent": 0}
     return scanner_monitor.run(seo.SITE_URL)
+
+
+@app.get("/.well-known/security.txt", include_in_schema=False)
+@app.get("/security.txt", include_in_schema=False)
+def security_txt():
+    """RFC 9116: where to report a weakness. Expires is always about six months ahead, as the RFC asks
+    that it stay under a year and never lapse."""
+    expires = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() + 180 * 86400))
+    return PlainTextResponse(
+        f"Contact: {SECURITY_CONTACT}\n"
+        f"Expires: {expires}\n"
+        "Preferred-Languages: az, en, ru\n"
+        f"Canonical: {seo.SITE_URL}/.well-known/security.txt\n"
+        f"Policy: {seo.SITE_URL}/sertler/\n")
 
 
 @app.get("/.well-known/saytyoxla.txt", include_in_schema=False)
